@@ -21,3 +21,11 @@ Or at least that's what I plan on doing :)
   - [ ] Inspect the registers
   - [ ] Inspect the surrounding code/instructions
   - [ ] Breakpoints
+
+## Test Programs
+The `programs` directory contains some test programs which have been assembled
+and linked with a tool called "rsim". This was the tool I used in college when
+learning MIPS, but access to it was very restricted (only available on
+university servers, execute permissions only) and I have not found it anywhere
+online. I am using it to provide assembled binaries while my own assembler and
+linker are still in development.
