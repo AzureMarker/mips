@@ -1,0 +1,13 @@
+   1 0000               # A series of addition operations
+   2 0000               
+   3 0000               .text
+   4 0000               .globl main
+   5 0000               
+   6 0000               main:
+   7 0000 20080001		addi $t0, $zero, 1      # $t0 = 1
+   8 0004 2009000A		addi $t1, $zero, 10     # $t1 = 10
+   9 0008 01095020		add $t2, $t0, $t1      # $t2 = $t0 + $t1
+  10 000c               
+
+
+main     00000000 RG text 
