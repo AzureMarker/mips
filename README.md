@@ -6,6 +6,8 @@ Or at least that's what I plan on doing :)
   - [ ] Parse assembly code
   - [ ] Assemble code into object files
   - [ ] Link object files into final executable
+- Linker
+  - [ ] TODO: fill out goals
 - Simulator
   - [ ] Create a simulated MIPS CPU
   - [ ] Parse R instructions
