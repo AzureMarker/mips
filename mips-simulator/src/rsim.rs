@@ -1,6 +1,7 @@
 use std::io;
 use std::io::Read;
 
+const RSIM_MAGIC: u16 = 0xFACE;
 const SECTION_COUNT: usize = 10;
 
 pub struct RsimModule {
@@ -10,6 +11,7 @@ pub struct RsimModule {
 
 /// RSIM's module header
 pub struct RsimModuleHeader {
+    /// Must be `RSIM_MAGIC`
     magic: u16,
     version: u16,
     flags: u32,
@@ -38,8 +40,17 @@ impl RsimModule {
 
 impl RsimModuleHeader {
     pub fn parse<R: Read>(input: &mut R) -> io::Result<Self> {
+        let magic = read_u16(input)?;
+
+        if magic != RSIM_MAGIC {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "Invalid magic number",
+            ));
+        }
+
         Ok(Self {
-            magic: read_u16(input)?,
+            magic,
             version: read_u16(input)?,
             flags: read_u32(input)?,
             entry: read_u32(input)?,
