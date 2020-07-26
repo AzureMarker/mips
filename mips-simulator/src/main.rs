@@ -50,9 +50,8 @@ impl Processor {
             instruction.immediate()
         );
         let a = self.registers.get(instruction.s_register());
-        let immediate = instruction.immediate();
-        self.registers
-            .set(instruction.t_register(), a + immediate as u32);
+        let immediate = instruction.immediate() as u32;
+        self.registers.set(instruction.t_register(), a | immediate);
     }
 }
 
