@@ -2,6 +2,6 @@ mod constants;
 mod instruction;
 mod processor;
 mod registers;
-mod rsim;
+pub mod rsim;
 
 pub use {instruction::*, processor::*, registers::*};
