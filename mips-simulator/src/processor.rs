@@ -1,4 +1,4 @@
-use crate::constants::{FUNCTION_ADD, OP_ORI, OP_R_TYPE};
+use crate::constants::{FUNCTION_ADD, FUNCTION_BREAK, OP_ORI, OP_R_TYPE};
 use crate::instruction::Instruction;
 use crate::registers::Registers;
 
@@ -19,6 +19,7 @@ impl Processor {
         match instruction.op_code() {
             OP_R_TYPE => match instruction.function() {
                 FUNCTION_ADD => self.add(instruction),
+                FUNCTION_BREAK => self.break_fn(instruction),
                 function => panic!("Unknown R-type function 0x{:02x}", function),
             },
             OP_ORI => self.ori(instruction),
@@ -36,6 +37,11 @@ impl Processor {
         let a = self.registers.get(instruction.s_register());
         let b = self.registers.get(instruction.t_register());
         self.registers.set(instruction.d_register(), a + b);
+    }
+
+    fn break_fn(&self, _instruction: Instruction) {
+        println!("Executing a break instruction");
+        // TODO: actually handle exceptions
     }
 
     fn ori(&mut self, instruction: Instruction) {
