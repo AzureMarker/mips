@@ -12,7 +12,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let mut processor = Processor::new();
     processor.load_into_memory(module.text_section(), module.header.entry);
-    processor.program_counter = module.header.entry;
+    processor.set_entry(module.header.entry);
 
     while processor.running {
         processor.step();

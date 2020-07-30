@@ -7,8 +7,9 @@ use crate::registers::Registers;
 #[derive(Debug)]
 pub struct Processor {
     registers: Registers,
-    pub program_counter: u32,
-    memory: Vec<u8>,
+    program_counter: u32,
+    next_program_counter: u32,
+    memory: Memory,
     pub running: bool,
 }
 
@@ -18,6 +19,7 @@ impl Processor {
             registers: Registers::new(),
             memory: Memory::new(),
             program_counter: 0,
+            next_program_counter: 4,
             running: true,
         }
     }
@@ -26,11 +28,16 @@ impl Processor {
         self.memory.load_into_memory(data, offset);
     }
 
+    pub fn set_entry(&mut self, address: u32) {
+        self.program_counter = address;
+        self.next_program_counter = address + 4;
+    }
+
     pub fn step(&mut self) {
         let instruction = self.load_next_instruction();
         println!("{:08x?}", instruction);
         self.execute(instruction);
-        self.program_counter += 1;
+        self.advance_program_counter();
         println!("{:#08x?}", self);
     }
 
@@ -42,11 +49,16 @@ impl Processor {
         Instruction(u32::from_be_bytes(bytes))
     }
 
+    fn advance_program_counter(&mut self) {
+        self.program_counter = self.next_program_counter;
+        self.next_program_counter += 4;
+    }
+
     pub fn execute(&mut self, instruction: Instruction) {
         match instruction.op_code() {
             OP_R_TYPE => match instruction.function() {
                 FUNCTION_ADD => self.add(instruction),
-                FUNCTION_BREAK => self.break_fn(instruction),
+                FUNCTION_BREAK => self.break_fn(),
                 function => panic!("Unknown R-type function 0x{:02x}", function),
             },
             OP_ORI => self.ori(instruction),
@@ -66,7 +78,7 @@ impl Processor {
         self.registers.set(instruction.d_register(), a + b);
     }
 
-    fn break_fn(&mut self, _instruction: Instruction) {
+    fn break_fn(&mut self) {
         println!("Executing a break instruction");
         self.running = false;
     }
