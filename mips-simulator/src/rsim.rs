@@ -5,17 +5,18 @@ const RSIM_MAGIC: u16 = 0xFACE;
 const SECTION_COUNT: usize = 10;
 
 pub struct RsimModule {
-    header: RsimModuleHeader,
+    pub header: RsimModuleHeader,
     sections: Vec<Vec<u8>>,
 }
 
 /// RSIM's module header
+#[derive(Debug)]
 pub struct RsimModuleHeader {
     /// Must be `RSIM_MAGIC`
     magic: u16,
-    version: u16,
-    flags: u32,
-    entry: u32,
+    pub version: u16,
+    pub flags: u32,
+    pub entry: u32,
     section_sizes: Vec<u32>,
 }
 

@@ -8,21 +8,14 @@ fn main() -> Result<(), Box<dyn Error>> {
     let file_path = env::args().nth(1).expect("Must provide a file argument");
     let file_data = fs::read(file_path)?;
     let module = RsimModule::parse(&mut Cursor::new(file_data))?;
+    println!("Loaded module with header: {:?}", module.header);
 
     let mut processor = Processor::new();
-    let instructions: Vec<_> = module
-        .text_section()
-        .chunks_exact(4)
-        .map(|chunk| {
-            let chunk: [u8; 4] = [chunk[0], chunk[1], chunk[2], chunk[3]];
-            Instruction(u32::from_be_bytes(chunk))
-        })
-        .collect();
+    processor.load_into_memory(module.text_section(), module.header.entry);
+    processor.program_counter = module.header.entry;
 
-    for instruction in instructions {
-        println!("{:08x?}", instruction);
-        processor.execute(instruction);
-        println!("{:#08x?}", processor);
+    while processor.running {
+        processor.step();
     }
 
     Ok(())
