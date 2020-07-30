@@ -1,5 +1,5 @@
 use mips_simulator::rsim::RsimModule;
-use mips_simulator::{Instruction, Processor};
+use mips_simulator::Processor;
 use std::error::Error;
 use std::io::Cursor;
 use std::{env, fs};

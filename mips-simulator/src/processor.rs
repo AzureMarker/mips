@@ -8,7 +8,7 @@ pub struct Processor {
     registers: Registers,
     pub program_counter: u32,
     memory: Vec<u8>,
-    pub running: bool
+    pub running: bool,
 }
 
 impl Processor {
@@ -18,7 +18,7 @@ impl Processor {
             // 1MB of memory
             memory: vec![0; 1024 * 1024],
             program_counter: 0,
-            running: true
+            running: true,
         }
     }
 
@@ -68,9 +68,9 @@ impl Processor {
         self.registers.set(instruction.d_register(), a + b);
     }
 
-    fn break_fn(&self, _instruction: Instruction) {
+    fn break_fn(&mut self, _instruction: Instruction) {
         println!("Executing a break instruction");
-        // TODO: actually handle exceptions
+        self.running = false;
     }
 
     fn ori(&mut self, instruction: Instruction) {
