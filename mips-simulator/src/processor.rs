@@ -1,5 +1,6 @@
 use crate::constants::{FUNCTION_ADD, FUNCTION_BREAK, OP_ORI, OP_R_TYPE};
 use crate::instruction::Instruction;
+use crate::memory::Memory;
 use crate::registers::Registers;
 
 /// A MIPS processor
@@ -15,17 +16,14 @@ impl Processor {
     pub fn new() -> Self {
         Processor {
             registers: Registers::new(),
-            // 1MB of memory
-            memory: vec![0; 1024 * 1024],
+            memory: Memory::new(),
             program_counter: 0,
             running: true,
         }
     }
 
     pub fn load_into_memory(&mut self, data: &[u8], offset: u32) {
-        for (i, byte) in data.iter().enumerate() {
-            self.memory[offset as usize + i] = *byte;
-        }
+        self.memory.load_into_memory(data, offset);
     }
 
     pub fn step(&mut self) {
@@ -37,8 +35,8 @@ impl Processor {
     }
 
     fn load_next_instruction(&self) -> Instruction {
-        let pc = self.program_counter as usize;
-        let bytes = &self.memory[pc..(pc + 4)];
+        let pc = self.program_counter;
+        let bytes = &self.memory.get_range(pc..(pc + 4));
         let bytes: [u8; 4] = [bytes[0], bytes[1], bytes[2], bytes[3]];
 
         Instruction(u32::from_be_bytes(bytes))
