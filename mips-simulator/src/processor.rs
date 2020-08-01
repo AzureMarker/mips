@@ -1,6 +1,6 @@
 use crate::constants::{
-    FUNCTION_ADD, FUNCTION_BREAK, OP_JAL, OP_LW, OP_ORI, OP_R_TYPE, REG_RA, REG_SP, STACK_START,
-    TEXT_OFFSET,
+    FUNCTION_ADD, FUNCTION_BREAK, FUNCTION_SLL, OP_JAL, OP_LW, OP_ORI, OP_R_TYPE, REG_RA, REG_SP,
+    STACK_START, TEXT_OFFSET,
 };
 use crate::instruction::Instruction;
 use crate::memory::Memory;
@@ -58,6 +58,7 @@ impl Processor {
     pub fn execute(&mut self, instruction: Instruction) {
         match instruction.op_code() {
             OP_R_TYPE => match instruction.function() {
+                FUNCTION_SLL => self.op_sll(instruction),
                 FUNCTION_ADD => self.op_add(instruction),
                 FUNCTION_BREAK => self.op_break(),
                 function => panic!("Unknown R-type function 0x{:02x}", function),
@@ -69,9 +70,27 @@ impl Processor {
         }
     }
 
+    fn op_sll(&mut self, instruction: Instruction) {
+        if instruction.t_register() == 0 {
+            println!("noop");
+            self.advance_program_counter();
+            return;
+        }
+
+        println!(
+            "sll ${}, ${}, {}",
+            instruction.d_register(),
+            instruction.s_register(),
+            instruction.shift_amount()
+        );
+        let value = self.registers.get(instruction.s_register()) << instruction.shift_amount();
+        self.registers.set(instruction.d_register(), value);
+        self.advance_program_counter()
+    }
+
     fn op_add(&mut self, instruction: Instruction) {
         println!(
-            "add {}, {}, {}",
+            "add ${}, ${}, ${}",
             instruction.d_register(),
             instruction.s_register(),
             instruction.t_register()
@@ -99,7 +118,7 @@ impl Processor {
 
     fn op_ori(&mut self, instruction: Instruction) {
         println!(
-            "ori {}, {}, {}",
+            "ori ${}, ${}, {}",
             instruction.t_register(),
             instruction.s_register(),
             instruction.immediate()
