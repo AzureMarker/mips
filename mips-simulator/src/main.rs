@@ -12,6 +12,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let mut processor = Processor::new();
     processor.text_segment(module.text_section());
+    processor.read_only_data_segment(module.read_only_data_section());
     processor.set_entry(module.header.entry);
 
     while processor.running {

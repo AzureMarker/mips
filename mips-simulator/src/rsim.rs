@@ -37,6 +37,10 @@ impl RsimModule {
     pub fn text_section(&self) -> &[u8] {
         &self.sections[0]
     }
+
+    pub fn read_only_data_section(&self) -> &[u8] {
+        &self.sections[1]
+    }
 }
 
 impl RsimModuleHeader {

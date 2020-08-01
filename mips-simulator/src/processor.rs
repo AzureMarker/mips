@@ -1,6 +1,6 @@
 use crate::constants::{
     FUNCTION_ADD, FUNCTION_BREAK, FUNCTION_SLL, OP_JAL, OP_LW, OP_ORI, OP_R_TYPE, REG_RA, REG_SP,
-    STACK_START, TEXT_OFFSET,
+    R_DATA_OFFSET, STACK_START, TEXT_OFFSET,
 };
 use crate::instruction::Instruction;
 use crate::memory::Memory;
@@ -31,6 +31,10 @@ impl Processor {
 
     pub fn text_segment(&mut self, data: &[u8]) {
         self.memory.load_into_memory(data, TEXT_OFFSET);
+    }
+
+    pub fn read_only_data_segment(&mut self, data: &[u8]) {
+        self.memory.load_into_memory(data, R_DATA_OFFSET);
     }
 
     pub fn set_entry(&mut self, address: u32) {
