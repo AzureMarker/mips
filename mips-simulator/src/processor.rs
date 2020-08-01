@@ -3,6 +3,7 @@ use crate::constants::{
     R_DATA_OFFSET, STACK_START, TEXT_OFFSET,
 };
 use crate::instruction::Instruction;
+use crate::math::add_unsigned;
 use crate::memory::Memory;
 use crate::registers::Registers;
 
@@ -122,7 +123,7 @@ impl Processor {
 
     fn op_ori(&mut self, instruction: Instruction) {
         println!(
-            "ori ${}, ${}, {}",
+            "ori ${}, ${}, 0x{:x}",
             instruction.t_register(),
             instruction.s_register(),
             instruction.immediate()
@@ -143,7 +144,7 @@ impl Processor {
         let s_address = self.registers.get(instruction.s_register());
         let value = self
             .memory
-            .get_word(s_address + instruction.immediate() as u32);
+            .get_word(add_unsigned(s_address, instruction.immediate() as i32));
         self.registers.set(instruction.t_register(), value);
         self.advance_program_counter();
     }

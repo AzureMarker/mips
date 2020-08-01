@@ -49,8 +49,8 @@ impl Instruction {
     }
 
     /// Get the immediate value (for I type instructions)
-    pub fn immediate(&self) -> u16 {
-        (self.0 & 0x0000FFFF) as u16
+    pub fn immediate(&self) -> i16 {
+        (self.0 & 0x0000FFFF) as i16
     }
 
     /// Get the pseudo address (for J type instructions)
