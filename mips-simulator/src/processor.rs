@@ -1,5 +1,6 @@
 use crate::constants::{
-    FUNCTION_ADD, FUNCTION_BREAK, OP_ORI, OP_R_TYPE, REG_SP, STACK_START, TEXT_OFFSET,
+    FUNCTION_ADD, FUNCTION_BREAK, OP_JAL, OP_LW, OP_ORI, OP_R_TYPE, REG_RA, REG_SP, STACK_START,
+    TEXT_OFFSET,
 };
 use crate::instruction::Instruction;
 use crate::memory::Memory;
@@ -41,17 +42,12 @@ impl Processor {
         let instruction = self.load_next_instruction();
         println!("{:08x?}", instruction);
         self.execute(instruction);
-        self.advance_program_counter();
         println!("{:#08x?}", self);
     }
 
     fn load_next_instruction(&self) -> Instruction {
         println!("Loading instruction at 0x{:x}", self.program_counter);
-        let pc = self.program_counter;
-        let bytes = &self.memory.get_range(pc..(pc + 4));
-        let bytes: [u8; 4] = [bytes[0], bytes[1], bytes[2], bytes[3]];
-
-        Instruction(u32::from_be_bytes(bytes))
+        Instruction(self.memory.get_word(self.program_counter))
     }
 
     fn advance_program_counter(&mut self) {
@@ -62,16 +58,18 @@ impl Processor {
     pub fn execute(&mut self, instruction: Instruction) {
         match instruction.op_code() {
             OP_R_TYPE => match instruction.function() {
-                FUNCTION_ADD => self.add(instruction),
-                FUNCTION_BREAK => self.break_fn(),
+                FUNCTION_ADD => self.op_add(instruction),
+                FUNCTION_BREAK => self.op_break(),
                 function => panic!("Unknown R-type function 0x{:02x}", function),
             },
-            OP_ORI => self.ori(instruction),
+            OP_JAL => self.op_jal(instruction),
+            OP_ORI => self.op_ori(instruction),
+            OP_LW => self.op_lw(instruction),
             op_code => panic!("Unknown op code 0x{:02x}", op_code),
         }
     }
 
-    fn add(&mut self, instruction: Instruction) {
+    fn op_add(&mut self, instruction: Instruction) {
         println!(
             "add {}, {}, {}",
             instruction.d_register(),
@@ -81,14 +79,25 @@ impl Processor {
         let a = self.registers.get(instruction.s_register());
         let b = self.registers.get(instruction.t_register());
         self.registers.set(instruction.d_register(), a + b);
+        self.advance_program_counter();
     }
 
-    fn break_fn(&mut self) {
+    fn op_break(&mut self) {
         println!("Executing a break instruction");
+        self.advance_program_counter();
         self.running = false;
     }
 
-    fn ori(&mut self, instruction: Instruction) {
+    fn op_jal(&mut self, instruction: Instruction) {
+        self.registers.set(REG_RA, self.program_counter + 8);
+        let jump_address =
+            (0xF0000000 & (self.program_counter + 4)) | (instruction.pseudo_address() << 2);
+        println!("jal 0x{:x}", jump_address);
+        self.program_counter = self.next_program_counter;
+        self.next_program_counter = jump_address;
+    }
+
+    fn op_ori(&mut self, instruction: Instruction) {
         println!(
             "ori {}, {}, {}",
             instruction.t_register(),
@@ -98,5 +107,21 @@ impl Processor {
         let a = self.registers.get(instruction.s_register());
         let immediate = instruction.immediate() as u32;
         self.registers.set(instruction.t_register(), a | immediate);
+        self.advance_program_counter();
+    }
+
+    fn op_lw(&mut self, instruction: Instruction) {
+        println!(
+            "lw ${}, {}(${})",
+            instruction.t_register(),
+            instruction.immediate(),
+            instruction.s_register()
+        );
+        let s_address = self.registers.get(instruction.s_register());
+        let value = self
+            .memory
+            .get_word(s_address + instruction.immediate() as u32);
+        self.registers.set(instruction.t_register(), value);
+        self.advance_program_counter();
     }
 }

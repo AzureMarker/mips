@@ -39,6 +39,12 @@ impl Memory {
         bytes
     }
 
+    pub fn get_word(&self, address: u32) -> u32 {
+        let bytes = self.get_range(address..(address + 4));
+        let bytes = [bytes[0], bytes[1], bytes[2], bytes[3]];
+        u32::from_be_bytes(bytes)
+    }
+
     pub fn insert(&mut self, address: u32, value: u8) {
         let page_index = self.page_index(address);
         let address_offset = self.address_offset(address);
