@@ -1,6 +1,6 @@
 use crate::constants::{
-    FUNCTION_ADD, FUNCTION_BREAK, FUNCTION_SLL, OP_JAL, OP_LW, OP_ORI, OP_R_TYPE, REG_RA, REG_SP,
-    R_DATA_OFFSET, STACK_START, TEXT_OFFSET,
+    FUNCTION_ADD, FUNCTION_BREAK, FUNCTION_SLL, OP_ADDI, OP_JAL, OP_LW, OP_ORI, OP_R_TYPE, REG_RA,
+    REG_SP, R_DATA_OFFSET, STACK_START, TEXT_OFFSET,
 };
 use crate::instruction::Instruction;
 use crate::math::add_unsigned;
@@ -69,6 +69,7 @@ impl Processor {
                 function => panic!("Unknown R-type function 0x{:02x}", function),
             },
             OP_JAL => self.op_jal(instruction),
+            OP_ADDI => self.op_addi(instruction),
             OP_ORI => self.op_ori(instruction),
             OP_LW => self.op_lw(instruction),
             op_code => panic!("Unknown op code 0x{:02x}", op_code),
@@ -119,6 +120,21 @@ impl Processor {
         println!("jal 0x{:x}", jump_address);
         self.program_counter = self.next_program_counter;
         self.next_program_counter = jump_address;
+    }
+
+    fn op_addi(&mut self, instruction: Instruction) {
+        println!(
+            "addi ${}, ${}, {}",
+            instruction.t_register(),
+            instruction.s_register(),
+            instruction.immediate()
+        );
+        let value = add_unsigned(
+            self.registers.get(instruction.s_register()),
+            instruction.immediate() as i32,
+        );
+        self.registers.set(instruction.t_register(), value);
+        self.advance_program_counter()
     }
 
     fn op_ori(&mut self, instruction: Instruction) {
