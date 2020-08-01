@@ -45,7 +45,7 @@ impl Memory {
         u32::from_be_bytes(bytes)
     }
 
-    pub fn insert(&mut self, address: u32, value: u8) {
+    pub fn set(&mut self, address: u32, value: u8) {
         let page_index = self.page_index(address);
         let address_offset = self.address_offset(address);
         let page = self
@@ -56,9 +56,15 @@ impl Memory {
         page[address_offset] = value;
     }
 
+    pub fn set_word(&mut self, address: u32, value: u32) {
+        for (i, byte) in value.to_be_bytes().iter().enumerate() {
+            self.set(address + i as u32, *byte);
+        }
+    }
+
     pub fn load_into_memory(&mut self, data: &[u8], offset: u32) {
         for (i, byte) in data.iter().enumerate() {
-            self.insert(offset + i as u32, *byte);
+            self.set(offset + i as u32, *byte);
         }
     }
 
