@@ -1,6 +1,6 @@
 use crate::constants::{
-    FUNCTION_ADD, FUNCTION_ADDU, FUNCTION_BREAK, FUNCTION_SLL, OP_ADDI, OP_JAL, OP_LUI, OP_LW,
-    OP_ORI, OP_R_TYPE, OP_SW, REG_RA, REG_SP, R_DATA_OFFSET, STACK_START, TEXT_OFFSET,
+    FUNCTION_ADD, FUNCTION_ADDU, FUNCTION_BREAK, FUNCTION_SLL, OP_ADDI, OP_BEQ, OP_JAL, OP_LUI,
+    OP_LW, OP_ORI, OP_R_TYPE, OP_SW, REG_RA, REG_SP, R_DATA_OFFSET, STACK_START, TEXT_OFFSET,
 };
 use crate::instruction::Instruction;
 use crate::math::add_unsigned;
@@ -70,6 +70,7 @@ impl Processor {
                 function => panic!("Unknown R-type function 0x{:02x}", function),
             },
             OP_JAL => self.op_jal(instruction),
+            OP_BEQ => self.op_beq(instruction),
             OP_ADDI => self.op_addi(instruction),
             OP_ORI => self.op_ori(instruction),
             OP_LUI => self.op_lui(instruction),
@@ -140,6 +141,27 @@ impl Processor {
         println!("jal 0x{:x}", jump_address);
         self.program_counter = self.next_program_counter;
         self.next_program_counter = jump_address;
+    }
+
+    fn op_beq(&mut self, instruction: Instruction) {
+        let offset = (instruction.immediate() as i32) << 2;
+        let jump_address = add_unsigned(self.next_program_counter, offset);
+        println!(
+            "beq ${}, ${}, 0x{:x}",
+            instruction.s_register(),
+            instruction.t_register(),
+            jump_address
+        );
+
+        let s_value = self.registers.get(instruction.s_register());
+        let t_value = self.registers.get(instruction.t_register());
+
+        if s_value == t_value {
+            self.program_counter = self.next_program_counter;
+            self.next_program_counter = jump_address;
+        } else {
+            self.advance_program_counter();
+        }
     }
 
     fn op_addi(&mut self, instruction: Instruction) {
