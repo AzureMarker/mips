@@ -77,7 +77,7 @@ impl Processor {
     }
 
     fn op_sll(&mut self, instruction: Instruction) {
-        if instruction.t_register() == 0 {
+        if instruction.0 == 0 {
             println!("noop");
             self.advance_program_counter();
             return;
@@ -86,10 +86,10 @@ impl Processor {
         println!(
             "sll ${}, ${}, {}",
             instruction.d_register(),
-            instruction.s_register(),
+            instruction.t_register(),
             instruction.shift_amount()
         );
-        let value = self.registers.get(instruction.s_register()) << instruction.shift_amount();
+        let value = self.registers.get(instruction.t_register()) << instruction.shift_amount();
         self.registers.set(instruction.d_register(), value);
         self.advance_program_counter()
     }
