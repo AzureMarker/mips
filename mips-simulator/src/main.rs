@@ -11,7 +11,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     println!("Loaded module with header: {:?}", module.header);
 
     let mut processor = Processor::new();
-    processor.load_into_memory(module.text_section(), module.header.entry);
+    processor.text_segment(module.text_section());
     processor.set_entry(module.header.entry);
 
     while processor.running {

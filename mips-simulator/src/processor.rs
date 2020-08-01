@@ -1,4 +1,6 @@
-use crate::constants::{FUNCTION_ADD, FUNCTION_BREAK, OP_ORI, OP_R_TYPE};
+use crate::constants::{
+    FUNCTION_ADD, FUNCTION_BREAK, OP_ORI, OP_R_TYPE, REG_SP, STACK_START, TEXT_OFFSET,
+};
 use crate::instruction::Instruction;
 use crate::memory::Memory;
 use crate::registers::Registers;
@@ -15,17 +17,19 @@ pub struct Processor {
 
 impl Processor {
     pub fn new() -> Self {
-        Processor {
+        let mut processor = Processor {
             registers: Registers::new(),
             memory: Memory::new(),
             program_counter: 0,
             next_program_counter: 4,
             running: true,
-        }
+        };
+        processor.registers.set(REG_SP, STACK_START);
+        processor
     }
 
-    pub fn load_into_memory(&mut self, data: &[u8], offset: u32) {
-        self.memory.load_into_memory(data, offset);
+    pub fn text_segment(&mut self, data: &[u8]) {
+        self.memory.load_into_memory(data, TEXT_OFFSET);
     }
 
     pub fn set_entry(&mut self, address: u32) {
@@ -42,6 +46,7 @@ impl Processor {
     }
 
     fn load_next_instruction(&self) -> Instruction {
+        println!("Loading instruction at 0x{:x}", self.program_counter);
         let pc = self.program_counter;
         let bytes = &self.memory.get_range(pc..(pc + 4));
         let bytes: [u8; 4] = [bytes[0], bytes[1], bytes[2], bytes[3]];
