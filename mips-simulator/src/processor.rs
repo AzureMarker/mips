@@ -1,6 +1,6 @@
 use crate::constants::{
-    FUNCTION_ADD, FUNCTION_BREAK, FUNCTION_SLL, OP_ADDI, OP_JAL, OP_LUI, OP_LW, OP_ORI, OP_R_TYPE,
-    OP_SW, REG_RA, REG_SP, R_DATA_OFFSET, STACK_START, TEXT_OFFSET,
+    FUNCTION_ADD, FUNCTION_ADDU, FUNCTION_BREAK, FUNCTION_SLL, OP_ADDI, OP_JAL, OP_LUI, OP_LW,
+    OP_ORI, OP_R_TYPE, OP_SW, REG_RA, REG_SP, R_DATA_OFFSET, STACK_START, TEXT_OFFSET,
 };
 use crate::instruction::Instruction;
 use crate::math::add_unsigned;
@@ -65,6 +65,7 @@ impl Processor {
             OP_R_TYPE => match instruction.function() {
                 FUNCTION_SLL => self.op_sll(instruction),
                 FUNCTION_ADD => self.op_add(instruction),
+                FUNCTION_ADDU => self.op_addu(instruction),
                 FUNCTION_BREAK => self.op_break(),
                 function => panic!("Unknown R-type function 0x{:02x}", function),
             },
@@ -107,6 +108,22 @@ impl Processor {
         let b = self.registers.get(instruction.t_register());
         self.registers
             .set(instruction.d_register(), a.wrapping_add(b));
+        self.advance_program_counter();
+    }
+
+    fn op_addu(&mut self, instruction: Instruction) {
+        println!(
+            "addu ${}, ${}, ${}",
+            instruction.d_register(),
+            instruction.s_register(),
+            instruction.t_register()
+        );
+        let a = self.registers.get(instruction.s_register());
+        let b = self.registers.get(instruction.t_register());
+        let value = a
+            .checked_add(b)
+            .unwrap_or_else(|| panic!("Overflow in addu"));
+        self.registers.set(instruction.d_register(), value);
         self.advance_program_counter();
     }
 

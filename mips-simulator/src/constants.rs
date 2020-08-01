@@ -8,6 +8,7 @@ pub const OP_SW: u8 = 0x2B;
 
 pub const FUNCTION_SLL: u8 = 0x00;
 pub const FUNCTION_ADD: u8 = 0x20;
+pub const FUNCTION_ADDU: u8 = 0x21;
 pub const FUNCTION_BREAK: u8 = 0x0D;
 
 /// The stack pointer register
