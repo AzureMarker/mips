@@ -8,7 +8,7 @@ pub const FUNCTION_ADD: u8 = 0x20;
 pub const FUNCTION_BREAK: u8 = 0x0D;
 
 /// The stack pointer register
-pub const REG_SP: u8 = 27;
+pub const REG_SP: u8 = 29;
 pub const REG_RA: u8 = 31;
 
 /// The top of the stack
