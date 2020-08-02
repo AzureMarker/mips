@@ -25,9 +25,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut processor = Processor::new(Config {
         disable_delay_slots: args.disable_delay_slots,
     });
-    processor.text_segment(module.text_section());
-    processor.read_only_data_segment(module.read_only_data_section());
-    processor.set_entry(module.header.entry);
+    processor.load_rsim_module(&module);
 
     while processor.running {
         processor.step();

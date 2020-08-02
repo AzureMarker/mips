@@ -24,5 +24,4 @@ pub const SYSCALL_PRINT_STR: u32 = 4;
 /// The top of the stack
 pub const STACK_START: u32 = 0x7fffe4d8;
 pub const TEXT_OFFSET: u32 = 0x400000;
-/// The read-only data segment offset
-pub const R_DATA_OFFSET: u32 = 0x10000000;
+pub const DATA_OFFSET: u32 = 0x10000000;

@@ -1,12 +1,13 @@
 use crate::config::Config;
 use crate::constants::{
-    FUNCTION_ADD, FUNCTION_ADDU, FUNCTION_BREAK, FUNCTION_SLL, FUNCTION_SYSCALL, OP_ADDI, OP_BEQ,
-    OP_JAL, OP_LUI, OP_LW, OP_ORI, OP_R_TYPE, OP_SW, REG_SP, R_DATA_OFFSET, STACK_START,
+    DATA_OFFSET, FUNCTION_ADD, FUNCTION_ADDU, FUNCTION_BREAK, FUNCTION_SLL, FUNCTION_SYSCALL,
+    OP_ADDI, OP_BEQ, OP_JAL, OP_LUI, OP_LW, OP_ORI, OP_R_TYPE, OP_SW, REG_SP, STACK_START,
     TEXT_OFFSET,
 };
 use crate::instruction::Instruction;
 use crate::memory::Memory;
 use crate::registers::Registers;
+use crate::rsim::RsimModule;
 
 /// A MIPS processor
 #[derive(Debug)]
@@ -33,15 +34,24 @@ impl Processor {
         processor
     }
 
-    pub fn text_segment(&mut self, data: &[u8]) {
-        self.memory.load_into_memory(data, TEXT_OFFSET);
+    pub fn load_rsim_module(&mut self, module: &RsimModule) {
+        self.memory
+            .load_into_memory(module.text_section(), TEXT_OFFSET);
+
+        let mut data_offset = DATA_OFFSET;
+        self.memory
+            .load_into_memory(module.read_only_data_section(), DATA_OFFSET);
+        data_offset += module.read_only_data_section().len() as u32;
+        self.memory
+            .load_into_memory(module.data_section(), data_offset);
+        data_offset += module.data_section().len() as u32;
+        self.memory
+            .load_into_memory(module.small_data_section(), data_offset);
+
+        self.set_entry(module.header.entry);
     }
 
-    pub fn read_only_data_segment(&mut self, data: &[u8]) {
-        self.memory.load_into_memory(data, R_DATA_OFFSET);
-    }
-
-    pub fn set_entry(&mut self, address: u32) {
+    fn set_entry(&mut self, address: u32) {
         self.program_counter = address;
         self.next_program_counter = address + 4;
     }
