@@ -3,7 +3,7 @@ use crate::Processor;
 
 impl Processor {
     pub(crate) fn op_syscall(&mut self) {
-        println!("syscall");
+        debug!("syscall");
 
         let operation = self.registers.get(REG_V0);
 

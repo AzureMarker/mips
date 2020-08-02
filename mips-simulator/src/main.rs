@@ -7,6 +7,9 @@ use std::io::Cursor;
 use std::path::PathBuf;
 use structopt::StructOpt;
 
+#[macro_use]
+extern crate log;
+
 #[derive(StructOpt)]
 struct CliArgs {
     #[structopt(long)]
@@ -17,10 +20,11 @@ struct CliArgs {
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
+    env_logger::init();
     let args = CliArgs::from_args();
     let file_data = fs::read(&args.file_path)?;
     let module = RsimModule::parse(&mut Cursor::new(file_data))?;
-    println!("Loaded module with header: {:?}", module.header);
+    info!("Loaded module with header: {:?}", module.header);
 
     let mut processor = Processor::new(Config {
         disable_delay_slots: args.disable_delay_slots,

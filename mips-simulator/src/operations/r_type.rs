@@ -4,12 +4,12 @@ use crate::Processor;
 impl Processor {
     pub(crate) fn op_sll(&mut self, instruction: Instruction) {
         if instruction.0 == 0 {
-            println!("noop");
+            debug!("noop");
             self.advance_program_counter();
             return;
         }
 
-        println!(
+        debug!(
             "sll ${}, ${}, {}",
             instruction.d_register(),
             instruction.t_register(),
@@ -21,13 +21,13 @@ impl Processor {
     }
 
     pub(crate) fn op_break(&mut self) {
-        println!("Executing a break instruction");
+        debug!("break");
         self.advance_program_counter();
         self.running = false;
     }
 
     pub(crate) fn op_add(&mut self, instruction: Instruction) {
-        println!(
+        debug!(
             "add ${}, ${}, ${}",
             instruction.d_register(),
             instruction.s_register(),
@@ -41,7 +41,7 @@ impl Processor {
     }
 
     pub(crate) fn op_addu(&mut self, instruction: Instruction) {
-        println!(
+        debug!(
             "addu ${}, ${}, ${}",
             instruction.d_register(),
             instruction.s_register(),

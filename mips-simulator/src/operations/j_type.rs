@@ -7,7 +7,7 @@ impl Processor {
         self.registers.set(REG_RA, self.program_counter + 8);
         let jump_address =
             (0xF0000000 & (self.program_counter + 4)) | (instruction.pseudo_address() << 2);
-        println!("jal 0x{:x}", jump_address);
+        debug!("jal 0x{:x}", jump_address);
 
         if self.config.disable_delay_slots {
             self.next_program_counter = jump_address;

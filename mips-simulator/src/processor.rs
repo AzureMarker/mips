@@ -58,13 +58,13 @@ impl Processor {
 
     pub fn step(&mut self) {
         let instruction = self.load_next_instruction();
-        println!("{:08x?}", instruction);
+        trace!("{:08x?}", instruction);
         self.execute(instruction);
-        println!("{:#08x?}", self);
+        trace!("{:#08x?}", self);
     }
 
     fn load_next_instruction(&self) -> Instruction {
-        println!("Loading instruction at 0x{:x}", self.program_counter);
+        trace!("Loading instruction at 0x{:x}", self.program_counter);
         Instruction(self.memory.get_word(self.program_counter))
     }
 

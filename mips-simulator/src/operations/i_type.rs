@@ -6,7 +6,7 @@ impl Processor {
     pub(crate) fn op_beq(&mut self, instruction: Instruction) {
         let offset = (instruction.immediate() as i32) << 2;
         let jump_address = add_unsigned(self.next_program_counter, offset);
-        println!(
+        debug!(
             "beq ${}, ${}, 0x{:x}",
             instruction.s_register(),
             instruction.t_register(),
@@ -30,7 +30,7 @@ impl Processor {
     }
 
     pub(crate) fn op_addi(&mut self, instruction: Instruction) {
-        println!(
+        debug!(
             "addi ${}, ${}, {}",
             instruction.t_register(),
             instruction.s_register(),
@@ -45,7 +45,7 @@ impl Processor {
     }
 
     pub(crate) fn op_ori(&mut self, instruction: Instruction) {
-        println!(
+        debug!(
             "ori ${}, ${}, 0x{:x}",
             instruction.t_register(),
             instruction.s_register(),
@@ -58,7 +58,7 @@ impl Processor {
     }
 
     pub(crate) fn op_lui(&mut self, instruction: Instruction) {
-        println!(
+        debug!(
             "lui ${}, 0x{:x}",
             instruction.t_register(),
             instruction.immediate()
@@ -69,7 +69,7 @@ impl Processor {
     }
 
     pub(crate) fn op_lw(&mut self, instruction: Instruction) {
-        println!(
+        debug!(
             "lw ${}, {}(${})",
             instruction.t_register(),
             instruction.immediate(),
@@ -84,7 +84,7 @@ impl Processor {
     }
 
     pub(crate) fn op_sw(&mut self, instruction: Instruction) {
-        println!(
+        debug!(
             "sw ${}, {}(${})",
             instruction.t_register(),
             instruction.immediate(),
