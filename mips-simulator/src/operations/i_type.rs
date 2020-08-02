@@ -44,6 +44,23 @@ impl Processor {
         self.advance_program_counter()
     }
 
+    pub(crate) fn op_slti(&mut self, instruction: Instruction) {
+        debug!(
+            "slti ${}, ${}, {}",
+            instruction.t_register(),
+            instruction.s_register(),
+            instruction.immediate()
+        );
+        let s = self.registers.get(instruction.s_register()) as i32;
+        let value = if s < instruction.immediate() as i32 {
+            1
+        } else {
+            0
+        };
+        self.registers.set(instruction.t_register(), value);
+        self.advance_program_counter();
+    }
+
     pub(crate) fn op_ori(&mut self, instruction: Instruction) {
         debug!(
             "ori ${}, ${}, 0x{:x}",

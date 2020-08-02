@@ -2,6 +2,7 @@ pub const OP_R_TYPE: u8 = 0;
 pub const OP_JAL: u8 = 0x03;
 pub const OP_BEQ: u8 = 0x04;
 pub const OP_ADDI: u8 = 0x08;
+pub const OP_SLTI: u8 = 0x0A;
 pub const OP_ORI: u8 = 0x0D;
 pub const OP_LUI: u8 = 0x0F;
 pub const OP_LW: u8 = 0x23;
