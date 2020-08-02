@@ -22,6 +22,7 @@ pub const REG_A0: u8 = 4;
 pub const REG_SP: u8 = 29;
 pub const REG_RA: u8 = 31;
 
+pub const SYSCALL_PRINT_INT: u32 = 1;
 pub const SYSCALL_PRINT_STR: u32 = 4;
 pub const SYSCALL_READ_INT: u32 = 5;
 
