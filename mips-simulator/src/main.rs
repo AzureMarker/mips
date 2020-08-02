@@ -35,5 +35,5 @@ fn main() -> Result<(), Box<dyn Error>> {
         processor.step();
     }
 
-    Ok(())
+    std::process::exit(processor.return_code);
 }

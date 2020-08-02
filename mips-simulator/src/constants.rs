@@ -25,6 +25,7 @@ pub const REG_RA: u8 = 31;
 pub const SYSCALL_PRINT_INT: u32 = 1;
 pub const SYSCALL_PRINT_STR: u32 = 4;
 pub const SYSCALL_READ_INT: u32 = 5;
+pub const SYSCALL_EXIT2: u32 = 17;
 
 /// The top of the stack
 pub const STACK_START: u32 = 0x7fffe4d8;

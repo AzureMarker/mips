@@ -18,6 +18,7 @@ pub struct Processor {
     pub(crate) memory: Memory,
     pub(crate) config: Config,
     pub running: bool,
+    pub return_code: i32,
 }
 
 impl Processor {
@@ -29,6 +30,7 @@ impl Processor {
             next_program_counter: 4,
             config,
             running: true,
+            return_code: 0,
         };
         processor.registers.set(REG_SP, STACK_START);
         processor

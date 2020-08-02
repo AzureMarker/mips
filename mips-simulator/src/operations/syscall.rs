@@ -1,4 +1,6 @@
-use crate::constants::{REG_A0, REG_V0, SYSCALL_PRINT_INT, SYSCALL_PRINT_STR, SYSCALL_READ_INT};
+use crate::constants::{
+    REG_A0, REG_V0, SYSCALL_EXIT2, SYSCALL_PRINT_INT, SYSCALL_PRINT_STR, SYSCALL_READ_INT,
+};
 use crate::Processor;
 use std::io;
 use std::io::Write;
@@ -13,6 +15,7 @@ impl Processor {
             SYSCALL_PRINT_INT => self.syscall_print_int(),
             SYSCALL_PRINT_STR => self.syscall_print_str(),
             SYSCALL_READ_INT => self.syscall_read_int(),
+            SYSCALL_EXIT2 => self.syscall_exit2(),
             _ => panic!("Unknown syscall operation {}", operation),
         }
 
@@ -20,11 +23,13 @@ impl Processor {
     }
 
     fn syscall_print_int(&mut self) {
+        trace!("PRINT_INT");
         let value = self.registers.get(REG_A0) as i32;
         Self::print(value.to_string().as_bytes());
     }
 
     fn syscall_print_str(&mut self) {
+        trace!("PRINT_STR");
         let str_address = self.registers.get(REG_A0);
         let input_str = self.memory.get_str(str_address);
 
@@ -32,6 +37,7 @@ impl Processor {
     }
 
     fn syscall_read_int(&mut self) {
+        trace!("READ_INT");
         let mut buffer = String::new();
         io::stdin()
             .read_line(&mut buffer)
@@ -42,6 +48,13 @@ impl Processor {
             .parse::<i32>()
             .expect("Input was not an integer");
         self.registers.set(REG_V0, value as u32);
+    }
+
+    fn syscall_exit2(&mut self) {
+        trace!("EXIT2");
+        self.return_code = self.registers.get(REG_A0) as i32;
+        self.running = false;
+        trace!("Exit with code {}", self.return_code);
     }
 
     fn print(value: &[u8]) {
