@@ -2,6 +2,7 @@ use crate::instruction::Instruction;
 use crate::Processor;
 
 impl Processor {
+    /// Shift left logical
     pub(crate) fn op_sll(&mut self, instruction: Instruction) {
         if instruction.0 == 0 {
             debug!("noop");
@@ -20,18 +21,21 @@ impl Processor {
         self.advance_program_counter()
     }
 
+    /// Jump register
     pub(crate) fn op_jr(&mut self, instruction: Instruction) {
         debug!("jr ${}", instruction.s_register());
         let address = self.registers.get(instruction.s_register());
         self.jump_to(address);
     }
 
+    /// Break (exceptions/debugger)
     pub(crate) fn op_break(&mut self) {
         debug!("break");
         self.advance_program_counter();
         self.running = false;
     }
 
+    /// Add (with overflow)
     pub(crate) fn op_add(&mut self, instruction: Instruction) {
         debug!(
             "add ${}, ${}, ${}",
@@ -46,6 +50,7 @@ impl Processor {
         self.advance_program_counter();
     }
 
+    /// Add unsigned (no overflow)
     pub(crate) fn op_addu(&mut self, instruction: Instruction) {
         debug!(
             "addu ${}, ${}, ${}",

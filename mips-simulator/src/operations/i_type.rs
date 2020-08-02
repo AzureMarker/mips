@@ -3,6 +3,7 @@ use crate::math::add_unsigned;
 use crate::Processor;
 
 impl Processor {
+    /// Branch on equal
     pub(crate) fn op_beq(&mut self, instruction: Instruction) {
         let offset = (instruction.immediate() as i32) << 2;
         let address = add_unsigned(self.next_program_counter, offset);
@@ -29,6 +30,7 @@ impl Processor {
         }
     }
 
+    /// Add immediate (with overflow)
     pub(crate) fn op_addi(&mut self, instruction: Instruction) {
         debug!(
             "addi ${}, ${}, {}",
@@ -44,6 +46,7 @@ impl Processor {
         self.advance_program_counter()
     }
 
+    /// Set on less than immediate (signed)
     pub(crate) fn op_slti(&mut self, instruction: Instruction) {
         debug!(
             "slti ${}, ${}, {}",
@@ -61,6 +64,7 @@ impl Processor {
         self.advance_program_counter();
     }
 
+    /// Bitwise or immediate
     pub(crate) fn op_ori(&mut self, instruction: Instruction) {
         debug!(
             "ori ${}, ${}, 0x{:x}",
@@ -74,6 +78,7 @@ impl Processor {
         self.advance_program_counter();
     }
 
+    /// Load upper immediate
     pub(crate) fn op_lui(&mut self, instruction: Instruction) {
         debug!(
             "lui ${}, 0x{:x}",
@@ -85,6 +90,7 @@ impl Processor {
         self.advance_program_counter();
     }
 
+    /// Load word
     pub(crate) fn op_lw(&mut self, instruction: Instruction) {
         debug!(
             "lw ${}, {}(${})",
@@ -100,6 +106,7 @@ impl Processor {
         self.advance_program_counter();
     }
 
+    /// Store word
     pub(crate) fn op_sw(&mut self, instruction: Instruction) {
         debug!(
             "sw ${}, {}(${})",

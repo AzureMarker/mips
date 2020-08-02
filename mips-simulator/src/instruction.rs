@@ -2,22 +2,7 @@
 #[derive(Copy, Clone, Debug)]
 pub struct Instruction(pub u32);
 
-#[derive(Debug)]
-pub enum InstructionType {
-    RType,
-    IType,
-    JType,
-}
-
 impl Instruction {
-    pub fn instruction_type(&self) -> InstructionType {
-        match self.op_code() {
-            0 => InstructionType::RType,
-            2 | 3 => InstructionType::JType,
-            _ => InstructionType::IType,
-        }
-    }
-
     /// Get the operation code
     pub fn op_code(&self) -> u8 {
         ((self.0 & 0xFC000000) >> 26) as u8

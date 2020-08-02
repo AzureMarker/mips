@@ -7,6 +7,7 @@ impl Registers {
         Registers([0; 32])
     }
 
+    /// Get the value of a register
     pub fn get(&self, register: u8) -> u32 {
         if register == 0 {
             return 0;
@@ -15,6 +16,7 @@ impl Registers {
         self.0[register as usize]
     }
 
+    /// Set the value of a register
     pub fn set(&mut self, register: u8, value: u32) {
         if register == 0 {
             return;

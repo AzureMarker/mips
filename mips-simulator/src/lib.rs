@@ -1,3 +1,7 @@
+//! A MIPS R2000 simulator
+//!
+//! Currently supports executing RSIM modules
+
 #[macro_use]
 extern crate log;
 

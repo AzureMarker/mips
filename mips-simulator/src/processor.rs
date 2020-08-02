@@ -36,6 +36,7 @@ impl Processor {
         processor
     }
 
+    /// Load an RSIM executable module into memory and prepare for execution
     pub fn load_rsim_module(&mut self, module: &RsimModule) {
         self.memory
             .load_into_memory(module.text_section(), TEXT_OFFSET);
@@ -50,14 +51,15 @@ impl Processor {
         self.memory
             .load_into_memory(module.small_data_section(), data_offset);
 
-        self.set_entry(module.header.entry);
+        self.set_program_counter(module.header.entry);
     }
 
-    fn set_entry(&mut self, address: u32) {
+    fn set_program_counter(&mut self, address: u32) {
         self.program_counter = address;
         self.next_program_counter = address + 4;
     }
 
+    /// Execute the next instruction
     pub fn step(&mut self) {
         let instruction = self.load_next_instruction();
         trace!("{:08x?}", instruction);
@@ -70,11 +72,15 @@ impl Processor {
         Instruction(self.memory.get_word(self.program_counter))
     }
 
+    /// Update the program counter with the queued address, and advance the
+    /// queued address by 4 bytes.
     pub(crate) fn advance_program_counter(&mut self) {
         self.program_counter = self.next_program_counter;
         self.next_program_counter += 4;
     }
 
+    /// Jump to an address. If delay slots are disabled, the jump is immediate.
+    /// Otherwise, the next instruction will be executed before the jump.
     pub(crate) fn jump_to(&mut self, address: u32) {
         if self.config.disable_delay_slots {
             self.next_program_counter = address;
@@ -85,6 +91,7 @@ impl Processor {
         }
     }
 
+    /// Execute an instruction
     pub fn execute(&mut self, instruction: Instruction) {
         match instruction.op_code() {
             OP_R_TYPE => match instruction.function() {
