@@ -1,5 +1,5 @@
-use crate::Processor;
 use crate::instruction::Instruction;
+use crate::Processor;
 
 impl Processor {
     pub(crate) fn op_sll(&mut self, instruction: Instruction) {

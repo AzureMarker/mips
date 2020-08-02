@@ -1,7 +1,8 @@
 use crate::config::Config;
 use crate::constants::{
-    FUNCTION_ADD, FUNCTION_ADDU, FUNCTION_BREAK, FUNCTION_SLL, OP_ADDI, OP_BEQ, OP_JAL, OP_LUI,
-    OP_LW, OP_ORI, OP_R_TYPE, OP_SW, REG_SP, R_DATA_OFFSET, STACK_START, TEXT_OFFSET,
+    FUNCTION_ADD, FUNCTION_ADDU, FUNCTION_BREAK, FUNCTION_SLL, FUNCTION_SYSCALL, OP_ADDI, OP_BEQ,
+    OP_JAL, OP_LUI, OP_LW, OP_ORI, OP_R_TYPE, OP_SW, REG_SP, R_DATA_OFFSET, STACK_START,
+    TEXT_OFFSET,
 };
 use crate::instruction::Instruction;
 use crate::memory::Memory;
@@ -66,6 +67,7 @@ impl Processor {
         match instruction.op_code() {
             OP_R_TYPE => match instruction.function() {
                 FUNCTION_SLL => self.op_sll(instruction),
+                FUNCTION_SYSCALL => self.op_syscall(),
                 FUNCTION_BREAK => self.op_break(),
                 FUNCTION_ADD => self.op_add(instruction),
                 FUNCTION_ADDU => self.op_addu(instruction),

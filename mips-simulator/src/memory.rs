@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::ffi::CString;
 use std::fmt;
 use std::fmt::{Debug, Formatter};
 use std::ops::Range;
@@ -43,6 +44,22 @@ impl Memory {
         let bytes = self.get_range(address..(address + 4));
         let bytes = [bytes[0], bytes[1], bytes[2], bytes[3]];
         u32::from_be_bytes(bytes)
+    }
+
+    pub fn get_str(&self, address: u32) -> CString {
+        let mut bytes = Vec::new();
+
+        for i in address.. {
+            let byte = self.get(i);
+
+            if byte == 0 {
+                break;
+            }
+
+            bytes.push(byte);
+        }
+
+        CString::new(bytes).unwrap()
     }
 
     pub fn set(&mut self, address: u32, value: u8) {
