@@ -1,0 +1,16 @@
+Load map
+========
+
+Module:  jal-test.obj
+ Text segment:  16 bytes, load point 0x00400000
+ Symbols:
+            Name Section Mode    Value
+            func   Text   R   0x0040000c
+            main   Text   RG  0x00400000
+
+Module:  r2k_startup.obj
+ Text segment:  36 bytes, load point 0x00400010
+ Symbols:
+            Name Section Mode    Value
+       SYS_EXIT2          A   0x00000011
+  __r2k__entry__   Text   RG  0x00400014

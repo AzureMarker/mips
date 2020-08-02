@@ -1,3 +1,4 @@
+use crate::config::Config;
 use crate::constants::{
     FUNCTION_ADD, FUNCTION_ADDU, FUNCTION_BREAK, FUNCTION_SLL, OP_ADDI, OP_BEQ, OP_JAL, OP_LUI,
     OP_LW, OP_ORI, OP_R_TYPE, OP_SW, REG_RA, REG_SP, R_DATA_OFFSET, STACK_START, TEXT_OFFSET,
@@ -14,16 +15,18 @@ pub struct Processor {
     program_counter: u32,
     next_program_counter: u32,
     memory: Memory,
+    config: Config,
     pub running: bool,
 }
 
 impl Processor {
-    pub fn new() -> Self {
+    pub fn new(config: Config) -> Self {
         let mut processor = Processor {
             registers: Registers::new(),
             memory: Memory::new(),
             program_counter: 0,
             next_program_counter: 4,
+            config,
             running: true,
         };
         processor.registers.set(REG_SP, STACK_START);
@@ -139,8 +142,14 @@ impl Processor {
         let jump_address =
             (0xF0000000 & (self.program_counter + 4)) | (instruction.pseudo_address() << 2);
         println!("jal 0x{:x}", jump_address);
-        self.program_counter = self.next_program_counter;
-        self.next_program_counter = jump_address;
+
+        if self.config.disable_delay_slots {
+            self.next_program_counter = jump_address;
+            self.advance_program_counter()
+        } else {
+            self.program_counter = self.next_program_counter;
+            self.next_program_counter = jump_address;
+        }
     }
 
     fn op_beq(&mut self, instruction: Instruction) {
@@ -157,8 +166,13 @@ impl Processor {
         let t_value = self.registers.get(instruction.t_register());
 
         if s_value == t_value {
-            self.program_counter = self.next_program_counter;
-            self.next_program_counter = jump_address;
+            if self.config.disable_delay_slots {
+                self.next_program_counter = jump_address;
+                self.advance_program_counter();
+            } else {
+                self.program_counter = self.next_program_counter;
+                self.next_program_counter = jump_address;
+            }
         } else {
             self.advance_program_counter();
         }

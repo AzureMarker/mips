@@ -1,3 +1,4 @@
+pub mod config;
 mod constants;
 mod instruction;
 mod math;

@@ -1,0 +1,13 @@
+   1 0000               	.text
+   2 0000               	.globl main
+   3 0000               main:
+   4 0000 34080001		li $t0, 1
+   5 0004 0C000003		jal func
+   6 0008 34080002		li $t0, 2
+   7 000c               
+   8 000c               func:
+   9 000c 01008820		add $s1, $t0, $zero
+
+
+func     0000000C R  text 
+main     00000000 RG text 
