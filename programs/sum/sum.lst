@@ -88,7 +88,7 @@
   70 000c 3C040000		la	$a0,array	# Pass the address of the array in a0
      0010 34840000
   71 0014 3405000A		li	$a1,MAX_SIZE	# and its max size in a1
-  72 0018 0C000050		jal	readarray
+  72 0018 0C000051		jal	readarray
   73 001c               
   74 001c               # The number of elements in the array is returned in v0
   75 001c               # store it into memory then print the array
@@ -102,7 +102,7 @@
      0030 34840000
   82 0034 0000000C		syscall
   83 0038               
-  84 0038 0C00002B		jal	parray
+  84 0038 0C00002C		jal	parray
   85 003c               
   86 003c               # Sum up the elements in the array
   87 003c               
@@ -139,124 +139,126 @@
      0094 34840000
  115 0098 0000000C		syscall			# print a newline
  116 009c               
- 117 009c 8FBF0004		lw	$ra,4($sp)	# restore the registers
- 118 00a0 8FB00000		lw	$s0,0($sp)	
- 119 00a4 23BD0008		addi	$sp,$sp,FRAMESIZE	
- 120 00a8 03E00008		jr	$ra		# return from main and exit program
- 121 00ac               
- 122 00ac               # Name:         parray
- 123 00ac               #
- 124 00ac               # Description:  prints the "size" number of integers from the 
- 125 00ac               #		array "array"
- 126 00ac               # Arguments:    none
- 127 00ac               # Returns:      none
- 128 00ac               # Destroys:     t0,t1
- 129 00ac               parray:
- 130 00ac 3C040000		la	$a0,array	# a0 is the location of the array
-     00b0 34840000
- 131 00b4 3C080000		la	$t0,size
-     00b8 35080000
- 132 00bc 8D050000		lw	$a1, 0($t0)	# a1 is the number of elements entered
- 133 00c0               
- 134 00c0 34080000		li	$t0,0		# i=0;
- 135 00c4 00804821		move	$t1,$a0		# t1 is pointer to array
- 136 00c8               pa_loop:
- 137 00c8 1105000A		beq	$t0,$a1,done	# done if i==n
- 138 00cc               
- 139 00cc 8D240000		lw	$a0,0($t1)	# get a[i]
- 140 00d0 34020001		li	$v0,PRINT_INT
- 141 00d4 0000000C		syscall			# print one int
- 142 00d8               
- 143 00d8 34020004		li	$v0,PRINT_STRING
- 144 00dc 3C040000		la	$a0,space
-     00e0 34840000
- 145 00e4 0000000C		syscall			# print a space
- 146 00e8               
- 147 00e8 21290004		addi    $t1,$t1,4       # update pointer
- 148 00ec 21080001		addi	$t0,$t0,1	# and count
- 149 00f0 08000032		j	pa_loop
- 150 00f4               done:
- 151 00f4 34020004		li	$v0,PRINT_STRING
- 152 00f8 3C040000		la	$a0,lf
-     00fc 34840000
- 153 0100 0000000C		syscall			# print a newline
- 154 0104               
- 155 0104 03E00008		jr	$ra
+ 117 009c 34020000		li	$v0,0		# set return code to 0
+ 118 00a0               
+ 119 00a0 8FBF0004		lw	$ra,4($sp)	# restore the registers
+ 120 00a4 8FB00000		lw	$s0,0($sp)	
+ 121 00a8 23BD0008		addi	$sp,$sp,FRAMESIZE	
+ 122 00ac 03E00008		jr	$ra		# return from main and exit program
+ 123 00b0               
+ 124 00b0               # Name:         parray
+ 125 00b0               #
+ 126 00b0               # Description:  prints the "size" number of integers from the 
+ 127 00b0               #		array "array"
+ 128 00b0               # Arguments:    none
+ 129 00b0               # Returns:      none
+ 130 00b0               # Destroys:     t0,t1
+ 131 00b0               parray:
+ 132 00b0 3C040000		la	$a0,array	# a0 is the location of the array
+     00b4 34840000
+ 133 00b8 3C080000		la	$t0,size
+     00bc 35080000
+ 134 00c0 8D050000		lw	$a1, 0($t0)	# a1 is the number of elements entered
+ 135 00c4               
+ 136 00c4 34080000		li	$t0,0		# i=0;
+ 137 00c8 00804821		move	$t1,$a0		# t1 is pointer to array
+ 138 00cc               pa_loop:
+ 139 00cc 1105000A		beq	$t0,$a1,done	# done if i==n
+ 140 00d0               
+ 141 00d0 8D240000		lw	$a0,0($t1)	# get a[i]
+ 142 00d4 34020001		li	$v0,PRINT_INT
+ 143 00d8 0000000C		syscall			# print one int
+ 144 00dc               
+ 145 00dc 34020004		li	$v0,PRINT_STRING
+ 146 00e0 3C040000		la	$a0,space
+     00e4 34840000
+ 147 00e8 0000000C		syscall			# print a space
+ 148 00ec               
+ 149 00ec 21290004		addi    $t1,$t1,4       # update pointer
+ 150 00f0 21080001		addi	$t0,$t0,1	# and count
+ 151 00f4 08000033		j	pa_loop
+ 152 00f8               done:
+ 153 00f8 34020004		li	$v0,PRINT_STRING
+ 154 00fc 3C040000		la	$a0,lf
+     0100 34840000
+ 155 0104 0000000C		syscall			# print a newline
  156 0108               
- 157 0108               # Name:         readnumber
- 158 0108               #
- 159 0108               # Description:  reads in a positive integers
- 160 0108               # Arguments:    none
- 161 0108               # Returns:      return the number read in (in v0)
- 162 0108               # Destroys:     none
- 163 0108               readnumber:
- 164 0108 34020004		li	$v0,PRINT_STRING
- 165 010c 3C040000		la	$a0,prompt
-     0110 34840000
- 166 0114 0000000C		syscall			# print string
- 167 0118               readloop:
- 168 0118 34020005	        li      $v0,5
- 169 011c 0000000C	        syscall
- 170 0120               
- 171 0120 28480000		slti	$t0, $v0, 0
- 172 0124 11000005		beq	$t0, $zero, goodnumber
- 173 0128 34020004		li	$v0,PRINT_STRING
- 174 012c 3C040000		la	$a0,reprompt
-     0130 34840000
- 175 0134 0000000C		syscall			# print string
- 176 0138 08000046		j	readloop
- 177 013c               
- 178 013c               goodnumber:
- 179 013c 03E00008		jr $ra
- 180 0140               
- 181 0140               # Name:         readarray
- 182 0140               #
- 183 0140               # Description:  reads in an array of integers, can read up to MAX_SIZE
- 184 0140               #		elements or until the user enters the sentinal 9999 
- 185 0140               # Arguments:    $a0 the address of the array
- 186 0140               #		$a1 the max number of elements that can be in the array
- 187 0140               # Returns:      return the number of values read in
- 188 0140               # Destroys:     t0,t1,t9
- 189 0140               readarray:
- 190 0140 23BDFFFC		addi	$sp, $sp, -4
- 191 0144 AFBF0000		sw	$ra, 0($sp)	# save ra on stack
- 192 0148 23BDFFFC		addi	$sp, $sp, -4
- 193 014c AFB00000		sw	$s0, 0($sp)	# save s0 on stack
- 194 0150 23BDFFFC		addi	$sp, $sp, -4
- 195 0154 AFB10000		sw	$s1, 0($sp)	# save s1 on stack
- 196 0158               
- 197 0158 34100000		li	$s0,0		# s0 will hold the num. of ele. entered
- 198 015c 00808821		move	$s1,$a0		# s1 is pointer to array
- 199 0160               ra_loop:
- 200 0160 12050007		beq	$s0,$a1,ra_done	# done if num_ele == max allowed
- 201 0164               
- 202 0164 0C000042		jal	readnumber
+ 157 0108 03E00008		jr	$ra
+ 158 010c               
+ 159 010c               # Name:         readnumber
+ 160 010c               #
+ 161 010c               # Description:  reads in a positive integers
+ 162 010c               # Arguments:    none
+ 163 010c               # Returns:      return the number read in (in v0)
+ 164 010c               # Destroys:     none
+ 165 010c               readnumber:
+ 166 010c 34020004		li	$v0,PRINT_STRING
+ 167 0110 3C040000		la	$a0,prompt
+     0114 34840000
+ 168 0118 0000000C		syscall			# print string
+ 169 011c               readloop:
+ 170 011c 34020005	        li      $v0,5
+ 171 0120 0000000C	        syscall
+ 172 0124               
+ 173 0124 28480000		slti	$t0, $v0, 0
+ 174 0128 11000005		beq	$t0, $zero, goodnumber
+ 175 012c 34020004		li	$v0,PRINT_STRING
+ 176 0130 3C040000		la	$a0,reprompt
+     0134 34840000
+ 177 0138 0000000C		syscall			# print string
+ 178 013c 08000047		j	readloop
+ 179 0140               
+ 180 0140               goodnumber:
+ 181 0140 03E00008		jr $ra
+ 182 0144               
+ 183 0144               # Name:         readarray
+ 184 0144               #
+ 185 0144               # Description:  reads in an array of integers, can read up to MAX_SIZE
+ 186 0144               #		elements or until the user enters the sentinal 9999 
+ 187 0144               # Arguments:    $a0 the address of the array
+ 188 0144               #		$a1 the max number of elements that can be in the array
+ 189 0144               # Returns:      return the number of values read in
+ 190 0144               # Destroys:     t0,t1,t9
+ 191 0144               readarray:
+ 192 0144 23BDFFFC		addi	$sp, $sp, -4
+ 193 0148 AFBF0000		sw	$ra, 0($sp)	# save ra on stack
+ 194 014c 23BDFFFC		addi	$sp, $sp, -4
+ 195 0150 AFB00000		sw	$s0, 0($sp)	# save s0 on stack
+ 196 0154 23BDFFFC		addi	$sp, $sp, -4
+ 197 0158 AFB10000		sw	$s1, 0($sp)	# save s1 on stack
+ 198 015c               
+ 199 015c 34100000		li	$s0,0		# s0 will hold the num. of ele. entered
+ 200 0160 00808821		move	$s1,$a0		# s1 is pointer to array
+ 201 0164               ra_loop:
+ 202 0164 12050007		beq	$s0,$a1,ra_done	# done if num_ele == max allowed
  203 0168               
- 204 0168 3419270F		li	$t9,9999	# sentinal to leave loop
- 205 016c 10590004		beq	$v0,$t9,ra_done
- 206 0170               
- 207 0170 AE220000		sw	$v0,0($s1)
+ 204 0168 0C000043		jal	readnumber
+ 205 016c               
+ 206 016c 3419270F		li	$t9,9999	# sentinal to leave loop
+ 207 0170 10590004		beq	$v0,$t9,ra_done
  208 0174               
- 209 0174 22310004		addi	$s1,$s1,4	# update pointer
- 210 0178 22100001		addi	$s0,$s0,1	# and increment the count
- 211 017c 08000058		j	ra_loop
- 212 0180               ra_done:
- 213 0180 34020004		li	$v0,PRINT_STRING
- 214 0184 3C040000		la	$a0,lf
-     0188 34840000
- 215 018c 0000000C		syscall			# print a message
- 216 0190               
- 217 0190 02001021		move	$v0,$s0		# return the number of values read in
+ 209 0174 AE220000		sw	$v0,0($s1)
+ 210 0178               
+ 211 0178 22310004		addi	$s1,$s1,4	# update pointer
+ 212 017c 22100001		addi	$s0,$s0,1	# and increment the count
+ 213 0180 08000059		j	ra_loop
+ 214 0184               ra_done:
+ 215 0184 34020004		li	$v0,PRINT_STRING
+ 216 0188 3C040000		la	$a0,lf
+     018c 34840000
+ 217 0190 0000000C		syscall			# print a message
  218 0194               
- 219 0194               
- 220 0194 8FB10000		lw      $s1, 0($sp)     # restore the s1 from the stack
- 221 0198 23BD0004		addi    $sp, $sp, 4
- 222 019c 8FB00000		lw      $s0, 0($sp)     # restore the s0 from the stack
- 223 01a0 23BD0004		addi    $sp, $sp, 4
- 224 01a4 8FBF0000		lw	$ra, 0($sp)	# restore the ra from the stack
- 225 01a8 23BD0004		addi    $sp, $sp, 4
- 226 01ac 03E00008		jr	$ra		# return execution
- 227 01b0               
+ 219 0194 02001021		move	$v0,$s0		# return the number of values read in
+ 220 0198               
+ 221 0198               
+ 222 0198 8FB10000		lw      $s1, 0($sp)     # restore the s1 from the stack
+ 223 019c 23BD0004		addi    $sp, $sp, 4
+ 224 01a0 8FB00000		lw      $s0, 0($sp)     # restore the s0 from the stack
+ 225 01a4 23BD0004		addi    $sp, $sp, 4
+ 226 01a8 8FBF0000		lw	$ra, 0($sp)	# restore the ra from the stack
+ 227 01ac 23BD0004		addi    $sp, $sp, 4
+ 228 01b0 03E00008		jr	$ra		# return execution
+ 229 01b4               
 
 
 FRAMESIZE     = 00000008   
@@ -265,18 +267,18 @@ PRINT_INT     = 00000001
 PRINT_STRING  = 00000004   
 array           00000000 R  data 
 before          00000030 R  data 
-done            000000F4 R  text 
-goodnumber      0000013C R  text 
+done            000000F8 R  text 
+goodnumber      00000140 R  text 
 lf              0000002E R  data 
 main            00000000 RG text 
-pa_loop         000000C8 R  text 
-parray          000000AC R  text 
+pa_loop         000000CC R  text 
+parray          000000B0 R  text 
 prompt          00000047 R  data 
-ra_done         00000180 R  text 
-ra_loop         00000160 R  text 
-readarray       00000140 R  text 
-readloop        00000118 R  text 
-readnumber      00000108 R  text 
+ra_done         00000184 R  text 
+ra_loop         00000164 R  text 
+readarray       00000144 R  text 
+readloop        0000011C R  text 
+readnumber      0000010C R  text 
 reprompt        00000056 R  data 
 size            00000028 R  data 
 space           0000002C R  data 

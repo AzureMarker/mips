@@ -114,6 +114,8 @@ sum_loop_end:
 	la	$a0,lf
 	syscall			# print a newline
 
+	li	$v0,0		# set return code to 0
+
 	lw	$ra,4($sp)	# restore the registers
 	lw	$s0,0($sp)	
 	addi	$sp,$sp,FRAMESIZE	

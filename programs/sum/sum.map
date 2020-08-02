@@ -2,28 +2,28 @@ Load map
 ========
 
 Module:  sum.obj
- Text segment:  432 bytes, load point 0x00400000
+ Text segment:  436 bytes, load point 0x00400000
  Data segment:  128 bytes, load point 0x10000000
  Symbols:
             Name Section Mode    Value
-          parray   Text   R   0x004000ac
-            done   Text   R   0x004000f4
-         ra_loop   Text   R   0x00400160
+          parray   Text   R   0x004000b0
+            done   Text   R   0x004000f8
+         ra_loop   Text   R   0x00400164
         sum_loop   Text   R   0x00400058
        FRAMESIZE          A   0x00000008
         reprompt   Data   R   0x10000056
-      readnumber   Text   R   0x00400108
+      readnumber   Text   R   0x0040010c
               lf   Data   R   0x1000002e
-       readarray   Text   R   0x00400140
+       readarray   Text   R   0x00400144
         MAX_SIZE          A   0x0000000a
-         pa_loop   Text   R   0x004000c8
-        readloop   Text   R   0x00400118
+         pa_loop   Text   R   0x004000cc
+        readloop   Text   R   0x0040011c
             size   Data   R   0x10000028
     PRINT_STRING          A   0x00000004
-         ra_done   Text   R   0x00400180
+         ra_done   Text   R   0x00400184
             main   Text   RG  0x00400000
            space   Data   R   0x1000002c
-      goodnumber   Text   R   0x0040013c
+      goodnumber   Text   R   0x00400140
           prompt   Data   R   0x10000047
            array   Data   R   0x10000000
        PRINT_INT          A   0x00000001
@@ -32,8 +32,8 @@ Module:  sum.obj
           before   Data   R   0x10000030
 
 Module:  r2k_startup.obj
- Text segment:  36 bytes, load point 0x004001b0
+ Text segment:  36 bytes, load point 0x004001b4
  Symbols:
             Name Section Mode    Value
        SYS_EXIT2          A   0x00000011
-  __r2k__entry__   Text   RG  0x004001b4
+  __r2k__entry__   Text   RG  0x004001b8
