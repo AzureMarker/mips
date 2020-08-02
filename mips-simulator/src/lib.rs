@@ -3,6 +3,7 @@ mod constants;
 mod instruction;
 mod math;
 mod memory;
+mod operations;
 mod processor;
 mod registers;
 pub mod rsim;
