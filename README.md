@@ -9,13 +9,13 @@ Or at least that's what I plan on doing :)
 - Linker
   - [ ] TODO: fill out goals
 - Simulator
-  - [ ] Create a simulated MIPS CPU
-  - [ ] Parse R instructions
-  - [ ] Execute R instructions
-  - [ ] Parse I instructions
-  - [ ] Execute I instructions
-  - [ ] Parse J instructions
-  - [ ] Execute J instructions
+  - [X] Create a simulated MIPS CPU
+  - [X] Parse R instructions
+  - [ ] Execute all R instructions
+  - [X] Parse I instructions
+  - [ ] Execute all I instructions
+  - [X] Parse J instructions
+  - [X] Execute all J instructions
 - Debugger
   - [ ] Drive the simulator
   - [ ] Inspect the registers
@@ -24,8 +24,9 @@ Or at least that's what I plan on doing :)
 
 ## Test Programs
 The `programs` directory contains some test programs which have been assembled
-and linked with a tool called "rsim". This was the tool I used in college when
-learning MIPS, but access to it was very restricted (only available on
-university servers, execute permissions only) and I have not found it anywhere
-online. I am using it to provide assembled binaries while my own assembler and
-linker are still in development.
+and linked with a MIPS toolchain I refer to as "rsim" (the assember is "rasm",
+the linker is "rlink", the simulator is "rsim", and the debugger is "rbug").
+This was the tool I used in college when learning MIPS, but access to it was
+very restricted (only available on university servers, execute permissions only)
+ and I have not found it anywhere online. I am using it to provide assembled
+ binaries while my own assembler and linker are still in development.
