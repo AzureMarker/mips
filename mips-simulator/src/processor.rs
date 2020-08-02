@@ -1,8 +1,8 @@
 use crate::config::Config;
 use crate::constants::{
-    DATA_OFFSET, FUNCTION_ADD, FUNCTION_ADDU, FUNCTION_BREAK, FUNCTION_SLL, FUNCTION_SYSCALL,
-    OP_ADDI, OP_BEQ, OP_J, OP_JAL, OP_LUI, OP_LW, OP_ORI, OP_R_TYPE, OP_SLTI, OP_SW, REG_SP,
-    STACK_START, TEXT_OFFSET,
+    DATA_OFFSET, FUNCTION_ADD, FUNCTION_ADDU, FUNCTION_BREAK, FUNCTION_JR, FUNCTION_SLL,
+    FUNCTION_SYSCALL, OP_ADDI, OP_BEQ, OP_J, OP_JAL, OP_LUI, OP_LW, OP_ORI, OP_R_TYPE, OP_SLTI,
+    OP_SW, REG_SP, STACK_START, TEXT_OFFSET,
 };
 use crate::instruction::Instruction;
 use crate::memory::Memory;
@@ -73,10 +73,21 @@ impl Processor {
         self.next_program_counter += 4;
     }
 
+    pub(crate) fn jump_to(&mut self, address: u32) {
+        if self.config.disable_delay_slots {
+            self.next_program_counter = address;
+            self.advance_program_counter()
+        } else {
+            self.program_counter = self.next_program_counter;
+            self.next_program_counter = address;
+        }
+    }
+
     pub fn execute(&mut self, instruction: Instruction) {
         match instruction.op_code() {
             OP_R_TYPE => match instruction.function() {
                 FUNCTION_SLL => self.op_sll(instruction),
+                FUNCTION_JR => self.op_jr(instruction),
                 FUNCTION_SYSCALL => self.op_syscall(),
                 FUNCTION_BREAK => self.op_break(),
                 FUNCTION_ADD => self.op_add(instruction),

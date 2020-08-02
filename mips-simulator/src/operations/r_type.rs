@@ -20,6 +20,12 @@ impl Processor {
         self.advance_program_counter()
     }
 
+    pub(crate) fn op_jr(&mut self, instruction: Instruction) {
+        debug!("jr ${}", instruction.s_register());
+        let address = self.registers.get(instruction.s_register());
+        self.jump_to(address);
+    }
+
     pub(crate) fn op_break(&mut self) {
         debug!("break");
         self.advance_program_counter();

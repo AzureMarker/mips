@@ -10,6 +10,7 @@ pub const OP_LW: u8 = 0x23;
 pub const OP_SW: u8 = 0x2B;
 
 pub const FUNCTION_SLL: u8 = 0x00;
+pub const FUNCTION_JR: u8 = 0x08;
 pub const FUNCTION_SYSCALL: u8 = 0x0C;
 pub const FUNCTION_BREAK: u8 = 0x0D;
 pub const FUNCTION_ADD: u8 = 0x20;
