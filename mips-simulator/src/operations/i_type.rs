@@ -5,12 +5,12 @@ use crate::Processor;
 impl Processor {
     pub(crate) fn op_beq(&mut self, instruction: Instruction) {
         let offset = (instruction.immediate() as i32) << 2;
-        let jump_address = add_unsigned(self.next_program_counter, offset);
+        let address = add_unsigned(self.next_program_counter, offset);
         debug!(
             "beq ${}, ${}, 0x{:x}",
             instruction.s_register(),
             instruction.t_register(),
-            jump_address
+            address
         );
 
         let s_value = self.registers.get(instruction.s_register());
@@ -18,11 +18,11 @@ impl Processor {
 
         if s_value == t_value {
             if self.config.disable_delay_slots {
-                self.next_program_counter = jump_address;
+                self.next_program_counter = address;
                 self.advance_program_counter();
             } else {
                 self.program_counter = self.next_program_counter;
-                self.next_program_counter = jump_address;
+                self.next_program_counter = address;
             }
         } else {
             self.advance_program_counter();

@@ -1,4 +1,5 @@
 pub const OP_R_TYPE: u8 = 0;
+pub const OP_J: u8 = 0x02;
 pub const OP_JAL: u8 = 0x03;
 pub const OP_BEQ: u8 = 0x04;
 pub const OP_ADDI: u8 = 0x08;

@@ -1,8 +1,8 @@
 use crate::config::Config;
 use crate::constants::{
     DATA_OFFSET, FUNCTION_ADD, FUNCTION_ADDU, FUNCTION_BREAK, FUNCTION_SLL, FUNCTION_SYSCALL,
-    OP_ADDI, OP_BEQ, OP_JAL, OP_LUI, OP_LW, OP_ORI, OP_R_TYPE, OP_SLTI, OP_SW, REG_SP, STACK_START,
-    TEXT_OFFSET,
+    OP_ADDI, OP_BEQ, OP_J, OP_JAL, OP_LUI, OP_LW, OP_ORI, OP_R_TYPE, OP_SLTI, OP_SW, REG_SP,
+    STACK_START, TEXT_OFFSET,
 };
 use crate::instruction::Instruction;
 use crate::memory::Memory;
@@ -83,6 +83,7 @@ impl Processor {
                 FUNCTION_ADDU => self.op_addu(instruction),
                 function => panic!("Unknown R-type function 0x{:02x}", function),
             },
+            OP_J => self.op_j(instruction),
             OP_JAL => self.op_jal(instruction),
             OP_BEQ => self.op_beq(instruction),
             OP_ADDI => self.op_addi(instruction),
