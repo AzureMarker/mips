@@ -11,7 +11,12 @@ impl Processor {
     }
 
     pub(crate) fn op_jal(&mut self, instruction: Instruction) {
-        self.registers.set(REG_RA, self.program_counter + 8);
+        let offset = if self.config.disable_delay_slots {
+            4
+        } else {
+            8
+        };
+        self.registers.set(REG_RA, self.program_counter + offset);
         let address = self.parse_pseudo_address(instruction.pseudo_address());
         debug!("jal 0x{:x}", address);
 
