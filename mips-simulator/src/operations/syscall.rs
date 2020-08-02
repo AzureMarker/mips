@@ -38,8 +38,8 @@ impl Processor {
 
         let value = buffer
             .trim()
-            .parse::<u32>()
+            .parse::<i32>()
             .expect("Input was not an integer");
-        self.registers.set(REG_V0, value);
+        self.registers.set(REG_V0, value as u32);
     }
 }
