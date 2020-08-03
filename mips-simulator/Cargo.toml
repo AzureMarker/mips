@@ -4,7 +4,11 @@ version = "0.1.0"
 authors = ["Mark Drobnak <mark.drobnak@gmail.com>"]
 edition = "2018"
 
+[[bin]]
+name = "mips-simulator"
+required-features = ["env_logger", "structopt"]
+
 [dependencies]
-structopt = "0.3"
+env_logger = { version = "0.7", optional = true }
 log = "0.4"
-env_logger = "0.7"
+structopt = { version = "0.3", optional = true }

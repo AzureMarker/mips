@@ -1,0 +1,8 @@
+[package]
+name = "mips-debugger"
+version = "0.1.0"
+authors = ["Mark Drobnak <mark.drobnak@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+mips-simulator = { path = "../mips-simulator" }
