@@ -1,0 +1,342 @@
+   1 0000               # MIPS program to stress-test simulators - version 4; tests 0-7 working.
+   2 0000               # if all is well, $s0 = 0; $s1 = 1; $s2 = 2; $s3 = 3; $s4 = 4; $s5 = 5;
+   3 0000               # $s6 = 6; $s7 = 7
+   4 0000               # 
+   5 0000               # This program tests all "required" instructions in the SPIM simulator
+   6 0000               # project.  Used in CPS 104, Spring 2003.
+   7 0000               #
+   8 0000               # Taken from http://robotics.duke.edu/courses/cps104/spring05/homework/torture.s
+   9 0000               
+  10 0000               	.data				# Begin data segment
+  11 0000 00000000	var1:	.word 0				# first memory variable
+  12 0004 00000000	var2:	.word 0				# second memory variable
+  13 0008 00000000	var3:	.word 0,0			# make sure var3 holds two words
+     000c 00000000
+  14 0010               					#   consecutively
+  15 0000               	.text				# Begin code segment
+  16 0000               	.globl main			# first instr must be global
+  17 0000               
+  18 0000               ###################### BEGIN  main #########################################
+  19 0000               
+  20 0000 27BDFFF0	main:	subu $sp,$sp,16			# set up main's stack frame:
+  21 0004               					#   need room for two args, two 
+  22 0004               					#   two callee save registers
+  23 0004 AFBF000C		sw $ra,12($sp)			# save main's return address
+  24 0008 AFBE0008		sw $fp,8($sp)			# save main's caller's frame pointer
+  25 000c 27BE000C		addu $fp,$sp,12			# establish main's frame pointer
+  26 0010               
+  27 0010               # test 0: zero register; result should be 0 in the zero register; 
+  28 0010               # $s0 = 0 if all is well at end of test
+  29 0010               
+  30 0010 20000002		addi $0,$0,2			# in this case, 0+1=0 if all is well!
+  31 0014 20100000		addi $s0,$0,0			# MOVE $0 TO $s0 ; should be 0
+  32 0018               
+  33 0018               # test 1: logical operations; 
+  34 0018               # $s1 = 1 if all is well at end of test
+  35 0018               
+  36 0018 3C085555		lui $t0,0x5555			# $t0 = 0x55555555
+  37 001c 35085555		ori $t0,$t0,0x5555
+  38 0020 3C090000		lui $t1,0x0000			# $t1 = 0x00000000
+  39 0024 35290000		ori $t1,0x0000			
+  40 0028 3C0ACCCC		lui $t2,0xCCCC			# $t2 = 0xCCCCCCCC
+  41 002c 3401CCCC		ori $t2,$t2,0xCCCC
+     0030 01415025
+  42 0034 01484025		or  $t0,$t2,$t0			# $t0 OR $t2  = 0xDDDDDDDD
+  43 0038 3C0B3333		lui $t3,0x3333			# $t3 = 0x33333333
+  44 003c 356B3333		ori $t3,$t3,0x3333
+  45 0040 01684024		and $t0,$t3,$t0			# $t0 AND $t3 = 0x11111111
+  46 0044 00084080		sll $t0,$t0,2			# $t0 = 0x44444444
+  47 0048 00084043		sra $t0,$t0,1			# $t0 = 0x22222222
+  48 004c 00084042		srl $t0,$t0,1			# $t0 = 0x11111111
+  49 0050 000840C0		sll $t0,$t0,3			# $t0 = 0x88888888
+  50 0054 00084043		sra $t0,$t0,1			# $t0 = 0xC4444444
+  51 0058 3C0FC444		lui $t7,0xC444			# $t7 = 0xC4444445
+  52 005c 35EF4445		ori $t7,0x4445
+  53 0060 010F8826		xor $s1,$t0,$t7			#   if correct, set $s1 = 1
+  54 0064               
+  55 0064               # test 2: load/store - simple lw/sw commands
+  56 0064               # $s2 = 2 if all is well at end of test
+  57 0064               
+  58 0064               # first store two numbers in memory
+  59 0064 3C087654		lui $t0,0x7654			# $t0 = 0x76543210
+  60 0068 35083210		ori $t0,0x3210
+  61 006c 3C090000		la $t1,var1			# $t1 = &var1 (pointer to var1)
+     0070 35290000
+  62 0074 AD280000		sw $t0,0($t1)			# var1 = $t0
+  63 0078 3C0A1234		lui $t2,0x1234			# $t2 = 0x12345678
+  64 007c 354A5678		ori $t2,0x5678
+  65 0080 3C0B0000		la $t3,var2			# $t3 = &var2
+     0084 356B0000
+  66 0088 AD6A0000		sw $t2,0($t3)			# var2 = $t3
+  67 008c               # now retrieve the two numbers and add them
+  68 008c 8D2C0000		lw $t4,0($t1)			# $t4 = var1
+  69 0090 8D6D0000		lw $t5,0($t3)			# $t5 = var2
+  70 0094 018D9021		addu $s2,$t4,$t5		# $s2 = $t4 + $t5
+  71 0098 3C0F8888		lui $t7,0x8888			# $t7 = 0x88888886
+  72 009c 34018886		ori $t7,0x8886
+     00a0 01E17825
+  73 00a4 024F9022		sub $s2,$s2, $t7		#   if correct, set $s2 = 2
+  74 00a8               		
+  75 00a8               # test 3: arithmetic
+  76 00a8               # $s3 = 3 if all is well at end of test
+  77 00a8               
+  78 00a8 00004020		add $t0,$0,$0			# clear $t0
+  79 00ac 210800FF		addi $t0,$t0,0xff		# $t0 = 255
+  80 00b0 2108FF10		addi $t0,$t0,-240		# $t0 = 15
+  81 00b4 2409000F		addiu $t1,$0,15			# $t1 = 15 
+  82 00b8               
+  83 00b8 01280018		mult $t1,$t0			# $t2 = $t1*$t0 = 225
+  84 00bc 00005012		mflo $t2			
+  85 00c0 00007010		mfhi $t6			# $t6 should be 0
+  86 00c4 014E9820		add $s3,$t2,$t6			# $s3 = 225
+  87 00c8 3C094FFF		li $t1, 0x4FFFFFFF
+     00cc 3529FFFF
+  88 00d0 02690018		mult $s3, $t1
+  89 00d4 00004812		mflo $t1			# $t1 = 0x4FFFFF1F
+  90 00d8 00005010		mfhi $t2			# $t2 = 0x00000046
+  91 00dc 012A9820		add $s3,$t1,$t2			# $s3 = 0x4FFFFF65
+  92 00e0 3C084FFF		li $t0, 0x4FFFFF62
+     00e4 3508FF62
+  93 00e8 02689823		subu $s3,$s3,$t0		# $s3 = 3
+  94 00ec               		
+  95 00ec               # test 4: jumping
+  96 00ec               # $s4 = 4 if all is well at end of test
+  97 00ec               
+  98 00ec 0000A020	j_top:	add $s4,$0,$0			# clear $s4
+  99 00f0 0800003E		j j_skip1
+ 100 00f4 22940011	j_bad1:	addi $s4,$s4,17			# should not happen!
+ 101 00f8 22940001	j_skip1:addi $s4,$s4,1			# $s4 = 1 now if all is well
+ 102 00fc 3C080000		la $t0,j_skip2			# $t0 is pointer to j_skip2
+     0100 3508010C
+ 103 0104 01000008		jr $t0				# jump to j_skip2
+ 104 0108 22940017	j_bad2:	addi $s4,$s4,23			# should not happen!
+ 105 010c 22940001	j_skip2:addi $s4,$s4,1			# $s4 = 2 now if all is well
+ 106 0110 0C0000CD		jal inc_s4 			# $s4 = 3 now if all is well on return
+ 107 0114 0C0000CD		jal inc_s4			# $s4 = 4 now if all is well on return
+ 108 0118               
+ 109 0118               # test 5: branching
+ 110 0118               # $s5 = 5 if all is well at end of test
+ 111 0118               
+ 112 0118 0000A820	b_top:	add $s5,$0,$0			# clear $s5
+ 113 011c 12A00001		beq $s5,$0,b_skip1		# if $s5 = 0 goto b_skip1
+ 114 0120 22B50007	b_bad1:	addi $s5,$s5,7			# should not happen!
+ 115 0124 22B50001	b_skip1:addi $s5,$s5,1			# $s5 = 1 now if all is well
+ 116 0128 2008FFFF		addi $t0,$0,-1			# $t0 = -1
+ 117 012c 05010001		bgez $t0,b_skip2		# if $t0 >= 0 goto b_skip2 (it isn't!)
+ 118 0130 22B5FFF6	b_good1:addi $s5,$s5,-10		# should do this!
+ 119 0134 22B5000B	b_skip2:addi $s5,$s5,11			# $s5 = 2 now if all is well
+ 120 0138 05000001		bltz $t0,b_skip3		# if $t0 < 0 goto b_skip 3 (it is!)
+ 121 013c 22B5000D	b_bad2:	addi $s5,$s5,13			# should not happen!
+ 122 0140 22B50001	b_skip3:addi $s5,$s5,1			# $s5 = 3 now if all is well
+ 123 0144 00004820		add  $t1,$0,$0			# clear $t1
+ 124 0148 19200001		blez $t1,b_skip4		# if $t1 <= 0 goto b_skip4 (it is!)
+ 125 014c 22B50011		addi $s5,$s5,17			# should not happen!
+ 126 0150 1D200001	b_skip4:bgtz $t1,b_skip5		# if $t1 > 0 goto b_skip5 (it isn't!)
+ 127 0154 22B5FFF2		addi $s5,$s5,-14		# should do this!
+ 128 0158 22B50010	b_skip5:addi $s5,$s5,16			# $s5 = 5 now if all is well
+ 129 015c               
+ 130 015c               # test 6: set instructions
+ 131 015c               # $s6 = 6 if all is well at end of test
+ 132 015c               
+ 133 015c 0000B020		add $s6,$0,$0			# clear $s6
+ 134 0160 2008FFF6		addi $t0,$0,-10			# $t0 = -10 ( = 0xFFFFFFF6)
+ 135 0164 20090014		addi $t1,$0,20			# $t1 = 20
+ 136 0168 0109502A		slt $t2,$t0,$t1			# $t2 = 1 if $t0 < $t1 (it is!)
+ 137 016c 02CAB020		add $s6,$s6,$t2			# $s6 = 1 now if all is well
+ 138 0170 0109582B		sltu $t3,$t0,$t1		# $t3 = 1 if $t0 < $t1 unsigned (not!)
+ 139 0174 02CBB020		add $s6,$s6,$t3			# $s6 = 1 still if all is well
+ 140 0178 290CFFFB		slti $t4,$t0,-5			# $t4 = 1 if $t0 < -5 (it is!)
+ 141 017c 02CCB020		add $s6,$s6,$t4			# $s6 = 2 now if all is well
+ 142 0180 02D6B020		add $s6, $s6, $s6
+ 143 0184 2D0DFFFB		sltiu $t5,$t0,-5		# $t5 = 1 if $t0 < -5 unsigned (yes!)
+ 144 0188               					# sltiu sign-extends but then compares
+ 145 0188               					# as unsigned; 0xFF..F6 is < 0xFF..FB
+ 146 0188 02CDB020		add $s6,$s6,$t5			# $s6 = 5 still if all is well
+ 147 018c 22D60001		add $s6,$s6,1			# $s6 = 6 if all is well
+ 148 0190               
+ 149 0190               # test 7: nonaligned load/store instructions
+ 150 0190               # $s7 = 7 if all is well at end of test
+ 151 0190               
+ 152 0190 3C081234		lui $t0,0x1234			# $t0 = 0x12345678
+ 153 0194 35085678		ori $t0,0x5678
+ 154 0198 3C099ABC		lui $t1,0x9abc			# $t1 = 0x9abcdef0
+ 155 019c 3401DEF0		ori $t1,0xdef0
+     01a0 01214825
+ 156 01a4               
+ 157 01a4 3C0A0000		la $t2,var3			# $t2 = &var3 (pointer to var3)
+     01a8 354A0000
+ 158 01ac AD480000		sw $t0,0($t2)			# var3[0] = $t0
+ 159 01b0 AD490004		sw $t1,4($t2)			# var3[1] = $t1
+ 160 01b4               
+ 161 01b4 814B0000		lb $t3,0($t2)			# $t3 = 0x00000012
+ 162 01b8 814C0001		lb $t4,1($t2)			# $t4 = 0x00000034
+ 163 01bc 814D0004		lb $t5,4($t2)			# $t5 = 0xffffff9a (sign extends)
+ 164 01c0 914E0005		lbu $t6,5($t2)			# $t6 = 0x000000bc (doesn't sign extend)
+ 165 01c4 016C5821		addu $t3, $t3, $t4
+ 166 01c8 01AE6821		addu $t5, $t5, $t6
+ 167 01cc 016DB821		addu $s7, $t3, $t5		# $s3 = 9C
+ 168 01d0 A1570001		sb $s7,1($t2)			# var3[0] = 0x129c5678
+ 169 01d4 8D570000		lw $s7,0($t2)			# $s7 = 0x129c5678 if all is well
+ 170 01d8 3C08129C		lui $t0,0x129c			# $t0 = 0x129c5671
+ 171 01dc 35085671		ori $t0,0x5671
+ 172 01e0 02E8B822		sub $s7,$s7,$t0			# $s7 = 7 if all is well
+ 173 01e4               
+ 174 01e4               # print s0 to s7
+ 175 01e4 34050000		li	$a1, 0
+ 176 01e8 02003020		add	$a2, $s0, $0
+ 177 01ec 0C0000BA		jal	printout
+ 178 01f0 34050001		li	$a1, 1
+ 179 01f4 02203020		add	$a2, $s1, $0
+ 180 01f8 0C0000BA		jal	printout
+ 181 01fc 34050002		li	$a1, 2
+ 182 0200 02403020		add	$a2, $s2, $0
+ 183 0204 0C0000BA		jal	printout
+ 184 0208 34050003		li	$a1, 3
+ 185 020c 02603020		add	$a2, $s3, $0
+ 186 0210 0C0000BA		jal	printout
+ 187 0214 34050004		li	$a1, 4
+ 188 0218 02803020		add	$a2, $s4, $0
+ 189 021c 0C0000BA		jal	printout
+ 190 0220 34050005		li	$a1, 5
+ 191 0224 02A03020		add	$a2, $s5, $0
+ 192 0228 0C0000BA		jal	printout
+ 193 022c 34050006		li	$a1, 6
+ 194 0230 02C03020		add	$a2, $s6, $0
+ 195 0234 0C0000BA		jal	printout
+ 196 0238 34050007		li	$a1, 7
+ 197 023c 02E03020		add	$a2, $s7, $0
+ 198 0240 0C0000BA		jal	printout
+ 199 0244               
+ 200 0244               # test syscalls
+ 201 0244 34020004		li	$v0, 4
+ 202 0248 3C040000		la	$a0, snum
+     024c 34840000
+ 203 0250 0000000C		syscall
+ 204 0254 34020005		li	$v0, 5
+ 205 0258 0000000C		syscall			# read a number
+ 206 025c 00408820		add	$s1, $v0, $0	# store in $s1
+ 207 0260 34020004		li	$v0, 4
+ 208 0264 3C040000		la	$a0, snumo
+     0268 34840000
+ 209 026c 0000000C		syscall
+ 210 0270 34020001		li	$v0, 1
+ 211 0274 22240000		add	$a0, $s1, 0
+ 212 0278 0000000C		syscall			# print the same number
+ 213 027c 34020004		li	$v0, 4
+ 214 0280 3C040000		la	$a0, nl
+     0284 34840000
+ 215 0288 0000000C		syscall
+ 216 028c 34020004		li	$v0, 4
+ 217 0290 3C040000		la	$a0, scorr
+     0294 34840000
+ 218 0298 0000000C		syscall			# ask to input "yes/no"
+ 219 029c 3C040000	 	la	$a0, sin
+     02a0 34840000
+ 220 02a4 34020008		li	$v0, 8
+ 221 02a8 34050005		li	$a1, 5
+ 222 02ac 0000000C		syscall
+ 223 02b0 3C040000		la	$a0, sin
+     02b4 34840000
+ 224 02b8 80880001		lb	$t0, 1($a0)
+ 225 02bc 34090065		li	$t1, 101
+ 226 02c0 15090004		bne	$t0, $t1, exit	# if the second char is "e"
+ 227 02c4 34020004		li	$v0, 4
+ 228 02c8 3C040000		la	$a0, sgood
+     02cc 34840000
+ 229 02d0 0000000C		syscall			# then print "good"
+ 230 02d4               		
+ 231 02d4               # prepare to exit program
+ 232 02d4               exit:	
+ 233 02d4 8FBF000C	        lw $ra,12($sp)                  # restore return address
+ 234 02d8 8FBE0008	        lw $fp,8($sp)                   # restore frame pointer address
+ 235 02dc 27BD0010	        addu $sp,$sp,16			# pop main's stack frame
+ 236 02e0 3402000A		li $v0, 10			# setup for exit syscall
+ 237 02e4 0000000C		syscall				# exec syscall
+ 238 02e8               
+ 239 02e8               printout:
+ 240 02e8 34020004		li	$v0, 4
+ 241 02ec 3C040000		la	$a0, ss
+     02f0 34840000
+ 242 02f4 0000000C		syscall
+ 243 02f8 34020001		li	$v0, 1
+ 244 02fc 00A02020		add	$a0, $a1, $0
+ 245 0300 0000000C		syscall
+ 246 0304 34020004		li	$v0, 4
+ 247 0308 3C040000		la	$a0, sis
+     030c 34840000
+ 248 0310 0000000C		syscall
+ 249 0314 34020001		li	$v0, 1
+ 250 0318 00C02020		add	$a0, $a2, $0
+ 251 031c 0000000C		syscall
+ 252 0320 34020004		li	$v0, 4
+ 253 0324 3C040000		la	$a0, nl
+     0328 34840000
+ 254 032c 0000000C		syscall
+ 255 0330 03E00008		jr	$ra
+ 256 0334               
+ 257 0334               ##################### END MAIN ###########################################
+ 258 0334               
+ 259 0334               # inc_s4: Leaf procedure, called from jump test to verify call/return
+ 260 0334               # behavior.  Increments $s4 once.
+ 261 0334               
+ 262 0334 22940001	inc_s4: addi $s4,$s4,1
+ 263 0338 03E00008		jr $ra
+ 264 033c               
+ 265 0010               	.data
+ 266 0010 0A00    	nl:	.asciiz "\n"
+ 267 0012 7300    	ss:	.asciiz "s"
+ 268 0014 3D00    	sis:	.asciiz "="
+ 269 0016 0000    	sin:	.word 0, 0, 0, 0
+     0018 00000000
+     001c 00000000
+     0020 00000000
+     0024 00000000
+ 270 0028 41726520	scorr:	.asciiz "Are they correct? (yes/no)"
+          74686579
+          20636F72
+          72656374
+          3F202879
+          65732F6E
+ 271 0043 476F6F64	sgood:	.asciiz "Good!\n"
+          210A00  
+ 272 004a 496E7075	snum:	.asciiz "Input a number: "
+          74206120
+          6E756D62
+          65723A20
+          00      
+ 273 005b 54686520	snumo:	.asciiz "The number is: "
+          6E756D62
+          65722069
+          733A2000
+ 274 006b               
+
+
+b_bad1      00000120 R  text 
+b_bad2      0000013C R  text 
+b_good1     00000130 R  text 
+b_skip1     00000124 R  text 
+b_skip2     00000134 R  text 
+b_skip3     00000140 R  text 
+b_skip4     00000150 R  text 
+b_skip5     00000158 R  text 
+b_top       00000118 R  text 
+exit        000002D4 R  text 
+inc_s4      00000334 R  text 
+j_bad1      000000F4 R  text 
+j_bad2      00000108 R  text 
+j_skip1     000000F8 R  text 
+j_skip2     0000010C R  text 
+j_top       000000EC R  text 
+main        00000000 RG text 
+nl          00000010 R  data 
+printout    000002E8 R  text 
+scorr       00000028 R  data 
+sgood       00000043 R  data 
+sin         00000018 R  data 
+sis         00000014 R  data 
+snum        0000004A R  data 
+snumo       0000005B R  data 
+ss          00000012 R  data 
+var1        00000000 R  data 
+var2        00000004 R  data 
+var3        00000008 R  data 

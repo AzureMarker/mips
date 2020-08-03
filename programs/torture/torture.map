@@ -1,0 +1,44 @@
+Load map
+========
+
+Module:  torture.obj
+ Text segment:  828 bytes, load point 0x00400000
+ Data segment:  112 bytes, load point 0x10000000
+ Symbols:
+            Name Section Mode    Value
+           snumo   Data   R   0x1000005b
+             sin   Data   R   0x10000018
+         b_skip1   Text   R   0x00400124
+         b_skip2   Text   R   0x00400134
+           sgood   Data   R   0x10000043
+         b_skip3   Text   R   0x00400140
+         b_skip4   Text   R   0x00400150
+             sis   Data   R   0x10000014
+         b_skip5   Text   R   0x00400158
+              ss   Data   R   0x10000012
+        printout   Text   R   0x004002e8
+         j_skip1   Text   R   0x004000f8
+         j_skip2   Text   R   0x0040010c
+         b_good1   Text   R   0x00400130
+            exit   Text   R   0x004002d4
+           scorr   Data   R   0x10000028
+          j_bad1   Text   R   0x004000f4
+          j_bad2   Text   R   0x00400108
+           j_top   Text   R   0x004000ec
+            snum   Data   R   0x1000004a
+              nl   Data   R   0x10000010
+            main   Text   RG  0x00400000
+          b_bad1   Text   R   0x00400120
+          b_bad2   Text   R   0x0040013c
+           b_top   Text   R   0x00400118
+          inc_s4   Text   R   0x00400334
+            var1   Data   R   0x10000000
+            var2   Data   R   0x10000004
+            var3   Data   R   0x10000008
+
+Module:  r2k_startup.obj
+ Text segment:  36 bytes, load point 0x0040033c
+ Symbols:
+            Name Section Mode    Value
+       SYS_EXIT2          A   0x00000011
+  __r2k__entry__   Text   RG  0x00400340
