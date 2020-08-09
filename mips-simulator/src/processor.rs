@@ -67,7 +67,7 @@ impl Processor {
         trace!("{:#08x?}", self);
     }
 
-    fn load_next_instruction(&self) -> Instruction {
+    pub fn load_next_instruction(&self) -> Instruction {
         trace!("Loading instruction at 0x{:x}", self.program_counter);
         Instruction(self.memory.get_word(self.program_counter))
     }

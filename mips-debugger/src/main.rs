@@ -36,15 +36,29 @@ fn main() -> Result<(), Box<dyn Error>> {
     });
     processor.load_rsim_module(&module);
     info!("Loaded processor with code");
+    let mut trace = false;
 
     loop {
         print!("mips-debugger> ");
         io::stdout().flush()?;
         let mut input = String::new();
         io::stdin().read_line(&mut input)?;
+        let input: Vec<_> = input.trim().split(' ').collect();
 
-        match input.trim() {
-            "exit" => break,
+        match input.as_slice() {
+            ["trace", enabled] => match *enabled {
+                "on" => trace = true,
+                "off" => trace = false,
+                _ => println!("Unknown input"),
+            },
+            ["step"] | ["s"] => {
+                if trace {
+                    info!("{:?}", processor.load_next_instruction());
+                }
+
+                processor.step()
+            }
+            ["exit"] => break,
             _ => println!("Unknown input"),
         }
     }
