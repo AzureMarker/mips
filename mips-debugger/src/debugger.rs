@@ -14,6 +14,7 @@ impl Debugger {
             ["trace", enabled] => self.set_trace(*enabled),
             ["step"] | ["s"] => self.step(),
             ["exit"] | ["quit"] => self.processor.running = false,
+            [""] => {} // Ignore empty input
             _ => eprintln!("Unknown input"),
         }
     }
