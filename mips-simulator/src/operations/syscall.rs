@@ -8,8 +8,6 @@ use std::io::Write;
 impl Processor {
     /// Handle a syscall operation
     pub(crate) fn op_syscall(&mut self) {
-        debug!("syscall");
-
         match self.registers.get(REG_V0) {
             SYSCALL_PRINT_INT => self.syscall_print_int(),
             SYSCALL_PRINT_STR => self.syscall_print_str(),

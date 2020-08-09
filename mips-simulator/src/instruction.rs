@@ -1,3 +1,8 @@
+use crate::constants::{
+    FUNCTION_ADD, FUNCTION_ADDU, FUNCTION_BREAK, FUNCTION_JR, FUNCTION_SLL, FUNCTION_SYSCALL,
+    OP_ADDI, OP_BEQ, OP_J, OP_JAL, OP_LUI, OP_LW, OP_ORI, OP_R_TYPE, OP_SLTI, OP_SW,
+};
+
 /// A MIPS instruction
 #[derive(Copy, Clone, Debug)]
 pub struct Instruction(pub u32);
@@ -41,5 +46,92 @@ impl Instruction {
     /// Get the pseudo address (for J type instructions)
     pub fn pseudo_address(&self) -> u32 {
         self.0 & 0x03FFFFFF
+    }
+
+    /// Convert the pseudo address to a full address.
+    /// The first four bits are taken from the program counter, and the lower
+    /// two bits are zeros.
+    pub fn real_address(&self, program_counter: u32) -> u32 {
+        (0xF0000000 & (program_counter + 4)) | (self.pseudo_address() << 2)
+    }
+
+    /// Decode and format the instruction
+    pub fn stringify(&self, program_counter: u32) -> String {
+        match self.op_code() {
+            OP_R_TYPE => match self.function() {
+                FUNCTION_SLL => {
+                    if self.0 == 0 {
+                        "noop".to_string()
+                    } else {
+                        format!(
+                            "sll ${}, ${}, {}",
+                            self.d_register(),
+                            self.t_register(),
+                            self.shift_amount()
+                        )
+                    }
+                }
+                FUNCTION_JR => format!("jr ${}", self.s_register()),
+                FUNCTION_SYSCALL => "syscall".to_string(),
+                FUNCTION_BREAK => "break".to_string(),
+                FUNCTION_ADD => format!(
+                    "add ${}, ${}, ${}",
+                    self.d_register(),
+                    self.s_register(),
+                    self.t_register()
+                ),
+                FUNCTION_ADDU => format!(
+                    "addu ${}, ${}, ${}",
+                    self.d_register(),
+                    self.s_register(),
+                    self.t_register()
+                ),
+                function => panic!("Unknown R-type function 0x{:02x}", function),
+            },
+            OP_J => format!("j 0x{:x}", self.real_address(program_counter)),
+            OP_JAL => format!("jal 0x{:x}", self.real_address(program_counter)),
+            OP_BEQ => format!(
+                "beq ${}, ${}, {:+}",
+                self.s_register(),
+                self.t_register(),
+                self.immediate()
+            ),
+            OP_ADDI => format!(
+                "addi ${}, ${}, {}",
+                self.t_register(),
+                self.s_register(),
+                self.immediate()
+            ),
+            OP_SLTI => format!(
+                "slti ${}, ${}, {}",
+                self.t_register(),
+                self.s_register(),
+                self.immediate()
+            ),
+            OP_ORI => format!(
+                "ori ${}, ${}, 0x{:x}",
+                self.t_register(),
+                self.s_register(),
+                self.immediate() as u16
+            ),
+            OP_LUI => format!(
+                "lui ${}, 0x{:x}",
+                self.t_register(),
+                self.immediate() as u16
+            ),
+            OP_LW => format!(
+                "lw ${}, {}(${})",
+                self.t_register(),
+                self.immediate(),
+                self.s_register()
+            ),
+            OP_SW => format!(
+                "sw ${}, {}(${})",
+                self.t_register(),
+                self.immediate(),
+                self.s_register()
+            ),
+            op_code => panic!("Unknown op code 0x{:02x}", op_code),
+        }
     }
 }

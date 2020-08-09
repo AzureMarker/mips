@@ -5,17 +5,11 @@ impl Processor {
     /// Shift left logical
     pub(crate) fn op_sll(&mut self, instruction: Instruction) {
         if instruction.0 == 0 {
-            debug!("noop");
+            // noop
             self.advance_program_counter();
             return;
         }
 
-        debug!(
-            "sll ${}, ${}, {}",
-            instruction.d_register(),
-            instruction.t_register(),
-            instruction.shift_amount()
-        );
         let value = self.registers.get(instruction.t_register()) << instruction.shift_amount();
         self.registers.set(instruction.d_register(), value);
         self.advance_program_counter()
@@ -23,26 +17,18 @@ impl Processor {
 
     /// Jump register
     pub(crate) fn op_jr(&mut self, instruction: Instruction) {
-        debug!("jr ${}", instruction.s_register());
         let address = self.registers.get(instruction.s_register());
         self.jump_to(address);
     }
 
     /// Break (exceptions/debugger)
     pub(crate) fn op_break(&mut self) {
-        debug!("break");
         self.advance_program_counter();
         self.running = false;
     }
 
     /// Add (with overflow)
     pub(crate) fn op_add(&mut self, instruction: Instruction) {
-        debug!(
-            "add ${}, ${}, ${}",
-            instruction.d_register(),
-            instruction.s_register(),
-            instruction.t_register()
-        );
         let a = self.registers.get(instruction.s_register());
         let b = self.registers.get(instruction.t_register());
         self.registers
@@ -52,12 +38,6 @@ impl Processor {
 
     /// Add unsigned (no overflow)
     pub(crate) fn op_addu(&mut self, instruction: Instruction) {
-        debug!(
-            "addu ${}, ${}, ${}",
-            instruction.d_register(),
-            instruction.s_register(),
-            instruction.t_register()
-        );
         let a = self.registers.get(instruction.s_register());
         let b = self.registers.get(instruction.t_register());
         let value = a

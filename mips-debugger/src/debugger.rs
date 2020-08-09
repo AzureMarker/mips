@@ -50,7 +50,8 @@ impl Debugger {
     /// Execute the next instruction
     fn step(&mut self) {
         if self.trace {
-            eprintln!("{:?}", self.processor.load_next_instruction());
+            let instruction = self.processor.load_next_instruction();
+            eprintln!("{}", instruction.stringify(self.processor.program_counter));
         }
 
         self.processor.step();

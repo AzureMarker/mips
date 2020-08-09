@@ -13,7 +13,7 @@ use crate::rsim::RsimModule;
 #[derive(Debug)]
 pub struct Processor {
     pub(crate) registers: Registers,
-    pub(crate) program_counter: u32,
+    pub program_counter: u32,
     pub(crate) next_program_counter: u32,
     pub(crate) memory: Memory,
     pub(crate) config: Config,
@@ -63,6 +63,7 @@ impl Processor {
     pub fn step(&mut self) {
         let instruction = self.load_next_instruction();
         trace!("{:08x?}", instruction);
+        debug!("{}", instruction.stringify(self.program_counter));
         self.execute(instruction);
         trace!("{:#08x?}", self);
     }

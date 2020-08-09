@@ -7,13 +7,6 @@ impl Processor {
     pub(crate) fn op_beq(&mut self, instruction: Instruction) {
         let offset = (instruction.immediate() as i32) << 2;
         let address = add_unsigned(self.next_program_counter, offset);
-        debug!(
-            "beq ${}, ${}, 0x{:x}",
-            instruction.s_register(),
-            instruction.t_register(),
-            address
-        );
-
         let s_value = self.registers.get(instruction.s_register());
         let t_value = self.registers.get(instruction.t_register());
 
@@ -32,12 +25,6 @@ impl Processor {
 
     /// Add immediate (with overflow)
     pub(crate) fn op_addi(&mut self, instruction: Instruction) {
-        debug!(
-            "addi ${}, ${}, {}",
-            instruction.t_register(),
-            instruction.s_register(),
-            instruction.immediate()
-        );
         let value = add_unsigned(
             self.registers.get(instruction.s_register()),
             instruction.immediate() as i32,
@@ -48,12 +35,6 @@ impl Processor {
 
     /// Set on less than immediate (signed)
     pub(crate) fn op_slti(&mut self, instruction: Instruction) {
-        debug!(
-            "slti ${}, ${}, {}",
-            instruction.t_register(),
-            instruction.s_register(),
-            instruction.immediate()
-        );
         let s = self.registers.get(instruction.s_register()) as i32;
         let value = if s < instruction.immediate() as i32 {
             1
@@ -66,12 +47,6 @@ impl Processor {
 
     /// Bitwise or immediate
     pub(crate) fn op_ori(&mut self, instruction: Instruction) {
-        debug!(
-            "ori ${}, ${}, 0x{:x}",
-            instruction.t_register(),
-            instruction.s_register(),
-            instruction.immediate()
-        );
         let a = self.registers.get(instruction.s_register());
         let immediate = instruction.immediate() as u32;
         self.registers.set(instruction.t_register(), a | immediate);
@@ -80,11 +55,6 @@ impl Processor {
 
     /// Load upper immediate
     pub(crate) fn op_lui(&mut self, instruction: Instruction) {
-        debug!(
-            "lui ${}, 0x{:x}",
-            instruction.t_register(),
-            instruction.immediate()
-        );
         let value = (instruction.immediate() as u32) << 16;
         self.registers.set(instruction.t_register(), value);
         self.advance_program_counter();
@@ -92,12 +62,6 @@ impl Processor {
 
     /// Load word
     pub(crate) fn op_lw(&mut self, instruction: Instruction) {
-        debug!(
-            "lw ${}, {}(${})",
-            instruction.t_register(),
-            instruction.immediate(),
-            instruction.s_register()
-        );
         let s_address = self.registers.get(instruction.s_register());
         let value = self
             .memory
@@ -108,12 +72,6 @@ impl Processor {
 
     /// Store word
     pub(crate) fn op_sw(&mut self, instruction: Instruction) {
-        debug!(
-            "sw ${}, {}(${})",
-            instruction.t_register(),
-            instruction.immediate(),
-            instruction.s_register()
-        );
         let s_address = self.registers.get(instruction.s_register());
         let address = add_unsigned(s_address, instruction.immediate() as i32);
         let value = self.registers.get(instruction.t_register());
