@@ -1,4 +1,6 @@
 use mips_simulator::Processor;
+use std::io;
+use std::io::Write;
 
 pub struct Debugger {
     pub processor: Processor,
@@ -6,6 +8,32 @@ pub struct Debugger {
 }
 
 impl Debugger {
+    pub fn new(processor: Processor) -> Self {
+        Self {
+            processor,
+            trace: false,
+        }
+    }
+
+    /// Run the debugger
+    pub fn run(&mut self) -> Result<(), io::Error> {
+        loop {
+            eprint!("mips-debugger> ");
+            io::stdout().flush()?;
+            let mut input = String::new();
+            io::stdin().read_line(&mut input)?;
+
+            self.run_command(&input);
+
+            if !self.processor.running {
+                break;
+            }
+        }
+
+        info!("Program exited with code {}", self.processor.return_code);
+        Ok(())
+    }
+
     /// Run a command
     pub fn run_command(&mut self, command: &str) {
         let command: Vec<&str> = command.trim().split(' ').collect();

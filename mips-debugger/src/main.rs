@@ -3,9 +3,9 @@ use mips_simulator::config::Config;
 use mips_simulator::rsim::RsimModule;
 use mips_simulator::Processor;
 use std::error::Error;
-use std::io::{Cursor, Write};
+use std::fs;
+use std::io::Cursor;
 use std::path::PathBuf;
-use std::{fs, io};
 use structopt::StructOpt;
 
 #[macro_use]
@@ -39,27 +39,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     });
     processor.load_rsim_module(&module);
     info!("Loaded processor with code");
-    let mut debugger = Debugger {
-        processor,
-        trace: false,
-    };
+    let mut debugger = Debugger::new(processor);
 
-    loop {
-        eprint!("mips-debugger> ");
-        io::stdout().flush()?;
-        let mut input = String::new();
-        io::stdin().read_line(&mut input)?;
+    debugger.run()?;
 
-        debugger.run_command(&input);
-
-        if !debugger.processor.running {
-            break;
-        }
-    }
-
-    info!(
-        "Program exited with code {}",
-        debugger.processor.return_code
-    );
     Ok(())
 }
