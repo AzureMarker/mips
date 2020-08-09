@@ -13,7 +13,7 @@ impl Debugger {
         match command.as_slice() {
             ["trace", enabled] => self.set_trace(*enabled),
             ["step"] | ["s"] => self.step(),
-            ["exit"] => self.processor.running = false,
+            ["exit"] | ["quit"] => self.processor.running = false,
             _ => eprintln!("Unknown input"),
         }
     }
