@@ -50,7 +50,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         let mut input = String::new();
         io::stdin().read_line(&mut input)?;
 
-        if !debugger.run_command(&input) {
+        debugger.run_command(&input);
+
+        if !debugger.processor.running {
             break;
         }
     }

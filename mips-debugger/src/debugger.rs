@@ -6,37 +6,39 @@ pub struct Debugger {
 }
 
 impl Debugger {
-    /// Run a command. Returns true if execution should continue, else false.
-    pub fn run_command(&mut self, command: &str) -> bool {
-        let command: Vec<_> = command.trim().split(' ').collect();
+    /// Run a command
+    pub fn run_command(&mut self, command: &str) {
+        let command: Vec<&str> = command.trim().split(' ').collect();
 
         match command.as_slice() {
-            ["trace", enabled] => match *enabled {
-                "on" => {
-                    self.trace = true;
-                    eprintln!("Instruction tracing is ON");
-                }
-                "off" => {
-                    self.trace = false;
-                    eprintln!("Instruction tracing is OFF");
-                }
-                _ => eprintln!("Unknown input"),
-            },
-            ["step"] | ["s"] => {
-                if self.trace {
-                    eprintln!("{:?}", self.processor.load_next_instruction());
-                }
-
-                self.processor.step();
-
-                if !self.processor.running {
-                    return false;
-                }
-            }
-            ["exit"] => return false,
+            ["trace", enabled] => self.set_trace(*enabled),
+            ["step"] | ["s"] => self.step(),
+            ["exit"] => self.processor.running = false,
             _ => eprintln!("Unknown input"),
         }
+    }
 
-        true
+    /// Execute the next instruction
+    fn step(&mut self) {
+        if self.trace {
+            eprintln!("{:?}", self.processor.load_next_instruction());
+        }
+
+        self.processor.step();
+    }
+
+    /// Set the trace option
+    fn set_trace(&mut self, option: &str) {
+        match option {
+            "on" => {
+                self.trace = true;
+                eprintln!("Instruction tracing is ON");
+            }
+            "off" => {
+                self.trace = false;
+                eprintln!("Instruction tracing is OFF");
+            }
+            _ => eprintln!("Unknown input"),
+        }
     }
 }
