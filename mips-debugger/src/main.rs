@@ -1,3 +1,4 @@
+use crate::debugger::Debugger;
 use mips_simulator::config::Config;
 use mips_simulator::rsim::RsimModule;
 use mips_simulator::Processor;
@@ -9,6 +10,8 @@ use structopt::StructOpt;
 
 #[macro_use]
 extern crate log;
+
+mod debugger;
 
 #[derive(StructOpt)]
 struct CliArgs {
@@ -30,39 +33,31 @@ fn main() -> Result<(), Box<dyn Error>> {
     let module = RsimModule::parse(&mut Cursor::new(file_data))?;
     info!("Loaded module with header: {:?}", module.header);
 
-    // Setup the processor
+    // Setup the processor and debugger
     let mut processor = Processor::new(Config {
         disable_delay_slots: args.disable_delay_slots,
     });
     processor.load_rsim_module(&module);
     info!("Loaded processor with code");
-    let mut trace = false;
+    let mut debugger = Debugger {
+        processor,
+        trace: false,
+    };
 
     loop {
-        print!("mips-debugger> ");
+        eprint!("mips-debugger> ");
         io::stdout().flush()?;
         let mut input = String::new();
         io::stdin().read_line(&mut input)?;
-        let input: Vec<_> = input.trim().split(' ').collect();
 
-        match input.as_slice() {
-            ["trace", enabled] => match *enabled {
-                "on" => trace = true,
-                "off" => trace = false,
-                _ => println!("Unknown input"),
-            },
-            ["step"] | ["s"] => {
-                if trace {
-                    info!("{:?}", processor.load_next_instruction());
-                }
-
-                processor.step()
-            }
-            ["exit"] => break,
-            _ => println!("Unknown input"),
+        if !debugger.run_command(&input) {
+            break;
         }
     }
 
-    info!("Program exited with code {}", processor.return_code);
+    info!(
+        "Program exited with code {}",
+        debugger.processor.return_code
+    );
     Ok(())
 }
