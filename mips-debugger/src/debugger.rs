@@ -40,6 +40,7 @@ impl Debugger {
 
         match command.as_slice() {
             ["trace", enabled] => self.set_trace(*enabled),
+            ["continue"] | ["c"] => self.continue_exec(),
             ["step"] | ["s"] => self.step(),
             ["exit"] | ["quit"] => self.processor.running = false,
             [""] => {} // Ignore empty input
@@ -55,6 +56,14 @@ impl Debugger {
         }
 
         self.processor.step();
+    }
+
+    /// Continue running until a breakpoint is hit or the program stops
+    fn continue_exec(&mut self) {
+        // TODO: implement breakpoints
+        while self.processor.running {
+            self.step();
+        }
     }
 
     /// Set the trace option
