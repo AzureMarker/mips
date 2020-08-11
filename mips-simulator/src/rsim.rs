@@ -81,7 +81,6 @@ impl RsimModuleHeader {
             flags: read_u32(input)?,
             entry: read_u32(input)?,
             section_sizes: (0..SECTION_COUNT)
-                .into_iter()
                 .map(|_| read_u32(input))
                 .collect::<io::Result<_>>()?,
         })
