@@ -3,14 +3,16 @@ use std::io;
 use std::io::Write;
 
 pub struct Debugger {
-    pub processor: Processor,
-    pub trace: bool,
+    processor: Processor,
+    breakpoints: Vec<u32>,
+    trace: bool,
 }
 
 impl Debugger {
     pub fn new(processor: Processor) -> Self {
         Self {
             processor,
+            breakpoints: Vec::new(),
             trace: false,
         }
     }
@@ -39,31 +41,38 @@ impl Debugger {
         let command: Vec<&str> = command.trim().split(' ').collect();
 
         match command.as_slice() {
-            ["trace", enabled] => self.set_trace(*enabled),
+            ["trace", enabled] => self.set_trace(enabled),
             ["continue"] | ["c"] => self.continue_exec(),
-            ["step"] | ["s"] => self.step(),
+            ["step"] | ["s"] => {
+                self.step();
+            }
+            ["breakpoint", address] | ["b", address] => self.set_breakpoint(address),
             ["exit"] | ["quit"] => self.processor.running = false,
             [""] => {} // Ignore empty input
             _ => eprintln!("Unknown input"),
         }
     }
 
-    /// Execute the next instruction
-    fn step(&mut self) {
+    /// Execute the next instruction. Return if execution should continue.
+    fn step(&mut self) -> bool {
         if self.trace {
             let instruction = self.processor.load_next_instruction();
             eprintln!("{}", instruction.stringify(self.processor.program_counter));
         }
 
         self.processor.step();
+
+        if self.breakpoints.contains(&self.processor.program_counter) {
+            eprintln!("Breakpoint hit");
+            false
+        } else {
+            self.processor.running
+        }
     }
 
     /// Continue running until a breakpoint is hit or the program stops
     fn continue_exec(&mut self) {
-        // TODO: implement breakpoints
-        while self.processor.running {
-            self.step();
-        }
+        while self.step() {}
     }
 
     /// Set the trace option
@@ -79,5 +88,18 @@ impl Debugger {
             }
             _ => eprintln!("Unknown input"),
         }
+    }
+
+    fn set_breakpoint(&mut self, address: &str) {
+        let address = address.strip_prefix("0x").unwrap_or(address);
+        let address = match u32::from_str_radix(address, 16) {
+            Ok(address) => address,
+            Err(_) => {
+                eprintln!("Invalid address");
+                return;
+            }
+        };
+
+        self.breakpoints.push(address);
     }
 }
