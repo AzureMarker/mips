@@ -57,7 +57,11 @@ impl Debugger {
     fn step(&mut self) -> bool {
         if self.trace {
             let instruction = self.processor.load_next_instruction();
-            eprintln!("{}", instruction.stringify(self.processor.program_counter));
+            eprintln!(
+                "0x{:08x}\t{}",
+                self.processor.program_counter,
+                instruction.stringify(self.processor.program_counter)
+            );
         }
 
         self.processor.step();
