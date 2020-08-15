@@ -110,50 +110,31 @@ impl Debugger {
     }
 
     fn print_registers(&self) {
-        #[rustfmt::skip]
+        static REGISTERS: [&str; 32] = [
+            "$zero", "$at", "$v0", "$v1", "$a0", "$a1", "$a2", "$a3", "$t0", "$t1", "$t2", "$t3",
+            "$t4", "$t5", "$t6", "$t7", "$s0", "$s1", "$s2", "$s3", "$s4", "$s5", "$s6", "$s7",
+            "$t8", "$t9", "$k0", "$k1", "$gp", "$sp", "$fp", "$ra",
+        ];
+
         println!(
-            "Program Counter = 0x{:08x}\n\
-             {}  = {} = 0x{:08x} {}  = {} = 0x{:08x} {} = {} = 0x{:08x} {} = {} = 0x{:08x}\n\
-             {}  = {}   = 0x{:08x} {}  = {} = 0x{:08x} {} = {} = 0x{:08x} {} = {} = 0x{:08x}\n\
-             {}  = {}   = 0x{:08x} {} = {} = 0x{:08x} {} = {} = 0x{:08x} {} = {} = 0x{:08x}\n\
-             {}  = {}   = 0x{:08x} {} = {} = 0x{:08x} {} = {} = 0x{:08x} {} = {} = 0x{:08x}\n\
-             {}  = {}   = 0x{:08x} {} = {} = 0x{:08x} {} = {} = 0x{:08x} {} = {} = 0x{:08x}\n\
-             {}  = {}   = 0x{:08x} {} = {} = 0x{:08x} {} = {} = 0x{:08x} {} = {} = 0x{:08x}\n\
-             {}  = {}   = 0x{:08x} {} = {} = 0x{:08x} {} = {} = 0x{:08x} {} = {} = 0x{:08x}\n\
-             {}  = {}   = 0x{:08x} {} = {} = 0x{:08x} {} = {} = 0x{:08x} {} = {} = 0x{:08x}",
-            self.processor.program_counter,
-            "0".blue(), "$zero".yellow(), self.processor.registers.get(0),
-            "8".blue(), "$t0".yellow(), self.processor.registers.get(8),
-            "16".blue(), "$s0".yellow(), self.processor.registers.get(16),
-            "24".blue(), "$t8".yellow(), self.processor.registers.get(24),
-            "1".blue(), "$at".yellow(), self.processor.registers.get(1),
-            "9".blue(), "$t1".yellow(), self.processor.registers.get(9),
-            "17".blue(), "$s1".yellow(), self.processor.registers.get(17),
-            "25".blue(), "$t9".yellow(), self.processor.registers.get(25),
-            "2".blue(), "$v0".yellow(), self.processor.registers.get(2),
-            "10".blue(), "$t2".yellow(), self.processor.registers.get(10),
-            "18".blue(), "$s2".yellow(), self.processor.registers.get(18),
-            "26".blue(), "$k0".yellow(), self.processor.registers.get(26),
-            "3".blue(), "$v1".yellow(), self.processor.registers.get(3),
-            "11".blue(), "$t3".yellow(), self.processor.registers.get(11),
-            "19".blue(), "$s3".yellow(), self.processor.registers.get(19),
-            "27".blue(), "$k1".yellow(), self.processor.registers.get(27),
-            "4".blue(), "$a0".yellow(), self.processor.registers.get(4),
-            "12".blue(), "$t4".yellow(), self.processor.registers.get(12),
-            "20".blue(), "$s4".yellow(), self.processor.registers.get(20),
-            "28".blue(), "$gp".yellow(), self.processor.registers.get(28),
-            "5".blue(), "$a1".yellow(), self.processor.registers.get(5),
-            "13".blue(), "$t5".yellow(), self.processor.registers.get(13),
-            "21".blue(), "$s5".yellow(), self.processor.registers.get(21),
-            "29".blue(), "$sp".yellow(), self.processor.registers.get(29),
-            "6".blue(), "$a2".yellow(), self.processor.registers.get(6),
-            "14".blue(), "$t6".yellow(), self.processor.registers.get(14),
-            "22".blue(), "$s6".yellow(), self.processor.registers.get(22),
-            "30".blue(), "$fp".yellow(), self.processor.registers.get(30),
-            "7".blue(), "$a3".yellow(), self.processor.registers.get(7),
-            "15".blue(), "$t7".yellow(), self.processor.registers.get(15),
-            "23".blue(), "$s7".yellow(), self.processor.registers.get(23),
-            "31".blue(), "$ra".yellow(), self.processor.registers.get(31),
+            "{} = 0x{:08x}",
+            "PC".yellow(),
+            self.processor.program_counter
         );
+
+        for row in 0..8 {
+            let col1 = row;
+            let col2 = row + 8;
+            let col3 = row + 16;
+            let col4 = row + 24;
+
+            println!(
+                "{:2} = {:5} = 0x{:08x} {:2} = {:3} = 0x{:08x} {:2} = {:3} = 0x{:08x} {:2} = {:3} = 0x{:08x}",
+                col1.to_string().blue(), REGISTERS[col1].yellow(), self.processor.registers.get(col1 as u8),
+                col2.to_string().blue(), REGISTERS[col2].yellow(), self.processor.registers.get(col2 as u8),
+                col3.to_string().blue(), REGISTERS[col3].yellow(), self.processor.registers.get(col3 as u8),
+                col4.to_string().blue(), REGISTERS[col4].yellow(), self.processor.registers.get(col4 as u8)
+            )
+        }
     }
 }
