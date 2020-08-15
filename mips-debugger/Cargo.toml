@@ -5,6 +5,7 @@ authors = ["Mark Drobnak <mark.drobnak@gmail.com>"]
 edition = "2018"
 
 [dependencies]
+colored = "2.0"
 env_logger = "0.7"
 log = "0.4"
 mips-simulator = { path = "../mips-simulator" }
