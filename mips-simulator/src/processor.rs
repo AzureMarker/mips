@@ -12,7 +12,7 @@ use crate::rsim::RsimModule;
 /// A MIPS processor
 #[derive(Debug)]
 pub struct Processor {
-    pub(crate) registers: Registers,
+    pub registers: Registers,
     pub program_counter: u32,
     pub(crate) next_program_counter: u32,
     pub(crate) memory: Memory,

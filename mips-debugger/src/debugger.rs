@@ -47,6 +47,7 @@ impl Debugger {
                 self.step();
             }
             ["breakpoint", address] | ["b", address] => self.set_breakpoint(address),
+            ["print"] | ["p"] => self.print_registers(),
             ["exit"] | ["quit"] => self.processor.running = false,
             [""] => {} // Ignore empty input
             _ => eprintln!("Unknown input"),
@@ -105,5 +106,52 @@ impl Debugger {
         };
 
         self.breakpoints.push(address);
+    }
+
+    fn print_registers(&self) {
+        println!(
+            "Program Counter = 0x{:08x}\n\
+             0  = $zero = 0x{:08x} 8  = $t0 = 0x{:08x} 16 = $s0 = 0x{:08x} 24 = $t8 = 0x{:08x}\n\
+             1  = $at   = 0x{:08x} 9  = $t1 = 0x{:08x} 17 = $s1 = 0x{:08x} 25 = $t9 = 0x{:08x}\n\
+             2  = $v0   = 0x{:08x} 10 = $t2 = 0x{:08x} 18 = $s2 = 0x{:08x} 26 = $k0 = 0x{:08x}\n\
+             3  = $v1   = 0x{:08x} 11 = $t3 = 0x{:08x} 19 = $s3 = 0x{:08x} 27 = $k1 = 0x{:08x}\n\
+             4  = $a0   = 0x{:08x} 12 = $t4 = 0x{:08x} 20 = $s4 = 0x{:08x} 28 = $gp = 0x{:08x}\n\
+             5  = $a1   = 0x{:08x} 13 = $t5 = 0x{:08x} 21 = $s5 = 0x{:08x} 29 = $sp = 0x{:08x}\n\
+             6  = $a2   = 0x{:08x} 14 = $t6 = 0x{:08x} 22 = $s6 = 0x{:08x} 30 = $fp = 0x{:08x}\n\
+             7  = $a3   = 0x{:08x} 15 = $t7 = 0x{:08x} 23 = $s7 = 0x{:08x} 31 = $ra = 0x{:08x}",
+            self.processor.program_counter,
+            self.processor.registers.get(0),
+            self.processor.registers.get(8),
+            self.processor.registers.get(16),
+            self.processor.registers.get(24),
+            self.processor.registers.get(1),
+            self.processor.registers.get(9),
+            self.processor.registers.get(17),
+            self.processor.registers.get(25),
+            self.processor.registers.get(2),
+            self.processor.registers.get(10),
+            self.processor.registers.get(18),
+            self.processor.registers.get(26),
+            self.processor.registers.get(3),
+            self.processor.registers.get(11),
+            self.processor.registers.get(19),
+            self.processor.registers.get(27),
+            self.processor.registers.get(4),
+            self.processor.registers.get(12),
+            self.processor.registers.get(20),
+            self.processor.registers.get(28),
+            self.processor.registers.get(5),
+            self.processor.registers.get(13),
+            self.processor.registers.get(21),
+            self.processor.registers.get(29),
+            self.processor.registers.get(6),
+            self.processor.registers.get(14),
+            self.processor.registers.get(22),
+            self.processor.registers.get(30),
+            self.processor.registers.get(7),
+            self.processor.registers.get(15),
+            self.processor.registers.get(23),
+            self.processor.registers.get(31),
+        );
     }
 }
