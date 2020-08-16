@@ -1,0 +1,5 @@
+grammar;
+
+pub Item: String = {
+    ".text" => ".text".to_string()
+}

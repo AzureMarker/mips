@@ -1,3 +1,8 @@
+#[macro_use]
+extern crate lalrpop_util;
+
+lalrpop_mod!(parser);
+
 fn main() {
-    println!("Hello, world!");
+    println!("{:?}", parser::ItemParser::new().parse(".text"));
 }
