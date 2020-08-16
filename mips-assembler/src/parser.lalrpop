@@ -2,10 +2,15 @@ use crate::ast::*;
 
 grammar;
 
-pub Program: Program<'input> = Item* => Program { items: <> };
-
-Item: Item<'input> = {
-    <d:Directive> => Item::Directive(d)
+pub Program: Program<'input> = Item* => Program {
+    items: <>.into_iter().flatten().collect()
 };
+
+Item: Option<Item<'input>> = {
+    Comment => None,
+    Directive => Some(Item::Directive(<>))
+};
+
+Comment: () = r"#.*";
 
 Directive: Directive<'input> = "." <name:r"[a-z]+"> => Directive(name);

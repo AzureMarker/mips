@@ -6,5 +6,8 @@ lalrpop_mod!(parser);
 mod ast;
 
 fn main() {
-    println!("{:?}", parser::ProgramParser::new().parse(".text\n.data"));
+    println!(
+        "{:?}",
+        parser::ProgramParser::new().parse("# Test Comment\n.text\n.data")
+    );
 }
