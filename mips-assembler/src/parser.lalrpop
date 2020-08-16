@@ -10,7 +10,8 @@ pub Program: Program = Item* => Program {
 Item: Option<Item> = {
     Comment => None,
     ConstantDef => Some(Item::ConstantDef(<>)),
-    Directive => Some(Item::Directive(<>))
+    Directive => Some(Item::Directive(<>)),
+    <Identifier> ":" => Some(Item::Label(<>))
 };
 
 Comment: () = r"#.*";
@@ -50,6 +51,8 @@ TerminalExpr: Expr = {
 
 Number: i64 = r"[0-9]+" => i64::from_str(<>).unwrap();
 
+Identifier: String = r"[a-zA-Z_]+" => <>.to_string();
+
 ConstantDef: ConstantDef = <name:Identifier> "=" <value:Expr> => ConstantDef { name, value };
 
 Directive: Directive = {
@@ -58,5 +61,3 @@ Directive: Directive = {
     ".data" => Directive::Data,
     ".align" <boundary:Expr> => Directive::Align { boundary }
 };
-
-Identifier: String = r"[a-zA-Z_]+" => <>.to_string();

@@ -7,6 +7,7 @@ pub struct Program {
 pub enum Item {
     ConstantDef(ConstantDef),
     Directive(Directive),
+    Label(String),
 }
 
 #[derive(Debug)]
