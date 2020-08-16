@@ -3,11 +3,11 @@ use std::str::FromStr;
 
 grammar;
 
-pub Program: Program<'input> = Item* => Program {
+pub Program: Program = Item* => Program {
     items: <>.into_iter().flatten().collect()
 };
 
-Item: Option<Item<'input>> = {
+Item: Option<Item> = {
     Comment => None,
     Constant => Some(Item::Constant(<>)),
     Directive => Some(Item::Directive(<>))
@@ -15,11 +15,15 @@ Item: Option<Item<'input>> = {
 
 Comment: () = r"#.*";
 
-Constant: Constant<'input> = <name:Id> "=" <value:r"[\+\-]?[0-9]+"> => Constant {
+Constant: Constant = <name:Identifier> "=" <value:r"[\+\-]?[0-9]+"> => Constant {
     name,
     value: i64::from_str(value).unwrap()
 };
 
-Directive: Directive<'input> = "." <Id> => Directive(<>);
+Directive: Directive = {
+    ".text" => Directive::Text,
+    ".data" => Directive::Data,
+    ".globl" <name:Identifier> => Directive::Global { name }
+};
 
-Id: &'input str = r"[a-zA-Z_]+";
+Identifier: String = r"[a-zA-Z_]+" => <>.to_string();

@@ -1,19 +1,23 @@
 #[derive(Debug)]
-pub struct Program<'input> {
-    pub items: Vec<Item<'input>>,
+pub struct Program {
+    pub items: Vec<Item>,
 }
 
 #[derive(Debug)]
-pub enum Item<'input> {
-    Constant(Constant<'input>),
-    Directive(Directive<'input>),
+pub enum Item {
+    Constant(Constant),
+    Directive(Directive),
 }
 
 #[derive(Debug)]
-pub struct Constant<'input> {
-    pub name: &'input str,
+pub struct Constant {
+    pub name: String,
     pub value: i64,
 }
 
 #[derive(Debug)]
-pub struct Directive<'input>(pub &'input str);
+pub enum Directive {
+    Text,
+    Data,
+    Global { name: String },
+}

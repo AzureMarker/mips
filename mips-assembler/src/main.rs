@@ -8,6 +8,7 @@ mod ast;
 fn main() {
     println!(
         "{:?}",
-        parser::ProgramParser::new().parse("# Test Comment\nMY_CONSTANT=10\n.text\n.data")
+        parser::ProgramParser::new()
+            .parse("# Test Comment\nMY_CONSTANT=10\n.data\n.text\n.globl main")
     );
 }
