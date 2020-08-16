@@ -1,5 +1,11 @@
+use crate::ast::*;
+
 grammar;
 
-pub Item: String = {
-    ".text" => ".text".to_string()
-}
+pub Program: Program<'input> = Item* => Program { items: <> };
+
+Item: Item<'input> = {
+    <d:Directive> => Item::Directive(d)
+};
+
+Directive: Directive<'input> = "." <name:r"[a-z]+"> => Directive(name);

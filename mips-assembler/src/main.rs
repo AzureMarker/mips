@@ -3,6 +3,8 @@ extern crate lalrpop_util;
 
 lalrpop_mod!(parser);
 
+mod ast;
+
 fn main() {
-    println!("{:?}", parser::ItemParser::new().parse(".text"));
+    println!("{:?}", parser::ProgramParser::new().parse(".text\n.data"));
 }
