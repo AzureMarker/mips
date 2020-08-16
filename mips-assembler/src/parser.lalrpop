@@ -1,4 +1,5 @@
 use crate::ast::*;
+use std::str::FromStr;
 
 grammar;
 
@@ -8,9 +9,17 @@ pub Program: Program<'input> = Item* => Program {
 
 Item: Option<Item<'input>> = {
     Comment => None,
+    Constant => Some(Item::Constant(<>)),
     Directive => Some(Item::Directive(<>))
 };
 
 Comment: () = r"#.*";
 
-Directive: Directive<'input> = "." <name:r"[a-z]+"> => Directive(name);
+Constant: Constant<'input> = <name:Id> "=" <value:r"[\+\-]?[0-9]+"> => Constant {
+    name,
+    value: i64::from_str(value).unwrap()
+};
+
+Directive: Directive<'input> = "." <Id> => Directive(<>);
+
+Id: &'input str = r"[a-zA-Z_]+";
