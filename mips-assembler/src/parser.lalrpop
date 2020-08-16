@@ -9,21 +9,54 @@ pub Program: Program = Item* => Program {
 
 Item: Option<Item> = {
     Comment => None,
-    Constant => Some(Item::Constant(<>)),
+    ConstantDef => Some(Item::ConstantDef(<>)),
     Directive => Some(Item::Directive(<>))
 };
 
 Comment: () = r"#.*";
 
-Constant: Constant = <name:Identifier> "=" <value:r"[\+\-]?[0-9]+"> => Constant {
-    name,
-    value: i64::from_str(value).unwrap()
+Expr: Expr = {
+    <left:Expr> "+" <right:FactorExpr> => Expr::Calculated {
+        operation: Operation::Add,
+        left: Box::new(left),
+        right: Box::new(right)
+    },
+    <left:Expr> "-" <right:FactorExpr> => Expr::Calculated {
+        operation: Operation::Subtract,
+        left: Box::new(left),
+        right: Box::new(right)
+    },
+    FactorExpr
 };
+
+FactorExpr: Expr = {
+    <left:FactorExpr> "*" <right:TerminalExpr> => Expr::Calculated {
+        operation: Operation::Multiply,
+        left: Box::new(left),
+        right: Box::new(right)
+    },
+    <left:FactorExpr> "/" <right:TerminalExpr> => Expr::Calculated {
+        operation: Operation::Divide,
+        left: Box::new(left),
+        right: Box::new(right)
+    },
+    TerminalExpr
+};
+
+TerminalExpr: Expr = {
+    Number => Expr::Number(<>),
+    "(" <Expr> ")"
+};
+
+Number: i64 = r"[0-9]+" => i64::from_str(<>).unwrap();
+
+ConstantDef: ConstantDef = <name:Identifier> "=" <value:Expr> => ConstantDef { name, value };
 
 Directive: Directive = {
     ".text" => Directive::Text,
+    ".globl" <name:Identifier> => Directive::Global { name },
     ".data" => Directive::Data,
-    ".globl" <name:Identifier> => Directive::Global { name }
+    ".align" <boundary:Expr> => Directive::Align { boundary }
 };
 
 Identifier: String = r"[a-zA-Z_]+" => <>.to_string();

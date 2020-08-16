@@ -5,19 +5,40 @@ pub struct Program {
 
 #[derive(Debug)]
 pub enum Item {
-    Constant(Constant),
+    ConstantDef(ConstantDef),
     Directive(Directive),
 }
 
 #[derive(Debug)]
-pub struct Constant {
+pub enum Expr {
+    Number(i64),
+    Calculated {
+        operation: Operation,
+        left: Box<Expr>,
+        right: Box<Expr>,
+    },
+    // TODO: add unary operations
+}
+
+#[derive(Debug)]
+pub enum Operation {
+    Add,
+    Subtract,
+    Multiply,
+    Divide,
+    // TODO: add more operations, like bitwise operations
+}
+
+#[derive(Debug)]
+pub struct ConstantDef {
     pub name: String,
-    pub value: i64,
+    pub value: Expr,
 }
 
 #[derive(Debug)]
 pub enum Directive {
     Text,
-    Data,
     Global { name: String },
+    Data,
+    Align { boundary: Expr },
 }
