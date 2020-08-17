@@ -14,7 +14,8 @@ fn main() {
             .data\n\
             .text\n\
             .globl main\n\
-            main:\n"
+            main:\n\
+                add $t1 $zero $t0\n"
         )
     );
 }

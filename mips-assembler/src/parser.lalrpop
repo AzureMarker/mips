@@ -11,7 +11,8 @@ Item: Option<Item> = {
     Comment => None,
     ConstantDef => Some(Item::ConstantDef(<>)),
     Directive => Some(Item::Directive(<>)),
-    <Identifier> ":" => Some(Item::Label(<>))
+    <Identifier> ":" => Some(Item::Label(<>)),
+    Instruction => Some(Item::Instruction(<>)),
 };
 
 Comment: () = r"#.*";
@@ -20,38 +21,38 @@ Expr: Expr = {
     <left:Expr> "+" <right:FactorExpr> => Expr::Calculated {
         operation: Operation::Add,
         left: Box::new(left),
-        right: Box::new(right)
+        right: Box::new(right),
     },
     <left:Expr> "-" <right:FactorExpr> => Expr::Calculated {
         operation: Operation::Subtract,
         left: Box::new(left),
-        right: Box::new(right)
+        right: Box::new(right),
     },
-    FactorExpr
+    FactorExpr,
 };
 
 FactorExpr: Expr = {
     <left:FactorExpr> "*" <right:TerminalExpr> => Expr::Calculated {
         operation: Operation::Multiply,
         left: Box::new(left),
-        right: Box::new(right)
+        right: Box::new(right),
     },
     <left:FactorExpr> "/" <right:TerminalExpr> => Expr::Calculated {
         operation: Operation::Divide,
         left: Box::new(left),
-        right: Box::new(right)
+        right: Box::new(right),
     },
-    TerminalExpr
+    TerminalExpr,
 };
 
 TerminalExpr: Expr = {
     Number => Expr::Number(<>),
-    "(" <Expr> ")"
+    "(" <Expr> ")",
 };
 
 Number: i64 = r"[0-9]+" => i64::from_str(<>).unwrap();
 
-Identifier: String = r"[a-zA-Z_]+" => <>.to_string();
+Identifier: String = r"[a-zA-Z_][a-zA-Z_0-9]*" => <>.to_string();
 
 ConstantDef: ConstantDef = <name:Identifier> "=" <value:Expr> => ConstantDef { name, value };
 
@@ -59,5 +60,18 @@ Directive: Directive = {
     ".text" => Directive::Text,
     ".globl" <name:Identifier> => Directive::Global { name },
     ".data" => Directive::Data,
-    ".align" <boundary:Expr> => Directive::Align { boundary }
+    ".align" <boundary:Expr> => Directive::Align { boundary },
+};
+
+Instruction: Instruction = {
+    <op_code:OpCode> <rd:Register> <rs:Register> <rt:Register> => Instruction::RType { op_code, rd, rs, rt },
+};
+
+OpCode: OpCode = {
+    "add" => OpCode::Add,
+};
+
+Register: Register = {
+    "$" <Number> => Register::Number(<> as u8),
+    "$" <Identifier> => Register::Name(<>),
 };
