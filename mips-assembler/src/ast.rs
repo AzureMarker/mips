@@ -43,6 +43,8 @@ pub enum Directive {
     Global { name: String },
     Data,
     Align { boundary: Expr },
+    Space { size: Expr },
+    Word { count: Expr },
 }
 
 #[derive(Debug)]
@@ -67,6 +69,7 @@ pub enum Register {
 }
 
 impl Register {
+    /// Get the register index. If the register is invalid, None is returned.
     pub fn index(&self) -> Option<u8> {
         match self {
             Register::Number(num) => Some(*num).filter(|num| *num < 32),

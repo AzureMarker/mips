@@ -12,6 +12,8 @@ fn main() {
             "# Test Comment\n\
             MY_CONSTANT=1+1\n\
             .data\n\
+            .space 2*4\n\
+            .word 2\n\
             .text\n\
             .globl main\n\
             main:\n\

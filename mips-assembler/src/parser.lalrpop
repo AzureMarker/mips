@@ -61,6 +61,8 @@ Directive: Directive = {
     ".globl" <name:Identifier> => Directive::Global { name },
     ".data" => Directive::Data,
     ".align" <boundary:Expr> => Directive::Align { boundary },
+    ".space" <size:Expr> => Directive::Space { size },
+    ".word" <count:Expr> => Directive::Word { count },
 };
 
 Instruction: Instruction = {
