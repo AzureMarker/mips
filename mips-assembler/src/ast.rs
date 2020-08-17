@@ -56,6 +56,12 @@ pub enum Instruction {
         rs: Register,
         rt: Register,
     },
+    Pseudo(PseudoInstruction),
+}
+
+#[derive(Debug)]
+pub enum PseudoInstruction {
+    LoadImmediate { rd: Register, value: Expr },
 }
 
 #[derive(Debug)]

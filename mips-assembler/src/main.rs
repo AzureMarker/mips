@@ -17,7 +17,9 @@ fn main() {
             .text\n\
             .globl main\n\
             main:\n\
-                add $t1 $zero $t0\n"
+                li $t0, 1		# $t0 = 1\n\
+                li $t1, 10		# $t1 = 10\n\
+                add $t2, $t0, $t1	# $t2 = $t0 + $t1\n"
         )
     );
 }

@@ -67,10 +67,15 @@ Directive: Directive = {
 };
 
 Instruction: Instruction = {
-    <op_code:OpCode> <rd:Register> <rs:Register> <rt:Register> => Instruction::RType { op_code, rd, rs, rt },
+    <op_code:RTypeOp> <rd:Register> "," <rs:Register> "," <rt:Register> => Instruction::RType { op_code, rd, rs, rt },
+    PseudoInstruction => Instruction::Pseudo(<>),
 };
 
-OpCode: OpCode = {
+PseudoInstruction: PseudoInstruction = {
+    "li" <rd:Register> "," <value:Expr> => PseudoInstruction::LoadImmediate { rd, value },
+};
+
+RTypeOp: OpCode = {
     "add" => OpCode::Add,
 };
 
