@@ -47,6 +47,7 @@ FactorExpr: Expr = {
 
 TerminalExpr: Expr = {
     Number => Expr::Number(<>),
+    Identifier => Expr::Constant(<>),
     "(" <Expr> ")",
 };
 

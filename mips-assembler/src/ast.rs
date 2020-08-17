@@ -14,6 +14,7 @@ pub enum Item {
 #[derive(Debug)]
 pub enum Expr {
     Number(i64),
+    Constant(String),
     Calculated {
         operation: Operation,
         left: Box<Expr>,
