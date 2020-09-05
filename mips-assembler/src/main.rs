@@ -1,6 +1,7 @@
 #[macro_use]
 extern crate lalrpop_util;
 
+use lalrpop_util::ParseError;
 use std::error::Error;
 use std::fs;
 use std::path::PathBuf;
@@ -32,7 +33,61 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Load the assembly file
     let file_str = fs::read_to_string(&args.input_file)?;
 
-    println!("{:#?}", parser::ProgramParser::new().parse(&file_str));
+    match parser::ProgramParser::new().parse(&file_str) {
+        Ok(parsed_ast) => println!("{:#?}", parsed_ast),
+        Err(ParseError::InvalidToken { location }) => {
+            let (line, col) = index_to_line_col(&file_str, location);
+            eprintln!("Invalid token at line {}, column {}", line, col);
+        }
+        Err(ParseError::UnrecognizedToken {
+            token: (lspan, token, _rspan),
+            expected,
+        }) => {
+            let (line, col) = index_to_line_col(&file_str, lspan);
+            eprintln!(
+                "Unrecognized token '{}' at line {}, column {}, expected {:?}",
+                token, line, col, expected
+            );
+        }
+        Err(ParseError::UnrecognizedEOF { location, expected }) => {
+            let (line, col) = index_to_line_col(&file_str, location);
+            eprintln!(
+                "Unexpected EOF at line {}, column {}, expected {:?}",
+                line, col, expected
+            );
+        }
+        Err(ParseError::ExtraToken {
+            token: (lspan, token, _rspan),
+        }) => {
+            let (line, col) = index_to_line_col(&file_str, lspan);
+            eprintln!(
+                "Unexpected extra token '{}' at line {}, column {}",
+                token, line, col
+            );
+        }
+        Err(ParseError::User { error }) => {
+            eprintln!("{}", error);
+        }
+    }
 
     Ok(())
+}
+
+/// Convert an index of the file into a line and column index
+fn index_to_line_col(file_str: &str, index: usize) -> (usize, usize) {
+    let line = file_str
+        .chars()
+        .enumerate()
+        .take_while(|(i, _)| *i != index)
+        .filter(|(_, c)| *c == '\n')
+        .count()
+        + 1;
+    let column = file_str[0..index]
+        .chars()
+        .rev()
+        .take_while(|c| *c != '\n')
+        .count()
+        + 1;
+
+    (line, column)
 }
