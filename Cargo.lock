@@ -394,8 +394,11 @@ checksum = "3728d817d99e5ac407411fa471ff9800a778d88a24685968b36824eaf4bee400"
 name = "mips-assembler"
 version = "0.1.0"
 dependencies = [
+ "env_logger",
  "lalrpop",
  "lalrpop-util",
+ "log",
+ "structopt",
 ]
 
 [[package]]

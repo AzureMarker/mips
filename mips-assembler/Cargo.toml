@@ -8,4 +8,7 @@ edition = "2018"
 lalrpop = { version = "0.19.0", features = ["lexer"] }
 
 [dependencies]
+env_logger = "0.7"
 lalrpop-util = "0.19.0"
+log = "0.4"
+structopt = "0.3"
