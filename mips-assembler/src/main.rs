@@ -50,16 +50,21 @@ fn main() -> Result<(), Box<dyn Error>> {
         }) => {
             let (line, col) = index_to_line_col(&file_str, lspan);
             eprintln!(
-                "Unrecognized token '{}' at line {}, column {}, expected {:?}",
-                token, line, col, expected
+                "Unrecognized token '{}' at line {}, column {}, expected [{}]",
+                token,
+                line,
+                col,
+                expected.join(", ")
             );
             exit_code = 1;
         }
         Err(ParseError::UnrecognizedEOF { location, expected }) => {
             let (line, col) = index_to_line_col(&file_str, location);
             eprintln!(
-                "Unexpected EOF at line {}, column {}, expected {:?}",
-                line, col, expected
+                "Unexpected EOF at line {}, column {}, expected [{}]",
+                line,
+                col,
+                expected.join(", ")
             );
             exit_code = 1;
         }
