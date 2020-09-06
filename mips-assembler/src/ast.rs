@@ -63,6 +63,10 @@ pub enum Instruction {
         rt: Register,
         immediate: Expr,
     },
+    JType {
+        op_code: JTypeOp,
+        label: String,
+    },
     Pseudo(PseudoInstruction),
 }
 
@@ -81,6 +85,11 @@ pub enum RTypeOp {
 pub enum ITypeOp {
     Addi,
     Sw,
+}
+
+#[derive(Debug)]
+pub enum JTypeOp {
+    Jal,
 }
 
 #[derive(Debug)]
