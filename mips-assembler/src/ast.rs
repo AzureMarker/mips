@@ -79,6 +79,7 @@ pub enum RTypeOp {
 #[derive(Debug)]
 pub enum ITypeOp {
     Addi,
+    Sw,
 }
 
 #[derive(Debug)]
