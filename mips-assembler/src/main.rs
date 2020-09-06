@@ -33,11 +33,16 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Load the assembly file
     let file_str = fs::read_to_string(&args.input_file)?;
 
+    let exit_code;
     match parser::ProgramParser::new().parse(&file_str) {
-        Ok(parsed_ast) => println!("{:#?}", parsed_ast),
+        Ok(parsed_ast) => {
+            println!("{:#?}", parsed_ast);
+            exit_code = 0;
+        }
         Err(ParseError::InvalidToken { location }) => {
             let (line, col) = index_to_line_col(&file_str, location);
             eprintln!("Invalid token at line {}, column {}", line, col);
+            exit_code = 1;
         }
         Err(ParseError::UnrecognizedToken {
             token: (lspan, token, _rspan),
@@ -48,6 +53,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 "Unrecognized token '{}' at line {}, column {}, expected {:?}",
                 token, line, col, expected
             );
+            exit_code = 1;
         }
         Err(ParseError::UnrecognizedEOF { location, expected }) => {
             let (line, col) = index_to_line_col(&file_str, location);
@@ -55,6 +61,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 "Unexpected EOF at line {}, column {}, expected {:?}",
                 line, col, expected
             );
+            exit_code = 1;
         }
         Err(ParseError::ExtraToken {
             token: (lspan, token, _rspan),
@@ -64,13 +71,15 @@ fn main() -> Result<(), Box<dyn Error>> {
                 "Unexpected extra token '{}' at line {}, column {}",
                 token, line, col
             );
+            exit_code = 1;
         }
         Err(ParseError::User { error }) => {
             eprintln!("{}", error);
+            exit_code = 1;
         }
     }
 
-    Ok(())
+    std::process::exit(exit_code);
 }
 
 /// Convert an index of the file into a line and column index
