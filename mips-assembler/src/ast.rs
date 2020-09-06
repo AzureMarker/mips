@@ -52,10 +52,16 @@ pub enum Directive {
 #[derive(Debug)]
 pub enum Instruction {
     RType {
-        op_code: OpCode,
+        op_code: RTypeOp,
         rd: Register,
         rs: Register,
         rt: Register,
+    },
+    IType {
+        op_code: ITypeOp,
+        rs: Register,
+        rt: Register,
+        immediate: Expr,
     },
     Pseudo(PseudoInstruction),
 }
@@ -66,8 +72,13 @@ pub enum PseudoInstruction {
 }
 
 #[derive(Debug)]
-pub enum OpCode {
+pub enum RTypeOp {
     Add,
+}
+
+#[derive(Debug)]
+pub enum ITypeOp {
+    Addi,
 }
 
 #[derive(Debug)]

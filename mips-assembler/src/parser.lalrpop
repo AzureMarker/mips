@@ -71,6 +71,7 @@ Directive: Directive = {
 
 Instruction: Instruction = {
     <op_code:RTypeOp> <rd:Register> "," <rs:Register> "," <rt:Register> => Instruction::RType { op_code, rd, rs, rt },
+    <op_code:ITypeOp> <rs:Register> "," <rt:Register> "," <immediate:Expr> => Instruction::IType { op_code, rs, rt, immediate },
     PseudoInstruction => Instruction::Pseudo(<>),
 };
 
@@ -78,8 +79,12 @@ PseudoInstruction: PseudoInstruction = {
     "li" <rd:Register> "," <value:Expr> => PseudoInstruction::LoadImmediate { rd, value },
 };
 
-RTypeOp: OpCode = {
-    "add" => OpCode::Add,
+RTypeOp: RTypeOp = {
+    "add" => RTypeOp::Add,
+};
+
+ITypeOp: ITypeOp = {
+    "addi" => ITypeOp::Addi,
 };
 
 Register: Register = {
