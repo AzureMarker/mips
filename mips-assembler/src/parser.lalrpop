@@ -103,6 +103,7 @@ StorageITypeOp: ITypeOp = {
 };
 
 JTypeOp: JTypeOp = {
+    "j" => JTypeOp::Jump,
     "jal" => JTypeOp::Jal,
 };
 

@@ -92,6 +92,7 @@ pub enum ITypeOp {
 
 #[derive(Debug)]
 pub enum JTypeOp {
+    Jump,
     Jal,
 }
 
