@@ -42,11 +42,7 @@ FactorExpr: Expr = {
         left: Box::new(left),
         right: Box::new(right),
     },
-    "-" <expr:TerminalExpr> => Expr::Calculated {
-        operation: Operation::Multiply,
-        left: Box::new(Expr::Number(-1)),
-        right: Box::new(expr),
-    },
+    "-" <expr:TerminalExpr> => Expr::Negated(Box::new(expr)),
     TerminalExpr,
 };
 
@@ -66,7 +62,7 @@ ConstantDef: ConstantDef = <name:Identifier> "=" <value:Expr> => ConstantDef { n
 
 Directive: Directive = {
     ".text" => Directive::Text,
-    ".globl" <name:Identifier> => Directive::Global { name },
+    ".globl" <label:Identifier> => Directive::Global { label },
     ".data" => Directive::Data,
     ".align" <boundary:Expr> => Directive::Align { boundary },
     ".space" <size:Expr> => Directive::Space { size },

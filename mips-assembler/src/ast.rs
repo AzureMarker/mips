@@ -20,7 +20,8 @@ pub enum Expr {
         left: Box<Expr>,
         right: Box<Expr>,
     },
-    // TODO: add unary operations
+    Negated(Box<Expr>),
+    // TODO: add more unary operations
 }
 
 #[derive(Debug)]
