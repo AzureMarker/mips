@@ -101,6 +101,7 @@ RTypeOpRs: RTypeOp = {
 
 ITypeOpRtRs: ITypeOp = {
     "addi" => ITypeOp::Addi,
+    "slti" => ITypeOp::Slti,
 };
 
 ITypeOpRsRt: ITypeOp = {

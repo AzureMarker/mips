@@ -41,7 +41,7 @@ pub struct ConstantDef {
 #[derive(Debug)]
 pub enum Directive {
     Text,
-    Global { name: String },
+    Global { label: String },
     Data,
     Align { boundary: Expr },
     Space { size: Expr },
@@ -90,6 +90,7 @@ pub enum ITypeOp {
     Beq,
     Sw,
     Lw,
+    Slti,
 }
 
 #[derive(Debug)]
