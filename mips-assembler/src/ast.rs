@@ -75,6 +75,7 @@ pub enum Instruction {
 pub enum PseudoInstruction {
     LoadImmediate { rd: Register, value: Expr },
     LoadAddress { rd: Register, label: String },
+    Move { rt: Register, rs: Register },
 }
 
 #[derive(Debug)]

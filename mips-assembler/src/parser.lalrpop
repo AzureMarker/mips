@@ -86,6 +86,7 @@ Instruction: Instruction = {
 PseudoInstruction: PseudoInstruction = {
     "li" <rd:Register> "," <value:Expr> => PseudoInstruction::LoadImmediate { rd, value },
     "la" <rd:Register> "," <label:Identifier> => PseudoInstruction::LoadAddress { rd, label },
+    "move" <rt:Register> "," <rs:Register> => PseudoInstruction::Move { rt, rs },
 };
 
 RTypeOp: RTypeOp = {
