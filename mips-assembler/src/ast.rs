@@ -67,6 +67,7 @@ pub enum Instruction {
         op_code: JTypeOp,
         label: String,
     },
+    Syscall,
     Pseudo(PseudoInstruction),
 }
 

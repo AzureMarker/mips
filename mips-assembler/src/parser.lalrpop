@@ -79,6 +79,7 @@ Instruction: Instruction = {
     <op_code:ITypeOp> <rs:Register> "," <rt:Register> "," <immediate:Expr> => Instruction::IType { op_code, rs, rt, immediate },
     <op_code:StorageITypeOp> <rt:Register> "," <immediate:Expr> "(" <rs:Register> ")" => Instruction::IType { op_code, rs, rt, immediate },
     <op_code:JTypeOp> <label:Identifier> => Instruction::JType { op_code, label },
+    "syscall" => Instruction::Syscall,
     PseudoInstruction => Instruction::Pseudo(<>),
 };
 
