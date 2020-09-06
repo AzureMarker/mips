@@ -71,7 +71,7 @@ Directive: Directive = {
     ".align" <boundary:Expr> => Directive::Align { boundary },
     ".space" <size:Expr> => Directive::Space { size },
     ".word" <count:Expr> => Directive::Word { count },
-    ".asciiz" <string:String> => Directive::Asciiz { string }
+    ".asciiz" <string:String> => Directive::Asciiz { string },
 };
 
 Instruction: Instruction = {
@@ -83,6 +83,7 @@ Instruction: Instruction = {
 
 PseudoInstruction: PseudoInstruction = {
     "li" <rd:Register> "," <value:Expr> => PseudoInstruction::LoadImmediate { rd, value },
+    "la" <rd:Register> "," <label:Identifier> => PseudoInstruction::LoadAddress { rd, label },
 };
 
 RTypeOp: RTypeOp = {
