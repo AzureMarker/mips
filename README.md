@@ -3,7 +3,7 @@ Or at least that's what I plan on doing :)
 
 ## Goals
 - Assembler
-  - [ ] Parse assembly code
+  - [X] Parse assembly code
   - [ ] Assemble code into object files
   - [ ] Link object files into final executable
 - Linker
@@ -17,10 +17,10 @@ Or at least that's what I plan on doing :)
   - [X] Parse J instructions
   - [X] Execute all J instructions
 - Debugger
-  - [ ] Drive the simulator
-  - [ ] Inspect the registers
+  - [X] Drive the simulator
+  - [X] Inspect the registers
   - [ ] Inspect the surrounding code/instructions
-  - [ ] Breakpoints
+  - [X] Breakpoints
 
 ## Test Programs
 The `programs` directory contains some test programs which have been assembled
