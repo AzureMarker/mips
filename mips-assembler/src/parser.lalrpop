@@ -94,6 +94,7 @@ RTypeOp: RTypeOp = {
 
 ITypeOp: ITypeOp = {
     "addi" => ITypeOp::Addi,
+    "beq" => ITypeOp::Beq,
 };
 
 StorageITypeOp: ITypeOp = {
