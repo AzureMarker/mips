@@ -55,6 +55,8 @@ Number: i64 = r"[0-9]+" => i64::from_str(<>).unwrap();
 
 Identifier: String = r"[a-zA-Z_][a-zA-Z_0-9]*" => <>.to_string();
 
+String: String = r#""([^\\"]|\\.)*""# => <>.strip_prefix('\"').unwrap().strip_suffix('\"').unwrap().to_string();
+
 ConstantDef: ConstantDef = <name:Identifier> "=" <value:Expr> => ConstantDef { name, value };
 
 Directive: Directive = {
@@ -64,6 +66,7 @@ Directive: Directive = {
     ".align" <boundary:Expr> => Directive::Align { boundary },
     ".space" <size:Expr> => Directive::Space { size },
     ".word" <count:Expr> => Directive::Word { count },
+    ".asciiz" <string:String> => Directive::Asciiz { string }
 };
 
 Instruction: Instruction = {

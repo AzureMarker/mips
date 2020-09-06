@@ -46,6 +46,7 @@ pub enum Directive {
     Align { boundary: Expr },
     Space { size: Expr },
     Word { count: Expr },
+    Asciiz { string: String },
 }
 
 #[derive(Debug)]
