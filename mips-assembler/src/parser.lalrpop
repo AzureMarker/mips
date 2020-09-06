@@ -75,7 +75,8 @@ Directive: Directive = {
 };
 
 Instruction: Instruction = {
-    <op_code:RTypeOp> <rd:Register> "," <rs:Register> "," <rt:Register> => Instruction::RType { op_code, rd, rs, rt },
+    <op_code:RTypeOpRdRsRt> <rd:Register> "," <rs:Register> "," <rt:Register> => Instruction::RType { op_code, rd, rs, rt },
+    <op_code:RTypeOpRs> <rs:Register> => Instruction::RType { op_code, rs, rd: Register::Number(0), rt: Register::Number(0) },
     <op_code:ITypeOp> <rs:Register> "," <rt:Register> "," <immediate:Expr> => Instruction::IType { op_code, rs, rt, immediate },
     <op_code:StorageITypeOp> <rt:Register> "," <immediate:Expr> "(" <rs:Register> ")" => Instruction::IType { op_code, rs, rt, immediate },
     <op_code:JTypeOp> <label:Identifier> => Instruction::JType { op_code, label },
@@ -89,8 +90,12 @@ PseudoInstruction: PseudoInstruction = {
     "move" <rt:Register> "," <rs:Register> => PseudoInstruction::Move { rt, rs },
 };
 
-RTypeOp: RTypeOp = {
+RTypeOpRdRsRt: RTypeOp = {
     "add" => RTypeOp::Add,
+};
+
+RTypeOpRs: RTypeOp = {
+    "jr" => RTypeOp::Jr,
 };
 
 ITypeOp: ITypeOp = {

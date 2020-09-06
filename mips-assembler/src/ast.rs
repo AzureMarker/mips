@@ -81,6 +81,7 @@ pub enum PseudoInstruction {
 #[derive(Debug)]
 pub enum RTypeOp {
     Add,
+    Jr,
 }
 
 #[derive(Debug)]
