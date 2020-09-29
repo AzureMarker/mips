@@ -85,15 +85,18 @@ pub enum PseudoInstruction {
 pub enum RTypeOp {
     Add,
     Jr,
+    Or,
 }
 
 #[derive(Debug)]
 pub enum ITypeOp {
     Addi,
     Beq,
-    Sw,
+    Lui,
     Lw,
+    Ori,
     Slti,
+    Sw,
 }
 
 #[derive(Debug)]
