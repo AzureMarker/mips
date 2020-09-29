@@ -5,9 +5,9 @@ Or at least that's what I plan on doing :)
 - Assembler
   - [X] Parse assembly code
   - [ ] Assemble code into object files
-  - [ ] Link object files into final executable
 - Linker
-  - [ ] TODO: fill out goals
+  - [ ] Link object files into final executable
+  - [ ] TODO: expand goals
 - Simulator
   - [X] Create a simulated MIPS CPU
   - [X] Parse R instructions
