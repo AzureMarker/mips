@@ -1,3 +1,5 @@
+//! Abstract Syntax Tree
+
 #[derive(Debug)]
 pub struct Program {
     pub items: Vec<Item>,

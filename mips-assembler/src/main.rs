@@ -10,6 +10,8 @@ use structopt::StructOpt;
 lalrpop_mod!(parser);
 
 mod ast;
+mod hir;
+mod lower_ast;
 
 #[derive(StructOpt)]
 struct CliArgs {
@@ -37,6 +39,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     match parser::ProgramParser::new().parse(&file_str) {
         Ok(parsed_ast) => {
             println!("{:#?}", parsed_ast);
+            println!("{:#?}", parsed_ast.lower());
             exit_code = 0;
         }
         Err(ParseError::InvalidToken { location }) => {
