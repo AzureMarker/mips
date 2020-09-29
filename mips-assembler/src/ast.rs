@@ -46,7 +46,7 @@ pub enum Directive {
     Data,
     Align { boundary: Expr },
     Space { size: Expr },
-    Word { count: Expr },
+    Word { values: Vec<Expr> },
     Asciiz { string: String },
 }
 

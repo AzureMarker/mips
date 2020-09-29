@@ -3,6 +3,17 @@ use std::str::FromStr;
 
 grammar;
 
+Comma<T>: Vec<T> = {
+    <v:(<T> ",")*> <e:T?> => match e {
+        None => v,
+        Some(e) => {
+            let mut v = v;
+            v.push(e);
+            v
+        }
+    }
+};
+
 pub Program: Program = Item* => Program {
     items: <>.into_iter().flatten().collect()
 };
@@ -66,7 +77,7 @@ Directive: Directive = {
     ".data" => Directive::Data,
     ".align" <boundary:Expr> => Directive::Align { boundary },
     ".space" <size:Expr> => Directive::Space { size },
-    ".word" <count:Expr> => Directive::Word { count },
+    ".word" <values:Comma<Expr>> r"\n" => Directive::Word { values },
     ".asciiz" <string:String> => Directive::Asciiz { string },
 };
 
