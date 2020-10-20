@@ -42,6 +42,12 @@ impl Program {
                     Directive::Global { label } => globals.push(label),
                     Directive::Align { boundary } => {
                         let boundary = boundary.evaluate(&constants) as usize;
+
+                        if boundary == 0 {
+                            // FIXME: I don't think we're properly handling boundaries
+                            continue;
+                        }
+
                         data.extend(std::iter::repeat(0).take(boundary - (data.len() % boundary)));
                     }
                     Directive::Space { size } => {
