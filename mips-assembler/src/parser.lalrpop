@@ -14,19 +14,25 @@ Comma<T>: Vec<T> = {
     }
 };
 
-pub Program: Program = Item* => Program {
-    items: <>.into_iter().flatten().collect()
+pub Program: Program = {
+    <items:("\n"* <Item> "\n")*> <last:("\n"* <Item?>)> => Program {
+        items: match last {
+            Some(last) => {
+                let mut items = items;
+                items.push(last);
+                items
+            },
+            None => items
+        }
+    }
 };
 
-Item: Option<Item> = {
-    Comment => None,
-    ConstantDef => Some(Item::ConstantDef(<>)),
-    Directive => Some(Item::Directive(<>)),
-    <Identifier> ":" => Some(Item::Label(<>)),
-    Instruction => Some(Item::Instruction(<>)),
+Item: Item = {
+    ConstantDef => Item::ConstantDef(<>),
+    Directive => Item::Directive(<>),
+    <Identifier> ":" => Item::Label(<>),
+    Instruction => Item::Instruction(<>),
 };
-
-Comment: () = r"#.*";
 
 Expr: Expr = {
     <left:Expr> "+" <right:FactorExpr> => Expr::Calculated {
@@ -77,7 +83,7 @@ Directive: Directive = {
     ".data" => Directive::Data,
     ".align" <boundary:Expr> => Directive::Align { boundary },
     ".space" <size:Expr> => Directive::Space { size },
-    ".word" <values:Comma<Expr>> r"\n" => Directive::Word { values },
+    ".word" <values:Comma<Expr>> => Directive::Word { values },
     ".asciiz" <string:String> => Directive::Asciiz { string },
 };
 
@@ -129,3 +135,47 @@ Register: Register = {
     "$" <Number> => Register::Number(<> as u8),
     "$" <Identifier> => Register::Name(<>),
 };
+
+match {
+    ":",
+    "=",
+    ",",
+    "+",
+    "-",
+    "*",
+    "/",
+    "(",
+    ")",
+    ".text",
+    ".globl",
+    ".data",
+    ".align",
+    ".space",
+    ".word",
+    ".asciiz",
+    "syscall",
+    "li",
+    "la",
+    "move",
+    "add",
+    "jr",
+    "addi",
+    "slti",
+    "beq",
+    "sw",
+    "lw",
+    "j",
+    "jal",
+    "$",
+    r"[0-9]+",
+    r"[a-zA-Z_][a-zA-Z_0-9]*",
+    r#""([^\\"]|\\.)*""#,
+    "\n",
+
+    // Ignore comments
+    r"#[^\n]*" => { },
+
+    // Ignore whitespace (but keep newlines)
+    "\t" => { },
+    " " => { }
+}
