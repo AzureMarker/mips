@@ -143,28 +143,18 @@ impl PseudoInstruction {
     pub fn lower(self, constants: &HashMap<String, i64>) -> Vec<HirInstruction> {
         match self {
             PseudoInstruction::LoadImmediate { rd, value } => {
-                let value = value.evaluate(constants);
+                let value = value.evaluate(constants) as u32;
 
                 // FIXME: this assumes it's a 32 bit immediate, but we could
                 //        optimize to one instruction if it's 16 bit. We also
                 //        need to check that it's not bigger than 32 bits.
-
-                vec![
-                    HirInstruction::IType {
-                        op_code: ITypeOp::Lui,
-                        rs: 0,
-                        rt: rd.index().unwrap(),
-                        immediate: (value >> 16) as i16,
-                    },
-                    HirInstruction::IType {
-                        op_code: ITypeOp::Ori,
-                        rs: 0,
-                        rt: rd.index().unwrap(),
-                        immediate: value as i16,
-                    },
-                ]
+                Self::load_u32_into_register(rd.index().unwrap(), value)
             }
-            PseudoInstruction::LoadAddress { rd, label } => unimplemented!(),
+            PseudoInstruction::LoadAddress { rd, label: _label } => {
+                // FIXME: note that this instruction references a label so the
+                //        address can be updated once we know the label's address.
+                Self::load_u32_into_register(rd.index().unwrap(), 0xDEADBEEF)
+            }
             PseudoInstruction::Move { rs, rt } => vec![HirInstruction::RType {
                 op_code: RTypeOp::Or,
                 rs: rs.index().unwrap(),
@@ -173,5 +163,22 @@ impl PseudoInstruction {
                 shift: 0,
             }],
         }
+    }
+
+    fn load_u32_into_register(register: u8, value: u32) -> Vec<HirInstruction> {
+        vec![
+            HirInstruction::IType {
+                op_code: ITypeOp::Lui,
+                rs: 0,
+                rt: register,
+                immediate: (value >> 16) as i16,
+            },
+            HirInstruction::IType {
+                op_code: ITypeOp::Ori,
+                rs: 0,
+                rt: register,
+                immediate: value as i16,
+            },
+        ]
     }
 }
