@@ -137,45 +137,13 @@ Register: Register = {
 };
 
 match {
-    ":",
-    "=",
-    ",",
-    "+",
-    "-",
-    "*",
-    "/",
-    "(",
-    ")",
-    ".text",
-    ".globl",
-    ".data",
-    ".align",
-    ".space",
-    ".word",
-    ".asciiz",
-    "syscall",
-    "li",
-    "la",
-    "move",
-    "add",
-    "jr",
-    "addi",
-    "slti",
-    "beq",
-    "sw",
-    "lw",
-    "j",
-    "jal",
-    "$",
-    r"[0-9]+",
-    r"[a-zA-Z_][a-zA-Z_0-9]*",
-    r#""([^\\"]|\\.)*""#,
-    "\n",
-
     // Ignore comments
     r"#[^\n]*" => { },
 
     // Ignore whitespace (but keep newlines)
     "\t" => { },
-    " " => { }
+    " " => { },
+
+    // Catch-all for the rest of the terminals
+    _
 }
