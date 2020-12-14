@@ -4,25 +4,17 @@ use std::str::FromStr;
 grammar;
 
 Comma<T>: Vec<T> = {
-    <v:(<T> ",")*> <e:T?> => match e {
-        None => v,
-        Some(e) => {
-            let mut v = v;
-            v.push(e);
-            v
-        }
+    <mut items:(<T> ",")*> <last:T?> => {
+        items.extend(last);
+        items
     }
 };
 
 pub Program: Program = {
-    <items:("\n"* <Item> "\n")*> <last:("\n"* <Item?>)> => Program {
-        items: match last {
-            Some(last) => {
-                let mut items = items;
-                items.push(last);
-                items
-            },
-            None => items
+    <mut items:("\n"* <Item> "\n")*> <last:("\n"* <Item?>)> => Program {
+        items: {
+            items.extend(last);
+            items
         }
     }
 };
