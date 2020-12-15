@@ -50,9 +50,23 @@ impl Debugger {
             ["breakpoint", address] | ["b", address] => self.set_breakpoint(address),
             ["print"] | ["p"] => self.print_registers(),
             ["exit"] | ["quit"] => self.processor.running = false,
+            ["help"] => Self::print_help(),
             [""] => {} // Ignore empty input
             _ => eprintln!("Unknown input"),
         }
+    }
+
+    fn print_help() {
+        eprintln!(
+            "Commands:\n\
+             trace <on|off>\t\t\t\t\t\tTurn instruction tracing on/off\n\
+             continue | c\t\t\t\t\t\tContinue execution until the next breakpoint\n\
+             step | s\t\t\t\t\t\t\tExecute a single instruction\n\
+             breakpoint <address> | b <address>\tSet a breakpoint at the address\n\
+             print | p\t\t\t\t\t\t\tPrint all registers\n\
+             exit | quit\t\t\t\t\t\t\tExit the debugger\n\
+             help\t\t\t\t\t\t\t\tPrint this help message"
+        );
     }
 
     /// Execute the next instruction. Return if execution should continue.
