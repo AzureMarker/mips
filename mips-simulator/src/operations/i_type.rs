@@ -11,13 +11,7 @@ impl Processor {
         let t_value = self.registers.get(instruction.t_register());
 
         if s_value == t_value {
-            if self.config.disable_delay_slots {
-                self.next_program_counter = address;
-                self.advance_program_counter();
-            } else {
-                self.program_counter = self.next_program_counter;
-                self.next_program_counter = address;
-            }
+            self.jump_to(address);
         } else {
             self.advance_program_counter();
         }
