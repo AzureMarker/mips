@@ -1,23 +1,23 @@
-//! High-Level Intermediate Representation
+//! Intermediate Representation
 
 use crate::ast::{ITypeOp, JTypeOp, RTypeOp};
 use std::collections::HashMap;
 
 #[derive(Debug)]
-pub struct HirProgram {
-    pub text: HirText,
-    pub data: HirData,
+pub struct IrProgram {
+    pub text: IrText,
+    pub data: IrData,
     pub symbol_table: SymbolTable,
     pub globals: Vec<String>,
 }
 
 #[derive(Debug)]
-pub struct HirText {
-    pub instructions: Vec<HirInstruction>,
+pub struct IrText {
+    pub instructions: Vec<IrInstruction>,
 }
 
 #[derive(Debug)]
-pub enum HirInstruction {
+pub enum IrInstruction {
     RType {
         op_code: RTypeOp,
         rs: u8,
@@ -39,7 +39,7 @@ pub enum HirInstruction {
 }
 
 #[derive(Debug)]
-pub struct HirData {
+pub struct IrData {
     pub data: Vec<u8>,
 }
 

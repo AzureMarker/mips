@@ -1,17 +1,15 @@
-//! Lower the AST to HIR
+//! Lower the AST to IR
 
 use crate::ast::{
     ConstantDef, Directive, Expr, ITypeOp, Instruction, Item, Operation, Program,
     PseudoInstruction, RTypeOp,
 };
-use crate::hir::{
-    HirData, HirInstruction, HirProgram, HirText, Symbol, SymbolLocation, SymbolTable,
-};
+use crate::ir::{IrData, IrInstruction, IrProgram, IrText, Symbol, SymbolLocation, SymbolTable};
 use std::collections::HashMap;
 
 impl Program {
-    pub fn lower(self) -> HirProgram {
-        let mut instructions: Vec<HirInstruction> = Vec::new();
+    pub fn lower(self) -> IrProgram {
+        let mut instructions: Vec<IrInstruction> = Vec::new();
         let mut data: Vec<u8> = Vec::new();
         let mut symbol_table: HashMap<String, Symbol> = HashMap::new();
         let mut globals: Vec<String> = Vec::new();
@@ -69,9 +67,9 @@ impl Program {
             }
         }
 
-        HirProgram {
-            text: HirText { instructions },
-            data: HirData { data },
+        IrProgram {
+            text: IrText { instructions },
+            data: IrData { data },
             symbol_table: SymbolTable { map: symbol_table },
             globals,
         }
@@ -106,14 +104,14 @@ impl Expr {
 }
 
 impl Instruction {
-    pub fn lower(self, constants: &HashMap<String, i64>) -> Vec<HirInstruction> {
+    pub fn lower(self, constants: &HashMap<String, i64>) -> Vec<IrInstruction> {
         match self {
             Instruction::RType {
                 op_code,
                 rs,
                 rt,
                 rd,
-            } => vec![HirInstruction::RType {
+            } => vec![IrInstruction::RType {
                 op_code,
                 rs: rs.index().unwrap(),
                 rt: rt.index().unwrap(),
@@ -125,22 +123,22 @@ impl Instruction {
                 rs,
                 rt,
                 immediate,
-            } => vec![HirInstruction::IType {
+            } => vec![IrInstruction::IType {
                 op_code,
                 rs: rs.index().unwrap(),
                 rt: rt.index().unwrap(),
                 // FIXME: make sure the constant is not too big
                 immediate: immediate.evaluate(&constants) as i16,
             }],
-            Instruction::JType { op_code, label } => vec![HirInstruction::JType { op_code, label }],
-            Instruction::Syscall => vec![HirInstruction::Syscall],
+            Instruction::JType { op_code, label } => vec![IrInstruction::JType { op_code, label }],
+            Instruction::Syscall => vec![IrInstruction::Syscall],
             Instruction::Pseudo(pseudo_instruction) => pseudo_instruction.lower(constants),
         }
     }
 }
 
 impl PseudoInstruction {
-    pub fn lower(self, constants: &HashMap<String, i64>) -> Vec<HirInstruction> {
+    pub fn lower(self, constants: &HashMap<String, i64>) -> Vec<IrInstruction> {
         match self {
             PseudoInstruction::LoadImmediate { rd, value } => {
                 let value = value.evaluate(constants) as u32;
@@ -155,7 +153,7 @@ impl PseudoInstruction {
                 //        address can be updated once we know the label's address.
                 Self::load_u32_into_register(rd.index().unwrap(), 0xDEADBEEF)
             }
-            PseudoInstruction::Move { rs, rt } => vec![HirInstruction::RType {
+            PseudoInstruction::Move { rs, rt } => vec![IrInstruction::RType {
                 op_code: RTypeOp::Or,
                 rs: rs.index().unwrap(),
                 rt: rt.index().unwrap(),
@@ -165,15 +163,15 @@ impl PseudoInstruction {
         }
     }
 
-    fn load_u32_into_register(register: u8, value: u32) -> Vec<HirInstruction> {
+    fn load_u32_into_register(register: u8, value: u32) -> Vec<IrInstruction> {
         vec![
-            HirInstruction::IType {
+            IrInstruction::IType {
                 op_code: ITypeOp::Lui,
                 rs: 0,
                 rt: register,
                 immediate: (value >> 16) as i16,
             },
-            HirInstruction::IType {
+            IrInstruction::IType {
                 op_code: ITypeOp::Ori,
                 rs: 0,
                 rt: register,

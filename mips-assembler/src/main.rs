@@ -10,7 +10,7 @@ use structopt::StructOpt;
 lalrpop_mod!(parser);
 
 mod ast;
-mod hir;
+mod ir;
 mod lower_ast;
 
 #[derive(StructOpt)]
