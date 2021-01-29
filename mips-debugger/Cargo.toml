@@ -8,6 +8,6 @@ edition = "2018"
 colored = "2.0"
 env_logger = "0.7"
 log = "0.4"
-mips-r2k = { path = "../mips-r2k" }
 mips-simulator = { path = "../mips-simulator" }
+mips-types = { path = "../mips-types" }
 structopt = "0.3"

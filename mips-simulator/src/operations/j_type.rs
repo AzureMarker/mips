@@ -1,6 +1,6 @@
-use crate::constants::REG_RA;
 use crate::instruction::Instruction;
 use crate::Processor;
+use mips_types::constants::REG_RA;
 
 impl Processor {
     /// Jump

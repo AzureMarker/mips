@@ -1,13 +1,13 @@
 use crate::config::Config;
-use crate::constants::{
+use crate::instruction::Instruction;
+use crate::memory::Memory;
+use crate::registers::Registers;
+use mips_types::constants::{
     DATA_OFFSET, FUNCTION_ADD, FUNCTION_ADDU, FUNCTION_BREAK, FUNCTION_JR, FUNCTION_SLL,
     FUNCTION_SYSCALL, OP_ADDI, OP_BEQ, OP_J, OP_JAL, OP_LUI, OP_LW, OP_ORI, OP_R_TYPE, OP_SLTI,
     OP_SW, REG_SP, STACK_START, TEXT_OFFSET,
 };
-use crate::instruction::Instruction;
-use crate::memory::Memory;
-use crate::registers::Registers;
-use mips_r2k::R2KModule;
+use mips_types::module::R2KModule;
 
 /// A MIPS processor
 #[derive(Debug)]

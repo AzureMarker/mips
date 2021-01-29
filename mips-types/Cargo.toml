@@ -1,5 +1,5 @@
 [package]
-name = "mips-r2k"
+name = "mips-types"
 version = "0.1.0"
 authors = ["Mark Drobnak <mark.drobnak@gmail.com>"]
 description = "Types for reading/writing R2K modules"

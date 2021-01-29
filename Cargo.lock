@@ -342,6 +342,7 @@ dependencies = [
  "lalrpop",
  "lalrpop-util",
  "log",
+ "mips-types",
  "structopt",
 ]
 
@@ -352,14 +353,10 @@ dependencies = [
  "colored",
  "env_logger",
  "log",
- "mips-r2k",
  "mips-simulator",
+ "mips-types",
  "structopt",
 ]
-
-[[package]]
-name = "mips-r2k"
-version = "0.1.0"
 
 [[package]]
 name = "mips-simulator"
@@ -367,9 +364,13 @@ version = "0.1.0"
 dependencies = [
  "env_logger",
  "log",
- "mips-r2k",
+ "mips-types",
  "structopt",
 ]
+
+[[package]]
+name = "mips-types"
+version = "0.1.0"
 
 [[package]]
 name = "new_debug_unreachable"

@@ -1,4 +1,4 @@
-use crate::constants::{
+use mips_types::constants::{
     FUNCTION_ADD, FUNCTION_ADDU, FUNCTION_BREAK, FUNCTION_JR, FUNCTION_SLL, FUNCTION_SYSCALL,
     OP_ADDI, OP_BEQ, OP_J, OP_JAL, OP_LUI, OP_LW, OP_ORI, OP_R_TYPE, OP_SLTI, OP_SW,
 };

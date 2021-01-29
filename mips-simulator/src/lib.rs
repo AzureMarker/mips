@@ -6,7 +6,6 @@
 extern crate log;
 
 pub mod config;
-mod constants;
 mod instruction;
 mod math;
 mod memory;

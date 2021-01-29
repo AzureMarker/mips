@@ -1,6 +1,6 @@
-use mips_r2k::R2KModule;
 use mips_simulator::config::Config;
 use mips_simulator::Processor;
+use mips_types::R2KModule;
 use std::error::Error;
 use std::fs;
 use std::io::Cursor;

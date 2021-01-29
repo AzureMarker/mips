@@ -1,24 +1,24 @@
 use std::io;
 use std::io::Read;
 
-const R2K_MAGIC: u16 = 0xFACE;
-const SECTION_COUNT: usize = 10;
+pub const R2K_MAGIC: u16 = 0xFACE;
+pub const SECTION_COUNT: usize = 10;
 
 /// An R2K module
 pub struct R2KModule {
     pub header: R2KModuleHeader,
-    sections: Vec<Vec<u8>>,
+    pub sections: Vec<Vec<u8>>,
 }
 
 /// R2K's module header
 #[derive(Debug)]
 pub struct R2KModuleHeader {
-    /// Must be `RSIM_MAGIC`
-    magic: u16,
+    /// Must be `R2K_MAGIC`
+    pub magic: u16,
     pub version: u16,
     pub flags: u32,
     pub entry: u32,
-    section_sizes: Vec<u32>,
+    pub section_sizes: Vec<u32>,
 }
 
 impl R2KModule {

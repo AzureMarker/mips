@@ -1,7 +1,7 @@
-use crate::constants::{
+use crate::Processor;
+use mips_types::constants::{
     REG_A0, REG_V0, SYSCALL_EXIT2, SYSCALL_PRINT_INT, SYSCALL_PRINT_STR, SYSCALL_READ_INT,
 };
-use crate::Processor;
 use std::io;
 use std::io::Write;
 
