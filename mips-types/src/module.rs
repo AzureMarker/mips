@@ -5,6 +5,7 @@ pub const R2K_MAGIC: u16 = 0xFACE;
 pub const SECTION_COUNT: usize = 10;
 
 /// An R2K module
+#[derive(Debug)]
 pub struct R2KModule {
     pub header: R2KModuleHeader,
     pub sections: Vec<Vec<u8>>,

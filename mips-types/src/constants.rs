@@ -17,6 +17,7 @@ pub const FUNCTION_SYSCALL: u8 = 0x0C;
 pub const FUNCTION_BREAK: u8 = 0x0D;
 pub const FUNCTION_ADD: u8 = 0x20;
 pub const FUNCTION_ADDU: u8 = 0x21;
+pub const FUNCTION_OR: u8 = 0x25;
 
 // Register numbers
 pub const REG_V0: u8 = 2;

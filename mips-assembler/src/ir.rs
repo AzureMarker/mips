@@ -33,7 +33,7 @@ pub enum IrInstruction {
     },
     JType {
         op_code: JTypeOp,
-        label: String,
+        pseudo_address: u32,
     },
     Syscall,
 }

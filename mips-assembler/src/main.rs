@@ -15,6 +15,7 @@ lalrpop_mod!(
 mod ast;
 mod ir;
 mod lower_ast;
+mod lower_ir;
 
 #[derive(StructOpt)]
 struct CliArgs {
@@ -42,7 +43,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     match parser::ProgramParser::new().parse(&file_str) {
         Ok(parsed_ast) => {
             println!("{:#?}", parsed_ast);
-            println!("{:#?}", parsed_ast.lower());
+            let program_ir = parsed_ast.lower();
+            println!("{:#?}", program_ir);
+            let program_mips = program_ir.lower();
+            println!("{:#x?}", program_mips);
             exit_code = 0;
         }
         Err(ParseError::InvalidToken { location }) => {

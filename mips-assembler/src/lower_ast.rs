@@ -130,7 +130,10 @@ impl Instruction {
                 // FIXME: make sure the constant is not too big
                 immediate: immediate.evaluate(&constants) as i16,
             }],
-            Instruction::JType { op_code, label } => vec![IrInstruction::JType { op_code, label }],
+            Instruction::JType { op_code, label } => vec![IrInstruction::JType {
+                op_code,
+                pseudo_address: 0xDEADBEEF, // TODO: fix this
+            }],
             Instruction::Syscall => vec![IrInstruction::Syscall],
             Instruction::Pseudo(pseudo_instruction) => pseudo_instruction.lower(constants),
         }
