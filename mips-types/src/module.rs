@@ -1,5 +1,5 @@
 use std::io;
-use std::io::Read;
+use std::io::{Read, Write};
 
 pub const R2K_MAGIC: u16 = 0xFACE;
 pub const SECTION_COUNT: usize = 10;
@@ -41,6 +41,17 @@ impl R2KModule {
         }
 
         Ok(Self { header, sections })
+    }
+
+    /// Write the module
+    pub fn write<W: Write>(&self, output: &mut W) -> io::Result<()> {
+        self.header.write(output)?;
+
+        for section in &self.sections {
+            output.write_all(&section)?;
+        }
+
+        Ok(())
     }
 
     /// Get the text section's data
@@ -85,6 +96,20 @@ impl R2KModuleHeader {
                 .map(|_| read_u32(input))
                 .collect::<io::Result<_>>()?,
         })
+    }
+
+    /// Write the module header
+    pub fn write<W: Write>(&self, output: &mut W) -> io::Result<()> {
+        output.write_all(&self.magic.to_be_bytes())?;
+        output.write_all(&self.version.to_be_bytes())?;
+        output.write_all(&self.flags.to_be_bytes())?;
+        output.write_all(&self.entry.to_be_bytes())?;
+
+        for section_size in &self.section_sizes {
+            output.write_all(&section_size.to_be_bytes())?;
+        }
+
+        Ok(())
     }
 }
 

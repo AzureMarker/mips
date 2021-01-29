@@ -1,10 +1,12 @@
 #[macro_use]
 extern crate lalrpop_util;
 
+use crate::ast::Program;
 use lalrpop_util::ParseError;
 use std::error::Error;
-use std::fs;
+use std::fs::File;
 use std::path::PathBuf;
+use std::{fs, io};
 use structopt::StructOpt;
 
 lalrpop_mod!(
@@ -38,21 +40,33 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // Load the assembly file
     let file_str = fs::read_to_string(&args.input_file)?;
+    let program = parse(&file_str);
 
-    let exit_code;
-    match parser::ProgramParser::new().parse(&file_str) {
-        Ok(parsed_ast) => {
-            println!("{:#?}", parsed_ast);
-            let program_ir = parsed_ast.lower();
-            println!("{:#?}", program_ir);
-            let program_mips = program_ir.lower();
-            println!("{:#x?}", program_mips);
-            exit_code = 0;
-        }
+    assemble_file(program, args)?;
+
+    Ok(())
+}
+
+fn assemble_file(program: Program, args: CliArgs) -> io::Result<()> {
+    println!("{:#?}", program);
+    let program_ir = program.lower();
+    println!("{:#?}", program_ir);
+    let program_mips = program_ir.lower();
+    println!("{:#x?}", program_mips);
+
+    let mut output = File::create(&args.output_file)?;
+    program_mips.write(&mut output)
+}
+
+/// Parse the MIPS program. If there are errors during parsing, the program will
+/// exit.
+fn parse(file_str: &str) -> Program {
+    match parser::ProgramParser::new().parse(file_str) {
+        Ok(parsed_ast) => parsed_ast,
         Err(ParseError::InvalidToken { location }) => {
             let (line, col) = index_to_line_col(&file_str, location);
             eprintln!("Invalid token at line {}, column {}", line, col);
-            exit_code = 1;
+            std::process::exit(1);
         }
         Err(ParseError::UnrecognizedToken {
             token: (lspan, token, _rspan),
@@ -66,7 +80,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 col,
                 expected.join(", ")
             );
-            exit_code = 1;
+            std::process::exit(1);
         }
         Err(ParseError::UnrecognizedEOF { location, expected }) => {
             let (line, col) = index_to_line_col(&file_str, location);
@@ -76,7 +90,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 col,
                 expected.join(", ")
             );
-            exit_code = 1;
+            std::process::exit(1);
         }
         Err(ParseError::ExtraToken {
             token: (lspan, token, _rspan),
@@ -86,15 +100,13 @@ fn main() -> Result<(), Box<dyn Error>> {
                 "Unexpected extra token '{}' at line {}, column {}",
                 token, line, col
             );
-            exit_code = 1;
+            std::process::exit(1);
         }
         Err(ParseError::User { error }) => {
             eprintln!("{}", error);
-            exit_code = 1;
+            std::process::exit(1);
         }
     }
-
-    std::process::exit(exit_code);
 }
 
 /// Convert an index of the file into a line and column index
