@@ -7,7 +7,10 @@ use std::fs;
 use std::path::PathBuf;
 use structopt::StructOpt;
 
-lalrpop_mod!(parser);
+lalrpop_mod!(
+    #[allow(clippy::all)]
+    parser
+);
 
 mod ast;
 mod ir;
