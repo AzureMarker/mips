@@ -11,6 +11,7 @@ required-features = ["binary"]
 [dependencies]
 env_logger = { version = "0.7", optional = true }
 log = "0.4"
+mips-r2k = { path = "../mips-r2k" }
 structopt = { version = "0.3", optional = true }
 
 [features]

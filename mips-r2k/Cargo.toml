@@ -1,0 +1,8 @@
+[package]
+name = "mips-r2k"
+version = "0.1.0"
+authors = ["Mark Drobnak <mark.drobnak@gmail.com>"]
+description = "Types for reading/writing R2K modules"
+edition = "2018"
+
+[dependencies]

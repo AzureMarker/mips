@@ -13,6 +13,5 @@ mod memory;
 mod operations;
 mod processor;
 mod registers;
-pub mod rsim;
 
 pub use processor::Processor;

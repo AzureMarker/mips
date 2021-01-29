@@ -7,7 +7,7 @@ use crate::constants::{
 use crate::instruction::Instruction;
 use crate::memory::Memory;
 use crate::registers::Registers;
-use crate::rsim::RsimModule;
+use mips_r2k::R2KModule;
 
 /// A MIPS processor
 #[derive(Debug)]
@@ -37,7 +37,7 @@ impl Processor {
     }
 
     /// Load an RSIM executable module into memory and prepare for execution
-    pub fn load_rsim_module(&mut self, module: &RsimModule) {
+    pub fn load_rsim_module(&mut self, module: &R2KModule) {
         self.memory
             .load_into_memory(module.text_section(), TEXT_OFFSET);
 

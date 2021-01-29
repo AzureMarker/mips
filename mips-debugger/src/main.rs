@@ -1,6 +1,6 @@
 use crate::debugger::Debugger;
+use mips_r2k::R2KModule;
 use mips_simulator::config::Config;
-use mips_simulator::rsim::RsimModule;
 use mips_simulator::Processor;
 use std::error::Error;
 use std::fs;
@@ -30,7 +30,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // Load the executable module
     let file_data = fs::read(&args.file_path)?;
-    let module = RsimModule::parse(&mut Cursor::new(file_data))?;
+    let module = R2KModule::parse(&mut Cursor::new(file_data))?;
     info!("Loaded module with header: {:?}", module.header);
 
     // Setup the processor and debugger

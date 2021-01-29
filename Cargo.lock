@@ -352,9 +352,14 @@ dependencies = [
  "colored",
  "env_logger",
  "log",
+ "mips-r2k",
  "mips-simulator",
  "structopt",
 ]
+
+[[package]]
+name = "mips-r2k"
+version = "0.1.0"
 
 [[package]]
 name = "mips-simulator"
@@ -362,6 +367,7 @@ version = "0.1.0"
 dependencies = [
  "env_logger",
  "log",
+ "mips-r2k",
  "structopt",
 ]
 

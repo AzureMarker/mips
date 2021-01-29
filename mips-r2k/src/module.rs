@@ -1,18 +1,18 @@
 use std::io;
 use std::io::Read;
 
-const RSIM_MAGIC: u16 = 0xFACE;
+const R2K_MAGIC: u16 = 0xFACE;
 const SECTION_COUNT: usize = 10;
 
-/// An RSIM module
-pub struct RsimModule {
-    pub header: RsimModuleHeader,
+/// An R2K module
+pub struct R2KModule {
+    pub header: R2KModuleHeader,
     sections: Vec<Vec<u8>>,
 }
 
-/// RSIM's module header
+/// R2K's module header
 #[derive(Debug)]
-pub struct RsimModuleHeader {
+pub struct R2KModuleHeader {
     /// Must be `RSIM_MAGIC`
     magic: u16,
     pub version: u16,
@@ -21,10 +21,10 @@ pub struct RsimModuleHeader {
     section_sizes: Vec<u32>,
 }
 
-impl RsimModule {
-    /// Parse the input as an RSIM module
+impl R2KModule {
+    /// Parse the input as an R2K module
     pub fn parse<R: Read>(input: &mut R) -> io::Result<Self> {
-        let header = RsimModuleHeader::parse(input)?;
+        let header = R2KModuleHeader::parse(input)?;
         let mut sections = Vec::with_capacity(header.section_sizes.len());
 
         // Read each section's data
@@ -63,12 +63,12 @@ impl RsimModule {
     }
 }
 
-impl RsimModuleHeader {
-    /// Parse the input as an RSIM module header
+impl R2KModuleHeader {
+    /// Parse the input as an R2K module header
     pub fn parse<R: Read>(input: &mut R) -> io::Result<Self> {
         let magic = read_u16(input)?;
 
-        if magic != RSIM_MAGIC {
+        if magic != R2K_MAGIC {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidData,
                 "Invalid magic number",

@@ -24,9 +24,9 @@ Or at least that's what I plan on doing :)
 
 ## Test Programs
 The `programs` directory contains some test programs which have been assembled
-and linked with a MIPS toolchain I refer to as "rsim" (the assember is "rasm",
+and linked with a MIPS toolchain I refer to as "R2K" (the assembler is "rasm",
 the linker is "rlink", the simulator is "rsim", and the debugger is "rbug").
 This was the tool I used in college when learning MIPS, but access to it was
 very restricted (only available on university servers, execute permissions only)
- and I have not found it anywhere online. I am using it to provide assembled
- binaries while my own assembler and linker are still in development.
+and I have not found it anywhere online. I am using it to provide assembled
+binaries while my own assembler and linker are still in development.
