@@ -41,7 +41,7 @@ impl Program {
                     Directive::Align { boundary } => {
                         let boundary = boundary.evaluate(&constants) as usize;
 
-                        if boundary == 0 {
+                        if boundary == 0 || data.len() % boundary == 0 {
                             // FIXME: I don't think we're properly handling boundaries
                             continue;
                         }
