@@ -26,6 +26,12 @@ pub const REG_A0: u8 = 4;
 pub const REG_SP: u8 = 29;
 pub const REG_RA: u8 = 31;
 
+pub static REGISTER_NAMES: [&str; 32] = [
+    "$zero", "$at", "$v0", "$v1", "$a0", "$a1", "$a2", "$a3", "$t0", "$t1", "$t2", "$t3",
+    "$t4", "$t5", "$t6", "$t7", "$s0", "$s1", "$s2", "$s3", "$s4", "$s5", "$s6", "$s7",
+    "$t8", "$t9", "$k0", "$k1", "$gp", "$sp", "$fp", "$ra",
+];
+
 // Syscall codes
 pub const SYSCALL_PRINT_INT: u32 = 1;
 pub const SYSCALL_PRINT_STR: u32 = 4;

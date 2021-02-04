@@ -1,5 +1,6 @@
 use colored::Colorize;
 use mips_simulator::Processor;
+use mips_types::constants::REGISTER_NAMES;
 use std::io;
 use std::io::Write;
 
@@ -124,12 +125,6 @@ impl Debugger {
     }
 
     fn print_registers(&self) {
-        static REGISTERS: [&str; 32] = [
-            "$zero", "$at", "$v0", "$v1", "$a0", "$a1", "$a2", "$a3", "$t0", "$t1", "$t2", "$t3",
-            "$t4", "$t5", "$t6", "$t7", "$s0", "$s1", "$s2", "$s3", "$s4", "$s5", "$s6", "$s7",
-            "$t8", "$t9", "$k0", "$k1", "$gp", "$sp", "$fp", "$ra",
-        ];
-
         println!(
             "{} = 0x{:08x}",
             "PC".yellow(),
@@ -144,10 +139,10 @@ impl Debugger {
 
             println!(
                 "{:2} = {:5} = 0x{:08x} {:2} = {:3} = 0x{:08x} {:2} = {:3} = 0x{:08x} {:2} = {:3} = 0x{:08x}",
-                col1.to_string().blue(), REGISTERS[col1].yellow(), self.processor.registers.get(col1 as u8),
-                col2.to_string().blue(), REGISTERS[col2].yellow(), self.processor.registers.get(col2 as u8),
-                col3.to_string().blue(), REGISTERS[col3].yellow(), self.processor.registers.get(col3 as u8),
-                col4.to_string().blue(), REGISTERS[col4].yellow(), self.processor.registers.get(col4 as u8)
+                col1.to_string().blue(), REGISTER_NAMES[col1].yellow(), self.processor.registers.get(col1 as u8),
+                col2.to_string().blue(), REGISTER_NAMES[col2].yellow(), self.processor.registers.get(col2 as u8),
+                col3.to_string().blue(), REGISTER_NAMES[col3].yellow(), self.processor.registers.get(col3 as u8),
+                col4.to_string().blue(), REGISTER_NAMES[col4].yellow(), self.processor.registers.get(col4 as u8)
             )
         }
     }

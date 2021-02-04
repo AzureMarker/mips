@@ -1,7 +1,10 @@
 use mips_types::constants::{
     FUNCTION_ADD, FUNCTION_ADDU, FUNCTION_BREAK, FUNCTION_JR, FUNCTION_SLL, FUNCTION_SYSCALL,
     OP_ADDI, OP_BEQ, OP_J, OP_JAL, OP_LUI, OP_LW, OP_ORI, OP_R_TYPE, OP_SLTI, OP_SW,
+    REGISTER_NAMES,
 };
+use std::fmt;
+use std::fmt::{Display, Formatter};
 
 /// A MIPS instruction
 #[derive(Copy, Clone, Debug)]
@@ -64,74 +67,85 @@ impl Instruction {
                         "noop".to_string()
                     } else {
                         format!(
-                            "sll ${}, ${}, {}",
-                            self.d_register(),
-                            self.t_register(),
+                            "sll {}, {}, {}",
+                            Register(self.d_register()),
+                            Register(self.t_register()),
                             self.shift_amount()
                         )
                     }
                 }
-                FUNCTION_JR => format!("jr ${}", self.s_register()),
+                FUNCTION_JR => format!("jr {}", Register(self.s_register())),
                 FUNCTION_SYSCALL => "syscall".to_string(),
                 FUNCTION_BREAK => "break".to_string(),
                 FUNCTION_ADD => format!(
-                    "add ${}, ${}, ${}",
-                    self.d_register(),
-                    self.s_register(),
-                    self.t_register()
+                    "add {}, {}, {}",
+                    Register(self.d_register()),
+                    Register(self.s_register()),
+                    Register(self.t_register())
                 ),
                 FUNCTION_ADDU => format!(
-                    "addu ${}, ${}, ${}",
-                    self.d_register(),
-                    self.s_register(),
-                    self.t_register()
+                    "addu {}, {}, {}",
+                    Register(self.d_register()),
+                    Register(self.s_register()),
+                    Register(self.t_register())
                 ),
                 function => panic!("Unknown R-type function 0x{:02x}", function),
             },
             OP_J => format!("j 0x{:x}", self.real_address(program_counter)),
             OP_JAL => format!("jal 0x{:x}", self.real_address(program_counter)),
             OP_BEQ => format!(
-                "beq ${}, ${}, {:+}",
-                self.s_register(),
-                self.t_register(),
+                "beq {}, {}, {}",
+                Register(self.s_register()),
+                Register(self.t_register()),
                 self.immediate()
             ),
             OP_ADDI => format!(
-                "addi ${}, ${}, {}",
-                self.t_register(),
-                self.s_register(),
+                "addi {}, {}, {}",
+                Register(self.t_register()),
+                Register(self.s_register()),
                 self.immediate()
             ),
             OP_SLTI => format!(
-                "slti ${}, ${}, {}",
-                self.t_register(),
-                self.s_register(),
+                "slti {}, {}, {}",
+                Register(self.t_register()),
+                Register(self.s_register()),
                 self.immediate()
             ),
             OP_ORI => format!(
-                "ori ${}, ${}, 0x{:x}",
-                self.t_register(),
-                self.s_register(),
+                "ori {}, {}, 0x{:x}",
+                Register(self.t_register()),
+                Register(self.s_register()),
                 self.immediate() as u16
             ),
             OP_LUI => format!(
-                "lui ${}, 0x{:x}",
-                self.t_register(),
+                "lui {}, 0x{:x}",
+                Register(self.t_register()),
                 self.immediate() as u16
             ),
             OP_LW => format!(
-                "lw ${}, {}(${})",
-                self.t_register(),
+                "lw {}, {}({})",
+                Register(self.t_register()),
                 self.immediate(),
-                self.s_register()
+                Register(self.s_register())
             ),
             OP_SW => format!(
-                "sw ${}, {}(${})",
-                self.t_register(),
+                "sw {}, {}({})",
+                Register(self.t_register()),
                 self.immediate(),
-                self.s_register()
+                Register(self.s_register())
             ),
             op_code => panic!("Unknown op code 0x{:02x}", op_code),
         }
+    }
+}
+
+/// Pretty-print the register using its name
+struct Register(u8);
+
+impl Display for Register {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        assert!(self.0 < 32);
+
+        f.write_str(REGISTER_NAMES[self.0 as usize])
     }
 }

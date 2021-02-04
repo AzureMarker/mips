@@ -30,7 +30,7 @@ impl IrProgram {
                 // TODO: Change to version 2 when we have the module name in the
                 //       symbol & string tables
                 version: R2KVersion::Version1,
-                flags: 0, // TODO: what flags to use?
+                flags: 0, // Module flags are not used by R2K
                 entry: 0, // Object modules do not specify an entry point
                 section_sizes,
             },
