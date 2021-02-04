@@ -6,7 +6,7 @@ use mips_types::constants::{
     FUNCTION_ADD, FUNCTION_JR, FUNCTION_OR, FUNCTION_SYSCALL, OP_ADDI, OP_BEQ, OP_J, OP_JAL,
     OP_LUI, OP_LW, OP_ORI, OP_R_TYPE, OP_SLTI, OP_SW,
 };
-use mips_types::module::{R2KModule, R2KModuleHeader, R2K_MAGIC};
+use mips_types::module::{R2KModule, R2KModuleHeader, R2KVersion, R2K_MAGIC};
 
 impl IrProgram {
     pub fn lower(self) -> R2KModule {
@@ -27,9 +27,11 @@ impl IrProgram {
         R2KModule {
             header: R2KModuleHeader {
                 magic: R2K_MAGIC,
-                version: 0,      // TODO: what version to use?
-                flags: 0,        // TODO: what flags to use?
-                entry: 0x400000, // FIXME: refer to a constant?
+                // TODO: Change to version 2 when we have the module name in the
+                //       symbol & string tables
+                version: R2KVersion::Version1,
+                flags: 0, // TODO: what flags to use?
+                entry: 0, // Object modules do not specify an entry point
                 section_sizes,
             },
             sections,

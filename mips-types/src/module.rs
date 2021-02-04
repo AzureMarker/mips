@@ -1,3 +1,4 @@
+use std::convert::{TryFrom, TryInto};
 use std::io;
 use std::io::{Read, Write};
 
@@ -16,7 +17,7 @@ pub struct R2KModule {
 pub struct R2KModuleHeader {
     /// Must be `R2K_MAGIC`
     pub magic: u16,
-    pub version: u16,
+    pub version: R2KVersion,
     pub flags: u32,
     pub entry: u32,
     pub section_sizes: Vec<u32>,
@@ -89,7 +90,9 @@ impl R2KModuleHeader {
 
         Ok(Self {
             magic,
-            version: read_u16(input)?,
+            version: read_u16(input)?.try_into().map_err(|_| {
+                io::Error::new(io::ErrorKind::InvalidData, "Unknown version number")
+            })?,
             flags: read_u32(input)?,
             entry: read_u32(input)?,
             section_sizes: (0..SECTION_COUNT)
@@ -101,7 +104,7 @@ impl R2KModuleHeader {
     /// Write the module header
     pub fn write<W: Write>(&self, output: &mut W) -> io::Result<()> {
         output.write_all(&self.magic.to_be_bytes())?;
-        output.write_all(&self.version.to_be_bytes())?;
+        output.write_all(&(self.version as u16).to_be_bytes())?;
         output.write_all(&self.flags.to_be_bytes())?;
         output.write_all(&self.entry.to_be_bytes())?;
 
@@ -110,6 +113,25 @@ impl R2KModuleHeader {
         }
 
         Ok(())
+    }
+}
+
+#[repr(u16)]
+#[derive(Copy, Clone, Debug)]
+pub enum R2KVersion {
+    Version1 = 0x0F22,
+    Version2 = 0x18DC,
+}
+
+impl TryFrom<u16> for R2KVersion {
+    type Error = ();
+
+    fn try_from(value: u16) -> Result<Self, Self::Error> {
+        match value {
+            v if v == R2KVersion::Version1 as u16 => Ok(R2KVersion::Version1),
+            v if v == R2KVersion::Version2 as u16 => Ok(R2KVersion::Version2),
+            _ => Err(()),
+        }
     }
 }
 
