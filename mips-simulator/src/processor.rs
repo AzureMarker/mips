@@ -5,7 +5,7 @@ use crate::registers::Registers;
 use mips_types::constants::{
     DATA_OFFSET, FUNCTION_ADD, FUNCTION_ADDU, FUNCTION_BREAK, FUNCTION_JR, FUNCTION_SLL,
     FUNCTION_SYSCALL, OP_ADDI, OP_BEQ, OP_J, OP_JAL, OP_LUI, OP_LW, OP_ORI, OP_R_TYPE, OP_SLTI,
-    OP_SW, REG_SP, STACK_START, TEXT_OFFSET,
+    OP_SW, REG_SP, STACK_BOTTOM, TEXT_OFFSET,
 };
 use mips_types::module::R2KModule;
 
@@ -32,7 +32,7 @@ impl Processor {
             running: true,
             return_code: 0,
         };
-        processor.registers.set(REG_SP, STACK_START);
+        processor.registers.set(REG_SP, STACK_BOTTOM);
         processor
     }
 

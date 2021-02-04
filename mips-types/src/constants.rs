@@ -27,9 +27,9 @@ pub const REG_SP: u8 = 29;
 pub const REG_RA: u8 = 31;
 
 pub static REGISTER_NAMES: [&str; 32] = [
-    "$zero", "$at", "$v0", "$v1", "$a0", "$a1", "$a2", "$a3", "$t0", "$t1", "$t2", "$t3",
-    "$t4", "$t5", "$t6", "$t7", "$s0", "$s1", "$s2", "$s3", "$s4", "$s5", "$s6", "$s7",
-    "$t8", "$t9", "$k0", "$k1", "$gp", "$sp", "$fp", "$ra",
+    "$zero", "$at", "$v0", "$v1", "$a0", "$a1", "$a2", "$a3", "$t0", "$t1", "$t2", "$t3", "$t4",
+    "$t5", "$t6", "$t7", "$s0", "$s1", "$s2", "$s3", "$s4", "$s5", "$s6", "$s7", "$t8", "$t9",
+    "$k0", "$k1", "$gp", "$sp", "$fp", "$ra",
 ];
 
 // Syscall codes
@@ -39,7 +39,7 @@ pub const SYSCALL_READ_INT: u32 = 5;
 pub const SYSCALL_EXIT2: u32 = 17;
 
 // Memory offsets
-/// The top of the stack
-pub const STACK_START: u32 = 0x7fffe4d8;
-pub const TEXT_OFFSET: u32 = 0x400000;
+/// The bottom of the stack
+pub const STACK_BOTTOM: u32 = 0x7fffefff;
+pub const TEXT_OFFSET: u32 = 0x00400000;
 pub const DATA_OFFSET: u32 = 0x10000000;
