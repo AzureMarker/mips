@@ -39,17 +39,17 @@ impl Processor {
     /// Load an RSIM executable module into memory and prepare for execution
     pub fn load_rsim_module(&mut self, module: &R2KModule) {
         self.memory
-            .load_into_memory(module.text_section(), TEXT_OFFSET);
+            .load_into_memory(&module.text_section, TEXT_OFFSET);
 
         let mut data_offset = DATA_OFFSET;
         self.memory
-            .load_into_memory(module.read_only_data_section(), DATA_OFFSET);
-        data_offset += module.read_only_data_section().len() as u32;
+            .load_into_memory(&module.rdata_section, DATA_OFFSET);
+        data_offset += module.rdata_section.len() as u32;
         self.memory
-            .load_into_memory(module.data_section(), data_offset);
-        data_offset += module.data_section().len() as u32;
+            .load_into_memory(&module.data_section, data_offset);
+        data_offset += module.data_section.len() as u32;
         self.memory
-            .load_into_memory(module.small_data_section(), data_offset);
+            .load_into_memory(&module.sdata_section, data_offset);
 
         self.set_program_counter(module.header.entry);
     }

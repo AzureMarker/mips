@@ -9,7 +9,17 @@ pub const SECTION_COUNT: usize = 10;
 #[derive(Debug)]
 pub struct R2KModule {
     pub header: R2KModuleHeader,
-    pub sections: Vec<Vec<u8>>,
+    pub text_section: Vec<u8>,
+    pub rdata_section: Vec<u8>,
+    pub data_section: Vec<u8>,
+    pub sdata_section: Vec<u8>,
+    pub sbss_size: u32,
+    pub bss_size: u32,
+    // TODO: the below sections should be parsed
+    pub relocation_section: Vec<u8>,
+    pub reference_section: Vec<u8>,
+    pub symbol_table: Vec<u8>,
+    pub string_table: Vec<u8>,
 }
 
 /// R2K's module header
@@ -27,52 +37,46 @@ impl R2KModule {
     /// Parse the input as an R2K module
     pub fn parse<R: Read>(input: &mut R) -> io::Result<Self> {
         let header = R2KModuleHeader::parse(input)?;
-        let mut sections = Vec::with_capacity(header.section_sizes.len());
+        let mut text_section = vec![0; header.section_sizes[0] as usize];
+        let mut rdata_section = vec![0; header.section_sizes[1] as usize];
+        let mut data_section = vec![0; header.section_sizes[2] as usize];
+        let mut sdata_section = vec![0; header.section_sizes[3] as usize];
+        let sbss_size = header.section_sizes[4];
+        let bss_size = header.section_sizes[5];
 
-        // Read each section's data
-        // TODO: Handle the sections which don't use bytes as the length?
-        //       "relocation, reference, and symbol table sizes are described as
-        //       the number of entries rather than the number of bytes in the
-        //       section."
-        //       https://www.cs.rit.edu/~vcss345/documents/rlink.html#format
-        for size in header.section_sizes.iter().copied() {
-            let mut section = vec![0; size as usize];
-            input.read_exact(&mut section)?;
-            sections.push(section);
-        }
+        input.read_exact(&mut text_section)?;
+        input.read_exact(&mut rdata_section)?;
+        input.read_exact(&mut data_section)?;
+        input.read_exact(&mut sdata_section)?;
 
-        Ok(Self { header, sections })
+        Ok(Self {
+            header,
+            text_section,
+            rdata_section,
+            data_section,
+            sdata_section,
+            sbss_size,
+            bss_size,
+            // TODO: read these sections
+            relocation_section: vec![],
+            reference_section: vec![],
+            symbol_table: vec![],
+            string_table: vec![],
+        })
     }
 
     /// Write the module
     pub fn write<W: Write>(&self, output: &mut W) -> io::Result<()> {
         self.header.write(output)?;
 
-        for section in &self.sections {
-            output.write_all(&section)?;
-        }
+        output.write_all(&self.text_section)?;
+        output.write_all(&self.rdata_section)?;
+        output.write_all(&self.data_section)?;
+        output.write_all(&self.sdata_section)?;
+
+        // TODO: write out the remaining sections
 
         Ok(())
-    }
-
-    /// Get the text section's data
-    pub fn text_section(&self) -> &[u8] {
-        &self.sections[0]
-    }
-
-    /// Get the rdata section's data
-    pub fn read_only_data_section(&self) -> &[u8] {
-        &self.sections[1]
-    }
-
-    /// Get the data section's data
-    pub fn data_section(&self) -> &[u8] {
-        &self.sections[2]
-    }
-
-    /// Get the sdata section's data
-    pub fn small_data_section(&self) -> &[u8] {
-        &self.sections[3]
     }
 }
 
