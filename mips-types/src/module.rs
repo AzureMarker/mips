@@ -15,10 +15,9 @@ pub struct R2KModule {
     pub sdata_section: Vec<u8>,
     pub sbss_size: u32,
     pub bss_size: u32,
-    // TODO: the below sections should be parsed
-    pub relocation_section: Vec<u8>,
-    pub reference_section: Vec<u8>,
-    pub symbol_table: Vec<u8>,
+    pub relocation_section: Vec<R2KRelocationEntry>,
+    pub reference_section: Vec<R2KReferenceEntry>,
+    pub symbol_table: Vec<R2KSymbolEntry>,
     pub string_table: Vec<u8>,
 }
 
@@ -49,6 +48,19 @@ impl R2KModule {
         input.read_exact(&mut data_section)?;
         input.read_exact(&mut sdata_section)?;
 
+        let relocation_section = (0..header.section_sizes[6])
+            .map(|_| R2KRelocationEntry::parse(input))
+            .collect::<Result<_, _>>()?;
+        let reference_section = (0..header.section_sizes[7])
+            .map(|_| R2KReferenceEntry::parse(input))
+            .collect::<Result<_, _>>()?;
+        let symbol_table = (0..header.section_sizes[8])
+            .map(|_| R2KSymbolEntry::parse(input))
+            .collect::<Result<_, _>>()?;
+
+        let mut string_table = vec![0; header.section_sizes[9] as usize];
+        input.read_exact(&mut string_table)?;
+
         Ok(Self {
             header,
             text_section,
@@ -57,11 +69,10 @@ impl R2KModule {
             sdata_section,
             sbss_size,
             bss_size,
-            // TODO: read these sections
-            relocation_section: vec![],
-            reference_section: vec![],
-            symbol_table: vec![],
-            string_table: vec![],
+            relocation_section,
+            reference_section,
+            symbol_table,
+            string_table,
         })
     }
 
@@ -74,7 +85,19 @@ impl R2KModule {
         output.write_all(&self.data_section)?;
         output.write_all(&self.sdata_section)?;
 
-        // TODO: write out the remaining sections
+        for entry in &self.relocation_section {
+            entry.write(output)?;
+        }
+
+        for entry in &self.reference_section {
+            entry.write(output)?;
+        }
+
+        for entry in &self.symbol_table {
+            entry.write(output)?;
+        }
+
+        output.write_all(&self.string_table)?;
 
         Ok(())
     }
@@ -137,6 +160,94 @@ impl TryFrom<u16> for R2KVersion {
             _ => Err(()),
         }
     }
+}
+
+#[derive(Debug)]
+pub struct R2KRelocationEntry {
+    pub address: u32,
+    pub section: u8,
+    pub rel_type: u8,
+}
+
+impl R2KRelocationEntry {
+    /// Parse the input as an R2K relocation entry
+    pub fn parse<R: Read>(input: &mut R) -> io::Result<Self> {
+        Ok(Self {
+            address: read_u32(input)?,
+            section: read_u8(input)?,
+            rel_type: read_u8(input)?,
+        })
+    }
+
+    /// Write the entry
+    pub fn write<W: Write>(&self, output: &mut W) -> io::Result<()> {
+        output.write_all(&self.address.to_be_bytes())?;
+        output.write_all(&[self.section, self.rel_type])?;
+
+        Ok(())
+    }
+}
+
+#[derive(Debug)]
+pub struct R2KReferenceEntry {
+    pub address: u32,
+    pub symbol: u32,
+    pub section: u8,
+    pub ref_type: u8,
+}
+
+impl R2KReferenceEntry {
+    /// Parse the input as an R2K reference entry
+    pub fn parse<R: Read>(input: &mut R) -> io::Result<Self> {
+        Ok(Self {
+            address: read_u32(input)?,
+            symbol: read_u32(input)?,
+            section: read_u8(input)?,
+            ref_type: read_u8(input)?,
+        })
+    }
+
+    /// Write the entry
+    pub fn write<W: Write>(&self, output: &mut W) -> io::Result<()> {
+        output.write_all(&self.address.to_be_bytes())?;
+        output.write_all(&self.symbol.to_be_bytes())?;
+        output.write_all(&[self.section, self.ref_type])?;
+
+        Ok(())
+    }
+}
+
+#[derive(Debug)]
+pub struct R2KSymbolEntry {
+    pub flags: u32,
+    pub value: u32,
+    pub symbol: u32,
+}
+
+impl R2KSymbolEntry {
+    /// Parse the input as an R2K symbol entry
+    pub fn parse<R: Read>(input: &mut R) -> io::Result<Self> {
+        Ok(Self {
+            flags: read_u32(input)?,
+            value: read_u32(input)?,
+            symbol: read_u32(input)?,
+        })
+    }
+
+    /// Write the entry
+    pub fn write<W: Write>(&self, output: &mut W) -> io::Result<()> {
+        output.write_all(&self.flags.to_be_bytes())?;
+        output.write_all(&self.value.to_be_bytes())?;
+        output.write_all(&self.symbol.to_be_bytes())?;
+
+        Ok(())
+    }
+}
+
+fn read_u8<R: Read>(input: &mut R) -> io::Result<u8> {
+    let mut bytes = [0; 1];
+    input.read_exact(&mut bytes)?;
+    Ok(bytes[0])
 }
 
 fn read_u16<R: Read>(input: &mut R) -> io::Result<u16> {
