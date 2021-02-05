@@ -4,6 +4,16 @@ use std::io::{Read, Write};
 
 pub const R2K_MAGIC: u16 = 0xFACE;
 pub const SECTION_COUNT: usize = 10;
+pub const TEXT_INDEX: usize = 0;
+pub const RDATA_INDEX: usize = 1;
+pub const DATA_INDEX: usize = 2;
+pub const SDATA_INDEX: usize = 3;
+pub const SBSS_INDEX: usize = 4;
+pub const BSS_INDEX: usize = 5;
+pub const RELOCATION_INDEX: usize = 6;
+pub const REFERENCES_INDEX: usize = 7;
+pub const SYMBOLS_INDEX: usize = 8;
+pub const STRINGS_INDEX: usize = 9;
 
 /// An R2K module
 #[derive(Debug, Default)]
@@ -48,29 +58,29 @@ impl R2KModule {
     /// Parse the input as an R2K module
     pub fn parse<R: Read>(input: &mut R) -> io::Result<Self> {
         let header = R2KModuleHeader::parse(input)?;
-        let mut text_section = vec![0; header.section_sizes[0] as usize];
-        let mut rdata_section = vec![0; header.section_sizes[1] as usize];
-        let mut data_section = vec![0; header.section_sizes[2] as usize];
-        let mut sdata_section = vec![0; header.section_sizes[3] as usize];
-        let sbss_size = header.section_sizes[4];
-        let bss_size = header.section_sizes[5];
+        let mut text_section = vec![0; header.section_sizes[TEXT_INDEX] as usize];
+        let mut rdata_section = vec![0; header.section_sizes[RDATA_INDEX] as usize];
+        let mut data_section = vec![0; header.section_sizes[DATA_INDEX] as usize];
+        let mut sdata_section = vec![0; header.section_sizes[SDATA_INDEX] as usize];
+        let sbss_size = header.section_sizes[SBSS_INDEX];
+        let bss_size = header.section_sizes[BSS_INDEX];
 
         input.read_exact(&mut text_section)?;
         input.read_exact(&mut rdata_section)?;
         input.read_exact(&mut data_section)?;
         input.read_exact(&mut sdata_section)?;
 
-        let relocation_section = (0..header.section_sizes[6])
+        let relocation_section = (0..header.section_sizes[RELOCATION_INDEX])
             .map(|_| R2KRelocationEntry::parse(input))
             .collect::<Result<_, _>>()?;
-        let reference_section = (0..header.section_sizes[7])
+        let reference_section = (0..header.section_sizes[REFERENCES_INDEX])
             .map(|_| R2KReferenceEntry::parse(input))
             .collect::<Result<_, _>>()?;
-        let symbol_table = (0..header.section_sizes[8])
+        let symbol_table = (0..header.section_sizes[SYMBOLS_INDEX])
             .map(|_| R2KSymbolEntry::parse(input))
             .collect::<Result<_, _>>()?;
 
-        let mut string_table = vec![0; header.section_sizes[9] as usize];
+        let mut string_table = vec![0; header.section_sizes[STRINGS_INDEX] as usize];
         input.read_exact(&mut string_table)?;
 
         Ok(Self {
