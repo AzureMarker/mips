@@ -6,7 +6,7 @@ pub const R2K_MAGIC: u16 = 0xFACE;
 pub const SECTION_COUNT: usize = 10;
 
 /// An R2K module
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct R2KModule {
     pub header: R2KModuleHeader,
     pub text_section: Vec<u8>,
@@ -29,7 +29,19 @@ pub struct R2KModuleHeader {
     pub version: R2KVersion,
     pub flags: u32,
     pub entry: u32,
-    pub section_sizes: Vec<u32>,
+    pub section_sizes: [u32; SECTION_COUNT],
+}
+
+impl Default for R2KModuleHeader {
+    fn default() -> Self {
+        Self {
+            magic: R2K_MAGIC,
+            version: R2KVersion::Version1,
+            flags: 0,
+            entry: 0,
+            section_sizes: [0; SECTION_COUNT],
+        }
+    }
 }
 
 impl R2KModule {
@@ -122,9 +134,15 @@ impl R2KModuleHeader {
             })?,
             flags: read_u32(input)?,
             entry: read_u32(input)?,
-            section_sizes: (0..SECTION_COUNT)
-                .map(|_| read_u32(input))
-                .collect::<io::Result<_>>()?,
+            section_sizes: {
+                let mut sizes = [0; SECTION_COUNT];
+
+                for entry in sizes.iter_mut() {
+                    *entry = read_u32(input)?;
+                }
+
+                sizes
+            },
         })
     }
 

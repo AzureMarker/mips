@@ -2,6 +2,12 @@
 #[derive(Debug)]
 pub struct Registers([u32; 32]);
 
+impl Default for Registers {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Registers {
     pub fn new() -> Self {
         Registers([0; 32])

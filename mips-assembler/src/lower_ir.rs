@@ -6,7 +6,7 @@ use mips_types::constants::{
     FUNCTION_ADD, FUNCTION_JR, FUNCTION_OR, FUNCTION_SYSCALL, OP_ADDI, OP_BEQ, OP_J, OP_JAL,
     OP_LUI, OP_LW, OP_ORI, OP_R_TYPE, OP_SLTI, OP_SW,
 };
-use mips_types::module::{R2KModule, R2KModuleHeader, R2KVersion, R2K_MAGIC};
+use mips_types::module::{R2KModule, R2KModuleHeader, R2KVersion, R2K_MAGIC, SECTION_COUNT};
 
 impl IrProgram {
     pub fn lower(self) -> R2KModule {
@@ -16,13 +16,9 @@ impl IrProgram {
             .into_iter()
             .flat_map(|instruction| instruction.lower().to_be_bytes().to_vec())
             .collect();
-        let mut sections = vec![Vec::new(); 10];
-        sections[0] = text;
-        sections[2] = self.data.data;
-        let section_sizes = sections
-            .iter()
-            .map(|section| section.len() as u32)
-            .collect();
+        let mut section_sizes = [0; SECTION_COUNT];
+        section_sizes[0] = text.len() as u32;
+        section_sizes[2] = self.data.data.len() as u32;
 
         R2KModule {
             header: R2KModuleHeader {
@@ -34,7 +30,9 @@ impl IrProgram {
                 entry: 0, // Object modules do not specify an entry point
                 section_sizes,
             },
-            sections,
+            text_section: text,
+            data_section: self.data.data,
+            ..Default::default()
         }
     }
 }
