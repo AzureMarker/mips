@@ -14,31 +14,37 @@ impl Program {
         let mut symbol_table: HashMap<String, Symbol> = HashMap::new();
         let mut globals: Vec<String> = Vec::new();
         let mut constants: HashMap<String, i64> = HashMap::new();
-        let mut current_section = SymbolLocation::Text;
 
-        for item in self.items {
+        let mut current_section = SymbolLocation::Text;
+        let mut text_offset = 0;
+
+        // Find symbols and constants
+        for item in &self.items {
             match item {
                 Item::ConstantDef(ConstantDef { name, value }) => {
-                    // TODO: create a dependency graph of constants?
-                    constants.insert(name, value.evaluate(&constants));
+                    // Constants cannot have forward references
+                    constants.insert(name.clone(), value.evaluate(&constants));
                 }
                 Item::Label(name) => {
                     symbol_table.insert(
-                        name,
+                        name.clone(),
                         Symbol {
                             location: current_section,
                             offset: match current_section {
-                                SymbolLocation::Text => instructions.len() * 4,
+                                SymbolLocation::Text => text_offset,
                                 SymbolLocation::Data => data.len(),
                             },
                         },
                     );
                 }
                 Item::Directive(directive) => match directive {
+                    // FIXME: We're not checking what section we're in for directives like
+                    //        align or space.
                     Directive::Text => current_section = SymbolLocation::Text,
                     Directive::Data => current_section = SymbolLocation::Data,
-                    Directive::Global { label } => globals.push(label),
+                    Directive::Global { label } => globals.push(label.clone()),
                     Directive::Align { boundary } => {
+                        // Boundaries cannot have forward references
                         let boundary = boundary.evaluate(&constants) as usize;
 
                         if boundary == 0 || data.len() % boundary == 0 {
@@ -49,17 +55,41 @@ impl Program {
                         data.extend(std::iter::repeat(0).take(boundary - (data.len() % boundary)));
                     }
                     Directive::Space { size } => {
-                        data.extend(std::iter::repeat(0).take(size.evaluate(&constants) as usize))
+                        // Space cannot have forward references
+                        data.extend(std::iter::repeat(0).take(size.evaluate(&constants) as usize));
                     }
                     Directive::Word { values } => data.extend(
                         values
-                            .into_iter()
+                            .iter()
+                            // Words cannot have forward references
                             .flat_map(|e| e.evaluate(&constants).to_be_bytes().to_vec()),
                     ),
                     Directive::Asciiz { string } => {
                         // TODO: enforce only ASCII?
                         data.extend(string.bytes().chain(std::iter::once(0)))
                     }
+                },
+                Item::Instruction(instruction) => {
+                    text_offset += 4 * instruction.expanded_size();
+                }
+            }
+        }
+
+        // Second pass: generate instruction IR
+        for item in self.items {
+            match item {
+                Item::ConstantDef(_) => {}
+                Item::Label(_) => {}
+                Item::Directive(directive) => match directive {
+                    // FIXME: atm we don't do anything with directives on second
+                    //        pass, but should we?
+                    Directive::Text
+                    | Directive::Data
+                    | Directive::Global { .. }
+                    | Directive::Align { .. }
+                    | Directive::Space { .. }
+                    | Directive::Word { .. }
+                    | Directive::Asciiz { .. } => {}
                 },
                 Item::Instruction(instruction) => {
                     instructions.extend(instruction.lower(&constants))
@@ -104,6 +134,17 @@ impl Expr {
 }
 
 impl Instruction {
+    /// Get the number of instructions this instruction expands to
+    pub fn expanded_size(&self) -> usize {
+        match self {
+            Instruction::RType { .. }
+            | Instruction::IType { .. }
+            | Instruction::JType { .. }
+            | Instruction::Syscall => 1,
+            Instruction::Pseudo(pseduo) => pseduo.expanded_size(),
+        }
+    }
+
     pub fn lower(self, constants: &HashMap<String, i64>) -> Vec<IrInstruction> {
         match self {
             Instruction::RType {
@@ -141,6 +182,14 @@ impl Instruction {
 }
 
 impl PseudoInstruction {
+    /// Get the number of instructions this pseudo-instruction expands to
+    pub fn expanded_size(&self) -> usize {
+        match self {
+            PseudoInstruction::LoadImmediate { .. } | PseudoInstruction::LoadAddress { .. } => 2,
+            PseudoInstruction::Move { .. } => 1,
+        }
+    }
+
     pub fn lower(self, constants: &HashMap<String, i64>) -> Vec<IrInstruction> {
         match self {
             PseudoInstruction::LoadImmediate { rd, value } => {
