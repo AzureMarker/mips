@@ -1,10 +1,12 @@
 # MIPS assembler, simulator, and debugger
-Or at least that's what I plan on doing :)
 
 ## Goals
 - Assembler
   - [X] Parse assembly code
-  - [ ] Assemble code into object files
+  - [X] Assemble code into object files
+  - [ ] Support all directives and instructions
+  - [ ] Handle global (extern) references
+  - [ ] Support data sections like sdata
 - Linker
   - [ ] Link object files into final executable
   - [ ] TODO: expand goals
