@@ -5,6 +5,7 @@ use crate::ast::{
     PseudoInstruction, RTypeOp,
 };
 use crate::ir::{IrData, IrInstruction, IrProgram, IrText, Symbol, SymbolLocation, SymbolTable};
+use mips_types::constants::{DATA_OFFSET, TEXT_OFFSET};
 use std::collections::HashMap;
 
 impl Program {
@@ -221,7 +222,9 @@ impl Instruction {
                 pseudo_address: 0xDEADBEEF, // TODO: fix this
             }],
             Instruction::Syscall => vec![IrInstruction::Syscall],
-            Instruction::Pseudo(pseudo_instruction) => pseudo_instruction.lower(constants),
+            Instruction::Pseudo(pseudo_instruction) => {
+                pseudo_instruction.lower(constants, symbol_table)
+            }
         }
     }
 }
@@ -247,7 +250,11 @@ impl PseudoInstruction {
         }
     }
 
-    pub fn lower(self, constants: &HashMap<String, i64>) -> Vec<IrInstruction> {
+    pub fn lower(
+        self,
+        constants: &HashMap<String, i64>,
+        symbol_table: &HashMap<String, Symbol>,
+    ) -> Vec<IrInstruction> {
         match self {
             PseudoInstruction::LoadImmediate { rd, value } => {
                 let value = value.evaluate(constants).unwrap() as u32;
@@ -264,10 +271,12 @@ impl PseudoInstruction {
                     Self::load_u32_into_register(rd.index().unwrap(), value)
                 }
             }
-            PseudoInstruction::LoadAddress { rd, label: _label } => {
-                // FIXME: note that this instruction references a label so the
-                //        address can be updated once we know the label's address.
-                Self::load_u32_into_register(rd.index().unwrap(), 0xDEADBEEF)
+            PseudoInstruction::LoadAddress { rd, label } => {
+                let symbol = symbol_table
+                    .get(&label)
+                    .unwrap_or_else(|| panic!("Could not find symbol '{}'", label));
+
+                Self::load_u32_into_register(rd.index().unwrap(), symbol.address())
             }
             PseudoInstruction::Move { rs, rt } => vec![IrInstruction::RType {
                 op_code: RTypeOp::Or,
@@ -294,5 +303,15 @@ impl PseudoInstruction {
                 immediate: value as i16,
             },
         ]
+    }
+}
+
+impl Symbol {
+    /// Calculate the address of the symbol
+    fn address(&self) -> u32 {
+        match self.location {
+            SymbolLocation::Text => TEXT_OFFSET + self.offset as u32,
+            SymbolLocation::Data => DATA_OFFSET + self.offset as u32,
+        }
     }
 }
