@@ -25,7 +25,7 @@ impl Program {
                     constants.insert(
                         name.clone(),
                         value
-                            .evaluate(&constants, &symbol_table)
+                            .evaluate(&constants)
                             .expect("Constants cannot have forward references"),
                     );
                 }
@@ -49,7 +49,7 @@ impl Program {
                     Directive::Global { label } => globals.push(label.clone()),
                     Directive::Align { boundary } => {
                         let boundary = boundary
-                            .evaluate(&constants, &symbol_table)
+                            .evaluate(&constants)
                             .expect(".align cannot have forward references")
                             as usize;
 
@@ -63,14 +63,14 @@ impl Program {
                     Directive::Space { size } => {
                         data.extend(
                             std::iter::repeat(0).take(
-                                size.evaluate(&constants, &symbol_table)
+                                size.evaluate(&constants)
                                     .expect(".space cannot have forward references")
                                     as usize,
                             ),
                         );
                     }
                     Directive::Word { values } => data.extend(values.iter().flat_map(|e| {
-                        (e.evaluate(&constants, &symbol_table)
+                        (e.evaluate(&constants)
                             .expect(".word cannot have forward references")
                             as u32)
                             .to_be_bytes()
@@ -82,7 +82,7 @@ impl Program {
                     }
                 },
                 Item::Instruction(instruction) => {
-                    text_offset += 4 * instruction.expanded_size();
+                    text_offset += 4 * instruction.expanded_size(&constants);
                 }
             }
         }
@@ -92,19 +92,10 @@ impl Program {
         // Second pass: generate instruction IR
         for item in self.items {
             match item {
-                Item::ConstantDef(_) => {}
-                Item::Label(_) => {}
-                Item::Directive(directive) => match directive {
-                    // FIXME: atm we don't do anything with directives on second
-                    //        pass, but should we?
-                    Directive::Text
-                    | Directive::Data
-                    | Directive::Global { .. }
-                    | Directive::Align { .. }
-                    | Directive::Space { .. }
-                    | Directive::Word { .. }
-                    | Directive::Asciiz { .. } => {}
-                },
+                Item::ConstantDef(_) | Item::Label(_)
+                // FIXME: atm we don't do anything with directives on second
+                //        pass, but should we?
+                | Item::Directive(_) => {}
                 Item::Instruction(instruction) => instructions.extend(instruction.lower(
                     instructions.len() * 4,
                     &constants,
@@ -123,11 +114,7 @@ impl Program {
 }
 
 impl Expr {
-    pub fn evaluate(
-        &self,
-        constants: &HashMap<String, i64>,
-        symbol_table: &HashMap<String, Symbol>,
-    ) -> Result<i64, String> {
+    pub fn evaluate(&self, constants: &HashMap<String, i64>) -> Result<i64, String> {
         match self {
             Expr::Number(num) => Ok(*num),
             Expr::Constant(name) => constants
@@ -140,8 +127,8 @@ impl Expr {
                 left,
                 right,
             } => {
-                let left = left.evaluate(constants, symbol_table)?;
-                let right = right.evaluate(constants, symbol_table)?;
+                let left = left.evaluate(constants)?;
+                let right = right.evaluate(constants)?;
                 Ok(match operation {
                     Operation::Add => left + right,
                     Operation::Subtract => left - right,
@@ -149,20 +136,20 @@ impl Expr {
                     Operation::Divide => left / right,
                 })
             }
-            Expr::Negated(expr) => Ok(-expr.evaluate(constants, symbol_table)?),
+            Expr::Negated(expr) => Ok(-expr.evaluate(constants)?),
         }
     }
 }
 
 impl Instruction {
     /// Get the number of instructions this instruction expands to
-    pub fn expanded_size(&self) -> usize {
+    pub fn expanded_size(&self, constants: &HashMap<String, i64>) -> usize {
         match self {
             Instruction::RType { .. }
             | Instruction::IType { .. }
             | Instruction::JType { .. }
             | Instruction::Syscall => 1,
-            Instruction::Pseudo(pseduo) => pseduo.expanded_size(),
+            Instruction::Pseudo(pseduo) => pseduo.expanded_size(constants),
         }
     }
 
@@ -226,7 +213,7 @@ impl Instruction {
                     rs: rs.index().unwrap(),
                     rt: rt.index().unwrap(),
                     // FIXME: make sure the constant is not too big
-                    immediate: immediate.evaluate(constants, symbol_table).unwrap() as i16,
+                    immediate: immediate.evaluate(constants).unwrap() as i16,
                 }],
             },
             Instruction::JType { op_code, label } => vec![IrInstruction::JType {
@@ -234,35 +221,48 @@ impl Instruction {
                 pseudo_address: 0xDEADBEEF, // TODO: fix this
             }],
             Instruction::Syscall => vec![IrInstruction::Syscall],
-            Instruction::Pseudo(pseudo_instruction) => {
-                pseudo_instruction.lower(constants, symbol_table)
-            }
+            Instruction::Pseudo(pseudo_instruction) => pseudo_instruction.lower(constants),
         }
     }
 }
 
 impl PseudoInstruction {
     /// Get the number of instructions this pseudo-instruction expands to
-    pub fn expanded_size(&self) -> usize {
+    pub fn expanded_size(&self, constants: &HashMap<String, i64>) -> usize {
         match self {
-            PseudoInstruction::LoadImmediate { .. } | PseudoInstruction::LoadAddress { .. } => 2,
+            PseudoInstruction::LoadImmediate { value, .. } => {
+                let value = value
+                    .evaluate(constants)
+                    .expect("li cannot have forward references") as u32;
+
+                // We can fit a 16 bit li into one instruction
+                if value <= u16::MAX as u32 {
+                    1
+                } else {
+                    2
+                }
+            }
+            PseudoInstruction::LoadAddress { .. } => 2,
             PseudoInstruction::Move { .. } => 1,
         }
     }
 
-    pub fn lower(
-        self,
-        constants: &HashMap<String, i64>,
-        symbol_table: &HashMap<String, Symbol>,
-    ) -> Vec<IrInstruction> {
+    pub fn lower(self, constants: &HashMap<String, i64>) -> Vec<IrInstruction> {
         match self {
             PseudoInstruction::LoadImmediate { rd, value } => {
-                let value = value.evaluate(constants, symbol_table).unwrap() as u32;
+                let value = value.evaluate(constants).unwrap() as u32;
 
-                // FIXME: this assumes it's a 32 bit immediate, but we could
-                //        optimize to one instruction if it's 16 bit. We also
-                //        need to check that it's not bigger than 32 bits.
-                Self::load_u32_into_register(rd.index().unwrap(), value)
+                // If the value is only 16 bits, we only need to load the lower bits
+                if value <= u16::MAX as u32 {
+                    vec![IrInstruction::IType {
+                        op_code: ITypeOp::Ori,
+                        rs: 0,
+                        rt: rd.index().unwrap(),
+                        immediate: value as i16,
+                    }]
+                } else {
+                    Self::load_u32_into_register(rd.index().unwrap(), value)
+                }
             }
             PseudoInstruction::LoadAddress { rd, label: _label } => {
                 // FIXME: note that this instruction references a label so the
