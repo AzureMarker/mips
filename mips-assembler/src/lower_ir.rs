@@ -65,7 +65,7 @@ impl IrInstruction {
                 (op_code.code() as u32) << 26
                     | (rs as u32) << 21
                     | (rt as u32) << 16
-                    | immediate as u32
+                    | (immediate as u32 & 0xFFFF)
             }
             IrInstruction::JType {
                 op_code,
