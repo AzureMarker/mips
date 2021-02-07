@@ -296,17 +296,19 @@ impl PseudoInstruction {
         }
     }
 
+    /// This loads the upper half into the $at register and then ORs it with the
+    /// lower half and outputs to the destination register.
     fn load_u32_into_register(register: u8, value: u32) -> Vec<IrInstruction> {
         vec![
             IrInstruction::IType {
                 op_code: ITypeOp::Lui,
                 rs: 0,
-                rt: register,
+                rt: 1,
                 immediate: (value >> 16) as i16,
             },
             IrInstruction::IType {
                 op_code: ITypeOp::Ori,
-                rs: 0,
+                rs: 1,
                 rt: register,
                 immediate: value as i16,
             },
