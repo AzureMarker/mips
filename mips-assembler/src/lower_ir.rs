@@ -71,7 +71,7 @@ impl IrInstruction {
                 op_code,
                 pseudo_address,
             } => (op_code.code() as u32) << 26 | pseudo_address,
-            IrInstruction::Syscall => (OP_R_TYPE as u32) << 26 & FUNCTION_SYSCALL as u32,
+            IrInstruction::Syscall => (OP_R_TYPE as u32) << 26 | FUNCTION_SYSCALL as u32,
         }
     }
 }
