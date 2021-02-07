@@ -188,7 +188,9 @@ impl Instruction {
                                 .or_else(|| symbol_table.get(&label).map(|symbol| {
                                     assert_eq!(symbol.location, SymbolLocation::Text, "Can only branch to labels in the text section");
                                     // FIXME: make sure the offset isn't too big
-                                    (symbol.offset as isize - current_offset as isize) as i16
+                                    // Divide by four because it's counted in instructions to skip,
+                                    // minus one because the offset affects the next PC
+                                    ((symbol.offset as isize - current_offset as isize) / 4 - 1) as i16
                                 }))
                                 .unwrap_or_else(|| panic!("Unable to find '{}'", label))
                         },
@@ -203,7 +205,7 @@ impl Instruction {
                         immediate: offset,
                     }]
                 }
-                // Other I-types use constant values
+                // Other I-types use the written-down value
                 ITypeOp::Addi
                 | ITypeOp::Lui
                 | ITypeOp::Lw
