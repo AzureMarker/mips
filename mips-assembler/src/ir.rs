@@ -5,15 +5,10 @@ use std::collections::HashMap;
 
 #[derive(Debug)]
 pub struct IrProgram {
-    pub text: IrText,
-    pub data: IrData,
-    pub symbol_table: SymbolTable,
+    pub text: Vec<IrInstruction>,
+    pub data: Vec<u8>,
+    pub symbol_table: HashMap<String, Symbol>,
     pub globals: Vec<String>,
-}
-
-#[derive(Debug)]
-pub struct IrText {
-    pub instructions: Vec<IrInstruction>,
 }
 
 #[derive(Debug)]
@@ -36,16 +31,6 @@ pub enum IrInstruction {
         pseudo_address: u32,
     },
     Syscall,
-}
-
-#[derive(Debug)]
-pub struct IrData {
-    pub data: Vec<u8>,
-}
-
-#[derive(Debug)]
-pub struct SymbolTable {
-    pub map: HashMap<String, Symbol>,
 }
 
 #[derive(Debug)]

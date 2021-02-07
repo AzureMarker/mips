@@ -4,7 +4,7 @@ use crate::ast::{
     ConstantDef, Directive, Expr, ITypeOp, Instruction, Item, Operation, Program,
     PseudoInstruction, RTypeOp,
 };
-use crate::ir::{IrData, IrInstruction, IrProgram, IrText, Symbol, SymbolLocation, SymbolTable};
+use crate::ir::{IrInstruction, IrProgram, Symbol, SymbolLocation};
 use mips_types::constants::{DATA_OFFSET, TEXT_OFFSET};
 use std::collections::HashMap;
 
@@ -106,9 +106,9 @@ impl Program {
         }
 
         IrProgram {
-            text: IrText { instructions },
-            data: IrData { data },
-            symbol_table: SymbolTable { map: symbol_table },
+            text: instructions,
+            data,
+            symbol_table,
             globals,
         }
     }
