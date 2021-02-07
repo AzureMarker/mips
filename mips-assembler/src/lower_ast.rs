@@ -22,8 +22,12 @@ impl Program {
         for item in &self.items {
             match item {
                 Item::ConstantDef(ConstantDef { name, value }) => {
-                    // Constants cannot have forward references
-                    constants.insert(name.clone(), value.evaluate(&constants));
+                    constants.insert(
+                        name.clone(),
+                        value
+                            .evaluate(&constants)
+                            .expect("Constants cannot have forward references"),
+                    );
                 }
                 Item::Label(name) => {
                     symbol_table.insert(
@@ -44,8 +48,10 @@ impl Program {
                     Directive::Data => current_section = SymbolLocation::Data,
                     Directive::Global { label } => globals.push(label.clone()),
                     Directive::Align { boundary } => {
-                        // Boundaries cannot have forward references
-                        let boundary = boundary.evaluate(&constants) as usize;
+                        let boundary = boundary
+                            .evaluate(&constants)
+                            .expect(".align cannot have forward references")
+                            as usize;
 
                         if boundary == 0 || data.len() % boundary == 0 {
                             // FIXME: I don't think we're properly handling boundaries
@@ -55,15 +61,20 @@ impl Program {
                         data.extend(std::iter::repeat(0).take(boundary - (data.len() % boundary)));
                     }
                     Directive::Space { size } => {
-                        // Space cannot have forward references
-                        data.extend(std::iter::repeat(0).take(size.evaluate(&constants) as usize));
+                        data.extend(
+                            std::iter::repeat(0).take(
+                                size.evaluate(&constants)
+                                    .expect(".space cannot have forward references")
+                                    as usize,
+                            ),
+                        );
                     }
-                    Directive::Word { values } => data.extend(
-                        values
-                            .iter()
-                            // Words cannot have forward references
-                            .flat_map(|e| e.evaluate(&constants).to_be_bytes().to_vec()),
-                    ),
+                    Directive::Word { values } => data.extend(values.iter().flat_map(|e| {
+                        e.evaluate(&constants)
+                            .expect(".word cannot have forward references")
+                            .to_be_bytes()
+                            .to_vec()
+                    })),
                     Directive::Asciiz { string } => {
                         // TODO: enforce only ASCII?
                         data.extend(string.bytes().chain(std::iter::once(0)))
@@ -107,28 +118,29 @@ impl Program {
 }
 
 impl Expr {
-    pub fn evaluate(&self, constants: &HashMap<String, i64>) -> i64 {
+    pub fn evaluate(&self, constants: &HashMap<String, i64>) -> Result<i64, String> {
         match self {
-            Expr::Number(num) => *num,
-            Expr::Constant(name) => *constants
+            Expr::Number(num) => Ok(*num),
+            Expr::Constant(name) => constants
                 .get(name)
+                .copied()
                 // TODO: return a proper error
-                .unwrap_or_else(|| panic!("Unable to find constant '{}'", name)),
+                .ok_or_else(|| format!("Unable to find constant '{}'", name)),
             Expr::Calculated {
                 operation,
                 left,
                 right,
             } => {
-                let left = left.evaluate(constants);
-                let right = right.evaluate(constants);
-                match operation {
+                let left = left.evaluate(constants)?;
+                let right = right.evaluate(constants)?;
+                Ok(match operation {
                     Operation::Add => left + right,
                     Operation::Subtract => left - right,
                     Operation::Multiply => left * right,
                     Operation::Divide => left / right,
-                }
+                })
             }
-            Expr::Negated(expr) => -expr.evaluate(constants),
+            Expr::Negated(expr) => Ok(-expr.evaluate(constants)?),
         }
     }
 }
@@ -169,7 +181,7 @@ impl Instruction {
                 rs: rs.index().unwrap(),
                 rt: rt.index().unwrap(),
                 // FIXME: make sure the constant is not too big
-                immediate: immediate.evaluate(&constants) as i16,
+                immediate: immediate.evaluate(&constants).unwrap() as i16,
             }],
             Instruction::JType { op_code, label } => vec![IrInstruction::JType {
                 op_code,
@@ -193,7 +205,7 @@ impl PseudoInstruction {
     pub fn lower(self, constants: &HashMap<String, i64>) -> Vec<IrInstruction> {
         match self {
             PseudoInstruction::LoadImmediate { rd, value } => {
-                let value = value.evaluate(constants) as u32;
+                let value = value.evaluate(constants).unwrap() as u32;
 
                 // FIXME: this assumes it's a 32 bit immediate, but we could
                 //        optimize to one instruction if it's 16 bit. We also
