@@ -46,4 +46,12 @@ impl Processor {
         self.registers.set(instruction.d_register(), value);
         self.advance_program_counter();
     }
+
+    /// Bitwise Or
+    pub(crate) fn op_or(&mut self, instruction: Instruction) {
+        let a = self.registers.get(instruction.s_register());
+        let b = self.registers.get(instruction.t_register());
+        self.registers.set(instruction.d_register(), a | b);
+        self.advance_program_counter();
+    }
 }

@@ -3,9 +3,9 @@ use crate::instruction::Instruction;
 use crate::memory::Memory;
 use crate::registers::Registers;
 use mips_types::constants::{
-    DATA_OFFSET, FUNCTION_ADD, FUNCTION_ADDU, FUNCTION_BREAK, FUNCTION_JR, FUNCTION_SLL,
-    FUNCTION_SYSCALL, OP_ADDI, OP_BEQ, OP_J, OP_JAL, OP_LUI, OP_LW, OP_ORI, OP_R_TYPE, OP_SLTI,
-    OP_SW, REG_SP, STACK_BOTTOM, TEXT_OFFSET,
+    DATA_OFFSET, FUNCTION_ADD, FUNCTION_ADDU, FUNCTION_BREAK, FUNCTION_JR, FUNCTION_OR,
+    FUNCTION_SLL, FUNCTION_SYSCALL, OP_ADDI, OP_BEQ, OP_J, OP_JAL, OP_LUI, OP_LW, OP_ORI,
+    OP_R_TYPE, OP_SLTI, OP_SW, REG_SP, STACK_BOTTOM, TEXT_OFFSET,
 };
 use mips_types::module::R2KModule;
 
@@ -102,6 +102,7 @@ impl Processor {
                 FUNCTION_BREAK => self.op_break(),
                 FUNCTION_ADD => self.op_add(instruction),
                 FUNCTION_ADDU => self.op_addu(instruction),
+                FUNCTION_OR => self.op_or(instruction),
                 function => panic!("Unknown R-type function 0x{:02x}", function),
             },
             OP_J => self.op_j(instruction),
