@@ -25,7 +25,7 @@ impl Program {
                     constants.insert(
                         name.clone(),
                         value
-                            .evaluate(&constants)
+                            .evaluate(&constants, &symbol_table)
                             .expect("Constants cannot have forward references"),
                     );
                 }
@@ -49,7 +49,7 @@ impl Program {
                     Directive::Global { label } => globals.push(label.clone()),
                     Directive::Align { boundary } => {
                         let boundary = boundary
-                            .evaluate(&constants)
+                            .evaluate(&constants, &symbol_table)
                             .expect(".align cannot have forward references")
                             as usize;
 
@@ -63,15 +63,16 @@ impl Program {
                     Directive::Space { size } => {
                         data.extend(
                             std::iter::repeat(0).take(
-                                size.evaluate(&constants)
+                                size.evaluate(&constants, &symbol_table)
                                     .expect(".space cannot have forward references")
                                     as usize,
                             ),
                         );
                     }
                     Directive::Word { values } => data.extend(values.iter().flat_map(|e| {
-                        e.evaluate(&constants)
+                        (e.evaluate(&constants, &symbol_table)
                             .expect(".word cannot have forward references")
+                            as u32)
                             .to_be_bytes()
                             .to_vec()
                     })),
@@ -85,6 +86,8 @@ impl Program {
                 }
             }
         }
+
+        println!("Constants: {:#?}\nSymbols: {:#?}", constants, symbol_table);
 
         // Second pass: generate instruction IR
         for item in self.items {
@@ -103,7 +106,7 @@ impl Program {
                     | Directive::Asciiz { .. } => {}
                 },
                 Item::Instruction(instruction) => {
-                    instructions.extend(instruction.lower(&constants))
+                    instructions.extend(instruction.lower(&constants, &symbol_table))
                 }
             }
         }
@@ -118,7 +121,11 @@ impl Program {
 }
 
 impl Expr {
-    pub fn evaluate(&self, constants: &HashMap<String, i64>) -> Result<i64, String> {
+    pub fn evaluate(
+        &self,
+        constants: &HashMap<String, i64>,
+        symbol_table: &HashMap<String, Symbol>,
+    ) -> Result<i64, String> {
         match self {
             Expr::Number(num) => Ok(*num),
             Expr::Constant(name) => constants
@@ -131,8 +138,8 @@ impl Expr {
                 left,
                 right,
             } => {
-                let left = left.evaluate(constants)?;
-                let right = right.evaluate(constants)?;
+                let left = left.evaluate(constants, symbol_table)?;
+                let right = right.evaluate(constants, symbol_table)?;
                 Ok(match operation {
                     Operation::Add => left + right,
                     Operation::Subtract => left - right,
@@ -140,7 +147,7 @@ impl Expr {
                     Operation::Divide => left / right,
                 })
             }
-            Expr::Negated(expr) => Ok(-expr.evaluate(constants)?),
+            Expr::Negated(expr) => Ok(-expr.evaluate(constants, symbol_table)?),
         }
     }
 }
@@ -157,7 +164,11 @@ impl Instruction {
         }
     }
 
-    pub fn lower(self, constants: &HashMap<String, i64>) -> Vec<IrInstruction> {
+    pub fn lower(
+        self,
+        constants: &HashMap<String, i64>,
+        symbol_table: &HashMap<String, Symbol>,
+    ) -> Vec<IrInstruction> {
         match self {
             Instruction::RType {
                 op_code,
@@ -181,14 +192,16 @@ impl Instruction {
                 rs: rs.index().unwrap(),
                 rt: rt.index().unwrap(),
                 // FIXME: make sure the constant is not too big
-                immediate: immediate.evaluate(&constants).unwrap() as i16,
+                immediate: immediate.evaluate(constants, symbol_table).unwrap() as i16,
             }],
             Instruction::JType { op_code, label } => vec![IrInstruction::JType {
                 op_code,
                 pseudo_address: 0xDEADBEEF, // TODO: fix this
             }],
             Instruction::Syscall => vec![IrInstruction::Syscall],
-            Instruction::Pseudo(pseudo_instruction) => pseudo_instruction.lower(constants),
+            Instruction::Pseudo(pseudo_instruction) => {
+                pseudo_instruction.lower(constants, symbol_table)
+            }
         }
     }
 }
@@ -202,10 +215,14 @@ impl PseudoInstruction {
         }
     }
 
-    pub fn lower(self, constants: &HashMap<String, i64>) -> Vec<IrInstruction> {
+    pub fn lower(
+        self,
+        constants: &HashMap<String, i64>,
+        symbol_table: &HashMap<String, Symbol>,
+    ) -> Vec<IrInstruction> {
         match self {
             PseudoInstruction::LoadImmediate { rd, value } => {
-                let value = value.evaluate(constants).unwrap() as u32;
+                let value = value.evaluate(constants, symbol_table).unwrap() as u32;
 
                 // FIXME: this assumes it's a 32 bit immediate, but we could
                 //        optimize to one instruction if it's 16 bit. We also
