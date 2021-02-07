@@ -7,6 +7,7 @@ use crate::ast::{
 use crate::ir::{IrInstruction, IrProgram, Symbol, SymbolLocation};
 use mips_types::constants::{DATA_OFFSET, TEXT_OFFSET};
 use std::collections::HashMap;
+use std::iter;
 
 impl Program {
     pub fn lower(self) -> IrProgram {
@@ -18,6 +19,7 @@ impl Program {
 
         let mut current_section = SymbolLocation::Text;
         let mut text_offset = 0;
+        let mut alignment = 0;
 
         // Find symbols and constants
         for item in &self.items {
@@ -43,41 +45,44 @@ impl Program {
                     );
                 }
                 Item::Directive(directive) => match directive {
-                    // FIXME: We're not checking what section we're in for directives like
-                    //        align or space.
+                    // FIXME: We're not checking what section we're in for
+                    //        directives that allocate memory
                     Directive::Text => current_section = SymbolLocation::Text,
                     Directive::Data => current_section = SymbolLocation::Data,
                     Directive::Global { label } => globals.push(label.clone()),
                     Directive::Align { boundary } => {
-                        let boundary = boundary
+                        alignment = boundary
                             .evaluate(&constants)
                             .expect(".align cannot have forward references")
                             as usize;
-
-                        if boundary == 0 || data.len() % boundary == 0 {
-                            // FIXME: I don't think we're properly handling boundaries
-                            continue;
-                        }
-
-                        data.extend(std::iter::repeat(0).take(boundary - (data.len() % boundary)));
                     }
                     Directive::Space { size } => {
-                        data.extend(
-                            std::iter::repeat(0).take(
-                                size.evaluate(&constants)
-                                    .expect(".space cannot have forward references")
-                                    as usize,
-                            ),
-                        );
+                        align_section(&mut data, alignment);
+
+                        // FIXME: check if value is negative
+                        let size = size
+                            .evaluate(&constants)
+                            .expect(".space cannot have forward references")
+                            as usize;
+
+                        data.extend(iter::repeat(0).take(size));
                     }
-                    Directive::Word { values } => data.extend(values.iter().flat_map(|e| {
-                        (e.evaluate(&constants)
-                            .expect(".word cannot have forward references")
-                            as u32)
-                            .to_be_bytes()
-                            .to_vec()
-                    })),
+                    Directive::Word { values } => {
+                        align_section(&mut data, alignment);
+
+                        data.extend(values.iter().flat_map(|e| {
+                            // FIXME: check if value is too big
+                            let value = e
+                                .evaluate(&constants)
+                                .expect(".word cannot have forward references")
+                                as u32;
+
+                            value.to_be_bytes().to_vec()
+                        }))
+                    }
                     Directive::Asciiz { string } => {
+                        align_section(&mut data, alignment);
+
                         // TODO: enforce only ASCII?
                         data.extend(string.bytes().chain(std::iter::once(0)))
                     }
@@ -111,6 +116,14 @@ impl Program {
             symbol_table,
             globals,
         }
+    }
+}
+
+fn align_section(section: &mut Vec<u8>, alignment: usize) {
+    let step_size = usize::pow(2, alignment as u32);
+
+    if section.len() % step_size != 0 {
+        section.extend(iter::repeat(0).take(step_size - (section.len() % step_size)));
     }
 }
 
