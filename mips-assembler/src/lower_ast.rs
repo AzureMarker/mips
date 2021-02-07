@@ -217,10 +217,16 @@ impl Instruction {
                     immediate: immediate.evaluate(constants).unwrap() as i16,
                 }],
             },
-            Instruction::JType { op_code, label } => vec![IrInstruction::JType {
-                op_code,
-                pseudo_address: 0xDEADBEEF, // TODO: fix this
-            }],
+            Instruction::JType { op_code, label } => {
+                let symbol = symbol_table
+                    .get(&label)
+                    .unwrap_or_else(|| panic!("Could not find symbol '{}'", label));
+
+                vec![IrInstruction::JType {
+                    op_code,
+                    pseudo_address: symbol.pseudo_address(),
+                }]
+            }
             Instruction::Syscall => vec![IrInstruction::Syscall],
             Instruction::Pseudo(pseudo_instruction) => {
                 pseudo_instruction.lower(constants, symbol_table)
@@ -313,5 +319,11 @@ impl Symbol {
             SymbolLocation::Text => TEXT_OFFSET + self.offset as u32,
             SymbolLocation::Data => DATA_OFFSET + self.offset as u32,
         }
+    }
+
+    /// Calculate the pseudo-address of the symbol
+    /// (upper four bits and lower two bits removed)
+    fn pseudo_address(&self) -> u32 {
+        (self.address() & 0x0FFFFFFC) >> 2
     }
 }
