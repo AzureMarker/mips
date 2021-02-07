@@ -54,7 +54,7 @@ pub struct Symbol {
     pub offset: usize,
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum SymbolLocation {
     Text,
     Data,

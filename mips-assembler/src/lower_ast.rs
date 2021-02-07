@@ -105,9 +105,11 @@ impl Program {
                     | Directive::Word { .. }
                     | Directive::Asciiz { .. } => {}
                 },
-                Item::Instruction(instruction) => {
-                    instructions.extend(instruction.lower(&constants, &symbol_table))
-                }
+                Item::Instruction(instruction) => instructions.extend(instruction.lower(
+                    instructions.len() * 4,
+                    &constants,
+                    &symbol_table,
+                )),
             }
         }
 
@@ -166,6 +168,7 @@ impl Instruction {
 
     pub fn lower(
         self,
+        current_offset: usize,
         constants: &HashMap<String, i64>,
         symbol_table: &HashMap<String, Symbol>,
     ) -> Vec<IrInstruction> {
@@ -187,13 +190,45 @@ impl Instruction {
                 rs,
                 rt,
                 immediate,
-            } => vec![IrInstruction::IType {
-                op_code,
-                rs: rs.index().unwrap(),
-                rt: rt.index().unwrap(),
-                // FIXME: make sure the constant is not too big
-                immediate: immediate.evaluate(constants, symbol_table).unwrap() as i16,
-            }],
+            } => match op_code {
+                // Branching instructions need offsets
+                ITypeOp::Beq => {
+                    // FIXME: this only supports literal labels or integer offsets
+                    let offset = match immediate {
+                        Expr::Constant(label) => {
+                            constants.get(&label).map(|&value| value as i16)
+                                .or_else(|| symbol_table.get(&label).map(|symbol| {
+                                    assert_eq!(symbol.location, SymbolLocation::Text, "Can only branch to labels in the text section");
+                                    // FIXME: make sure the offset isn't too big
+                                    (symbol.offset as isize - current_offset as isize) as i16
+                                }))
+                                .unwrap_or_else(|| panic!("Unable to find '{}'", label))
+                        },
+                        Expr::Number(offset) => offset as i16,
+                        _ => panic!("Only labels, constants, and numbers are currently allowed in branching instructions")
+                    };
+
+                    vec![IrInstruction::IType {
+                        op_code,
+                        rs: rs.index().unwrap(),
+                        rt: rt.index().unwrap(),
+                        immediate: offset,
+                    }]
+                }
+                // Other I-types use constant values
+                ITypeOp::Addi
+                | ITypeOp::Lui
+                | ITypeOp::Lw
+                | ITypeOp::Ori
+                | ITypeOp::Slti
+                | ITypeOp::Sw => vec![IrInstruction::IType {
+                    op_code,
+                    rs: rs.index().unwrap(),
+                    rt: rt.index().unwrap(),
+                    // FIXME: make sure the constant is not too big
+                    immediate: immediate.evaluate(constants, symbol_table).unwrap() as i16,
+                }],
+            },
             Instruction::JType { op_code, label } => vec![IrInstruction::JType {
                 op_code,
                 pseudo_address: 0xDEADBEEF, // TODO: fix this
