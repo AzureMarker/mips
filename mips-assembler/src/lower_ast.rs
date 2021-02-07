@@ -289,8 +289,8 @@ impl PseudoInstruction {
             PseudoInstruction::Move { rs, rt } => vec![IrInstruction::RType {
                 op_code: RTypeOp::Or,
                 rs: rs.index().unwrap(),
-                rt: rt.index().unwrap(),
-                rd: 0,
+                rt: 0,
+                rd: rt.index().unwrap(),
                 shift: 0,
             }],
         }
