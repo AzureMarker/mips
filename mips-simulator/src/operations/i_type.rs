@@ -42,7 +42,8 @@ impl Processor {
     /// Bitwise or immediate
     pub(crate) fn op_ori(&mut self, instruction: Instruction) {
         let a = self.registers.get(instruction.s_register());
-        let immediate = instruction.immediate() as u32;
+        // Don't sign-extend the immediate
+        let immediate = instruction.immediate() as u16 as u32;
         self.registers.set(instruction.t_register(), a | immediate);
         self.advance_program_counter();
     }
