@@ -233,13 +233,22 @@ impl Instruction {
                 }],
             },
             Instruction::JType { op_code, label } => {
-                let symbol = symbol_table
-                    .get(&label)
-                    .unwrap_or_else(|| panic!("Could not find symbol '{}'", label));
+                let pseudo_address = match label {
+                    Expr::Constant(label) => {
+                        let symbol = symbol_table
+                            .get(&label)
+                            .unwrap_or_else(|| panic!("Could not find symbol '{}'", label));
+
+                        symbol.pseudo_address()
+                    }
+                    // FIXME: make sure the constant is not too large or negative
+                    Expr::Number(address) => address as u32,
+                    _ => panic!("Only labels and raw addresses are currently allowed in J-type instructions")
+                };
 
                 vec![IrInstruction::JType {
                     op_code,
-                    pseudo_address: symbol.pseudo_address(),
+                    pseudo_address,
                 }]
             }
             Instruction::Syscall => vec![IrInstruction::Syscall],
