@@ -18,6 +18,7 @@ mod ast;
 mod ir;
 mod lower_ast;
 mod lower_ir;
+mod string_unescape;
 
 #[derive(StructOpt)]
 struct CliArgs {

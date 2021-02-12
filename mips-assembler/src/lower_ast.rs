@@ -5,6 +5,7 @@ use crate::ast::{
     PseudoInstruction, RTypeOp,
 };
 use crate::ir::{IrInstruction, IrProgram, Symbol, SymbolLocation};
+use crate::string_unescape::unescape_str;
 use mips_types::constants::{DATA_OFFSET, TEXT_OFFSET};
 use std::collections::HashMap;
 use std::iter;
@@ -83,8 +84,11 @@ impl Program {
                     Directive::Asciiz { string } => {
                         align_section(&mut data, alignment);
 
+                        // TODO: handle the error
+                        let unescaped = unescape_str(string).unwrap();
+
                         // TODO: enforce only ASCII?
-                        data.extend(string.bytes().chain(std::iter::once(0)))
+                        data.extend(unescaped.bytes().chain(std::iter::once(0)))
                     }
                 },
                 Item::Instruction(instruction) => {
