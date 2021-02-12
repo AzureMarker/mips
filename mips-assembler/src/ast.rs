@@ -32,7 +32,11 @@ pub enum Operation {
     Subtract,
     Multiply,
     Divide,
-    // TODO: add more operations, like bitwise operations
+    BitwiseShiftLeft,
+    BitwiseShiftRight,
+    BitwiseAnd,
+    BitwiseXor,
+    BitwiseOr,
 }
 
 #[derive(Debug)]

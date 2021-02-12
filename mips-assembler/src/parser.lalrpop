@@ -38,33 +38,66 @@ Expr: Expr = {
 
     #[precedence(level = "2")]
     #[assoc(side = "left")]
-    <left:Expr> "*" <right:Expr> => Expr::Calculated {
-        operation: Operation::Multiply,
-        left: Box::new(left),
-        right: Box::new(right),
-    },
-    #[precedence(level = "2")]
-    #[assoc(side = "left")]
-    <left:Expr> "/" <right:Expr> => Expr::Calculated {
-        operation: Operation::Divide,
+    <left:Expr> <operation:ExprOperation2> <right:Expr> => Expr::Calculated {
+        operation,
         left: Box::new(left),
         right: Box::new(right),
     },
 
     #[precedence(level = "3")]
     #[assoc(side = "left")]
-    <left:Expr> "+" <right:Expr> => Expr::Calculated {
-        operation: Operation::Add,
+    <left:Expr> <operation:ExprOperation3> <right:Expr> => Expr::Calculated {
+        operation,
         left: Box::new(left),
         right: Box::new(right),
     },
-    #[precedence(level = "3")]
+
+    #[precedence(level = "4")]
     #[assoc(side = "left")]
-    <left:Expr> "-" <right:Expr> => Expr::Calculated {
-        operation: Operation::Subtract,
+    <left:Expr> <operation:ExprOperation4> <right:Expr> => Expr::Calculated {
+        operation,
         left: Box::new(left),
         right: Box::new(right),
     },
+
+    #[precedence(level = "5")]
+    #[assoc(side = "left")]
+    <left:Expr> "&" <right:Expr> => Expr::Calculated {
+        operation: Operation::BitwiseAnd,
+        left: Box::new(left),
+        right: Box::new(right),
+    },
+
+    #[precedence(level = "6")]
+    #[assoc(side = "left")]
+    <left:Expr> "^" <right:Expr> => Expr::Calculated {
+        operation: Operation::BitwiseXor,
+        left: Box::new(left),
+        right: Box::new(right),
+    },
+
+    #[precedence(level = "7")]
+    #[assoc(side = "left")]
+    <left:Expr> "|" <right:Expr> => Expr::Calculated {
+        operation: Operation::BitwiseOr,
+        left: Box::new(left),
+        right: Box::new(right),
+    },
+};
+
+ExprOperation2: Operation = {
+    "*" => Operation::Multiply,
+    "/" => Operation::Divide,
+};
+
+ExprOperation3: Operation = {
+    "+" => Operation::Add,
+    "-" => Operation::Subtract,
+};
+
+ExprOperation4: Operation = {
+    ">>" => Operation::BitwiseShiftRight,
+    "<<" => Operation::BitwiseShiftLeft
 };
 
 Number: i64 = r"[0-9]+" => i64::from_str(<>).unwrap();

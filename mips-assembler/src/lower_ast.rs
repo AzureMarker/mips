@@ -148,6 +148,11 @@ impl Expr {
                     Operation::Subtract => left - right,
                     Operation::Multiply => left * right,
                     Operation::Divide => left / right,
+                    Operation::BitwiseShiftLeft => ((left as u64) << right as u64) as i64,
+                    Operation::BitwiseShiftRight => ((left as u64) >> right as u64) as i64,
+                    Operation::BitwiseAnd => left & right,
+                    Operation::BitwiseXor => left ^ right,
+                    Operation::BitwiseOr => left | right,
                 })
             }
             Expr::Negated(expr) => Ok(-expr.evaluate(constants)?),
