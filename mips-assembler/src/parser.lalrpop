@@ -27,38 +27,44 @@ Item: Item = {
 };
 
 Expr: Expr = {
-    <left:Expr> "+" <right:FactorExpr> => Expr::Calculated {
-        operation: Operation::Add,
-        left: Box::new(left),
-        right: Box::new(right),
-    },
-    <left:Expr> "-" <right:FactorExpr> => Expr::Calculated {
-        operation: Operation::Subtract,
-        left: Box::new(left),
-        right: Box::new(right),
-    },
-    FactorExpr,
-};
+    #[precedence(level = "1")]
+    Number => Expr::Number(<>),
+    #[precedence(level = "1")]
+    Identifier => Expr::Constant(<>),
+    #[precedence(level = "1")]
+    "(" <Expr> ")",
+    #[precedence(level = "1")]
+    "-" <expr:Expr> => Expr::Negated(Box::new(expr)),
 
-FactorExpr: Expr = {
-    <left:FactorExpr> "*" <right:TerminalExpr> => Expr::Calculated {
+    #[precedence(level = "2")]
+    #[assoc(side = "left")]
+    <left:Expr> "*" <right:Expr> => Expr::Calculated {
         operation: Operation::Multiply,
         left: Box::new(left),
         right: Box::new(right),
     },
-    <left:FactorExpr> "/" <right:TerminalExpr> => Expr::Calculated {
+    #[precedence(level = "2")]
+    #[assoc(side = "left")]
+    <left:Expr> "/" <right:Expr> => Expr::Calculated {
         operation: Operation::Divide,
         left: Box::new(left),
         right: Box::new(right),
     },
-    "-" <expr:TerminalExpr> => Expr::Negated(Box::new(expr)),
-    TerminalExpr,
-};
 
-TerminalExpr: Expr = {
-    Number => Expr::Number(<>),
-    Identifier => Expr::Constant(<>),
-    "(" <Expr> ")",
+    #[precedence(level = "3")]
+    #[assoc(side = "left")]
+    <left:Expr> "+" <right:Expr> => Expr::Calculated {
+        operation: Operation::Add,
+        left: Box::new(left),
+        right: Box::new(right),
+    },
+    #[precedence(level = "3")]
+    #[assoc(side = "left")]
+    <left:Expr> "-" <right:Expr> => Expr::Calculated {
+        operation: Operation::Subtract,
+        left: Box::new(left),
+        right: Box::new(right),
+    },
 };
 
 Number: i64 = r"[0-9]+" => i64::from_str(<>).unwrap();
