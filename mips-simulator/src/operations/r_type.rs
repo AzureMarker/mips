@@ -27,23 +27,23 @@ impl Processor {
         self.running = false;
     }
 
-    /// Add (with overflow)
+    /// Add (with overflow check)
     pub(crate) fn op_add(&mut self, instruction: Instruction) {
-        let a = self.registers.get(instruction.s_register());
-        let b = self.registers.get(instruction.t_register());
-        self.registers
-            .set(instruction.d_register(), a.wrapping_add(b));
-        self.advance_program_counter();
-    }
-
-    /// Add unsigned (no overflow)
-    pub(crate) fn op_addu(&mut self, instruction: Instruction) {
         let a = self.registers.get(instruction.s_register());
         let b = self.registers.get(instruction.t_register());
         let value = a
             .checked_add(b)
-            .unwrap_or_else(|| panic!("Overflow in addu"));
+            .unwrap_or_else(|| panic!("Overflow in add"));
         self.registers.set(instruction.d_register(), value);
+        self.advance_program_counter();
+    }
+
+    /// Add unsigned (no overflow check)
+    pub(crate) fn op_addu(&mut self, instruction: Instruction) {
+        let a = self.registers.get(instruction.s_register());
+        let b = self.registers.get(instruction.t_register());
+        self.registers
+            .set(instruction.d_register(), a.wrapping_add(b));
         self.advance_program_counter();
     }
 
