@@ -277,8 +277,9 @@ impl PseudoInstruction {
                     .evaluate(constants)
                     .expect("li cannot have forward references") as u32;
 
-                // We can fit a 16 bit li into one instruction
-                if value <= u16::MAX as u32 {
+                // We can fit an li into one instruction if the upper or lower
+                // 16 bits are zero.
+                if value >> 16 & 0xFFFF == 0 || value & 0xFFFF == 0 {
                     1
                 } else {
                     2
@@ -298,13 +299,23 @@ impl PseudoInstruction {
             PseudoInstruction::LoadImmediate { rd, value } => {
                 let value = value.evaluate(constants).unwrap() as u32;
 
-                // If the value is only 16 bits, we only need to load the lower bits
-                if value <= u16::MAX as u32 {
+                if value >> 16 & 0xFFFF == 0 {
+                    // If the upper 16 bits are zero, we only need to load the
+                    // lower bits
                     vec![IrInstruction::IType {
                         op_code: ITypeOp::Ori,
                         rs: 0,
                         rt: rd.index().unwrap(),
                         immediate: value as i16,
+                    }]
+                } else if value & 0xFFFF == 0 {
+                    // If the lower 16 bits are zero, we only need to load the
+                    // upper bits
+                    vec![IrInstruction::IType {
+                        op_code: ITypeOp::Lui,
+                        rs: 0,
+                        rt: rd.index().unwrap(),
+                        immediate: (value >> 16) as i16,
                     }]
                 } else {
                     Self::load_u32_into_register(rd.index().unwrap(), value)
