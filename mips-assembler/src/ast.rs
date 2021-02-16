@@ -88,6 +88,8 @@ pub enum PseudoInstruction {
 #[derive(Debug)]
 pub enum RTypeOp {
     Add,
+    Addu,
+    And,
     Jr,
     Or,
 }
@@ -95,7 +97,16 @@ pub enum RTypeOp {
 #[derive(Debug)]
 pub enum ITypeOp {
     Addi,
+    Addiu,
+    Andi,
     Beq,
+    Bne,
+    Bgez,
+    Bgezal,
+    Bgtz,
+    Blez,
+    Bltz,
+    Bltzal,
     Lui,
     Lw,
     Ori,

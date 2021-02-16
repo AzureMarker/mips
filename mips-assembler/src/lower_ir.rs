@@ -3,8 +3,9 @@
 use crate::ast::{ITypeOp, JTypeOp, RTypeOp};
 use crate::ir::{IrInstruction, IrProgram};
 use mips_types::constants::{
-    FUNCTION_ADD, FUNCTION_JR, FUNCTION_OR, FUNCTION_SYSCALL, OP_ADDI, OP_BEQ, OP_J, OP_JAL,
-    OP_LUI, OP_LW, OP_ORI, OP_R_TYPE, OP_SLTI, OP_SW,
+    FUNCTION_ADD, FUNCTION_ADDU, FUNCTION_AND, FUNCTION_JR, FUNCTION_OR, FUNCTION_SYSCALL, OP_ADDI,
+    OP_ADDIU, OP_ANDI, OP_BEQ, OP_BGEZ_BLTZ, OP_BGTZ, OP_BLEZ, OP_BNE, OP_J, OP_JAL, OP_LUI, OP_LW,
+    OP_ORI, OP_R_TYPE, OP_SLTI, OP_SW,
 };
 use mips_types::module::{
     R2KModule, R2KModuleHeader, R2KVersion, DATA_INDEX, R2K_MAGIC, SECTION_COUNT, TEXT_INDEX,
@@ -80,6 +81,8 @@ impl RTypeOp {
     pub fn function_code(&self) -> u8 {
         match self {
             RTypeOp::Add => FUNCTION_ADD,
+            RTypeOp::Addu => FUNCTION_ADDU,
+            RTypeOp::And => FUNCTION_AND,
             RTypeOp::Jr => FUNCTION_JR,
             RTypeOp::Or => FUNCTION_OR,
         }
@@ -91,7 +94,13 @@ impl ITypeOp {
     pub fn code(&self) -> u8 {
         match self {
             ITypeOp::Addi => OP_ADDI,
+            ITypeOp::Addiu => OP_ADDIU,
+            ITypeOp::Andi => OP_ANDI,
             ITypeOp::Beq => OP_BEQ,
+            ITypeOp::Bne => OP_BNE,
+            ITypeOp::Bgez | ITypeOp::Bgezal | ITypeOp::Bltz | ITypeOp::Bltzal => OP_BGEZ_BLTZ,
+            ITypeOp::Bgtz => OP_BGTZ,
+            ITypeOp::Blez => OP_BLEZ,
             ITypeOp::Lui => OP_LUI,
             ITypeOp::Lw => OP_LW,
             ITypeOp::Ori => OP_ORI,

@@ -1,10 +1,16 @@
 // Operation codes
 pub const OP_R_TYPE: u8 = 0;
+pub const OP_BGEZ_BLTZ: u8 = 0x01;
 pub const OP_J: u8 = 0x02;
 pub const OP_JAL: u8 = 0x03;
 pub const OP_BEQ: u8 = 0x04;
+pub const OP_BNE: u8 = 0x05;
+pub const OP_BLEZ: u8 = 0x06;
+pub const OP_BGTZ: u8 = 0x07;
 pub const OP_ADDI: u8 = 0x08;
+pub const OP_ADDIU: u8 = 0x09;
 pub const OP_SLTI: u8 = 0x0A;
+pub const OP_ANDI: u8 = 0x0C;
 pub const OP_ORI: u8 = 0x0D;
 pub const OP_LUI: u8 = 0x0F;
 pub const OP_LW: u8 = 0x23;
@@ -17,6 +23,7 @@ pub const FUNCTION_SYSCALL: u8 = 0x0C;
 pub const FUNCTION_BREAK: u8 = 0x0D;
 pub const FUNCTION_ADD: u8 = 0x20;
 pub const FUNCTION_ADDU: u8 = 0x21;
+pub const FUNCTION_AND: u8 = 0x24;
 pub const FUNCTION_OR: u8 = 0x25;
 
 // Register numbers

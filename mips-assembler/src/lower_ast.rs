@@ -202,7 +202,14 @@ impl Instruction {
                 immediate,
             } => match op_code {
                 // Branching instructions need offsets
-                ITypeOp::Beq => {
+                ITypeOp::Beq
+                | ITypeOp::Bne
+                | ITypeOp::Bgez
+                | ITypeOp::Bgezal
+                | ITypeOp::Bgtz
+                | ITypeOp::Blez
+                | ITypeOp::Bltz
+                | ITypeOp::Bltzal => {
                     // FIXME: this only supports literal labels or integer offsets
                     let offset = match immediate {
                         Expr::Constant(label) => {
@@ -229,6 +236,8 @@ impl Instruction {
                 }
                 // Other I-types use the written-down value
                 ITypeOp::Addi
+                | ITypeOp::Addiu
+                | ITypeOp::Andi
                 | ITypeOp::Lui
                 | ITypeOp::Lw
                 | ITypeOp::Ori

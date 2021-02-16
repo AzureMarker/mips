@@ -126,6 +126,7 @@ Instruction: Instruction = {
     <op_code:RTypeOpRs> <rs:Register> => Instruction::RType { op_code, rs, rd: Register::Number(0), rt: Register::Number(0) },
     <op_code:ITypeOpRtRs> <rt:Register> "," <rs:Register> "," <immediate:Expr> => Instruction::IType { op_code, rt, rs, immediate },
     <op_code:ITypeOpRsRt> <rs:Register> "," <rt:Register> "," <immediate:Expr> => Instruction::IType { op_code, rs, rt, immediate },
+    <op_data:ITypeOpRs> <rs:Register> "," <immediate:Expr> => Instruction::IType { op_code: op_data.0, rs, rt: Register::Number(op_data.1), immediate },
     <op_code:StorageITypeOp> <rt:Register> "," <immediate:Expr> "(" <rs:Register> ")" => Instruction::IType { op_code, rs, rt, immediate },
     <op_code:JTypeOp> <label:Expr> => Instruction::JType { op_code, label },
     "syscall" => Instruction::Syscall,
@@ -140,6 +141,8 @@ PseudoInstruction: PseudoInstruction = {
 
 RTypeOpRdRsRt: RTypeOp = {
     "add" => RTypeOp::Add,
+    "addu" => RTypeOp::Addu,
+    "and" => RTypeOp::And,
 };
 
 RTypeOpRs: RTypeOp = {
@@ -148,11 +151,24 @@ RTypeOpRs: RTypeOp = {
 
 ITypeOpRtRs: ITypeOp = {
     "addi" => ITypeOp::Addi,
+    "addiu" => ITypeOp::Addiu,
+    "andi" => ITypeOp::Andi,
     "slti" => ITypeOp::Slti,
 };
 
 ITypeOpRsRt: ITypeOp = {
     "beq" => ITypeOp::Beq,
+    "bne" => ITypeOp::Bne,
+};
+
+// The u8 is rt, which distinguishes some of the instructions
+ITypeOpRs: (ITypeOp, u8) = {
+    "bgez" => (ITypeOp::Bgez, 1),
+    "bgezal" => (ITypeOp::Bgezal, 0x11),
+    "bgtz" => (ITypeOp::Bgtz, 0),
+    "blez" => (ITypeOp::Blez, 0),
+    "bltz" => (ITypeOp::Bltz, 0),
+    "bltzal" => (ITypeOp::Bltzal, 0x10),
 };
 
 StorageITypeOp: ITypeOp = {
