@@ -3,9 +3,12 @@
 use crate::ast::{ITypeOp, JTypeOp, RTypeOp};
 use crate::ir::{IrInstruction, IrProgram};
 use mips_types::constants::{
-    FUNCTION_ADD, FUNCTION_ADDU, FUNCTION_AND, FUNCTION_JR, FUNCTION_OR, FUNCTION_SYSCALL, OP_ADDI,
-    OP_ADDIU, OP_ANDI, OP_BEQ, OP_BGEZ_BLTZ, OP_BGTZ, OP_BLEZ, OP_BNE, OP_J, OP_JAL, OP_LUI, OP_LW,
-    OP_ORI, OP_R_TYPE, OP_SLTI, OP_SW,
+    FUNCTION_ADD, FUNCTION_ADDU, FUNCTION_AND, FUNCTION_DIV, FUNCTION_DIVU, FUNCTION_JR,
+    FUNCTION_MFHI, FUNCTION_MFLO, FUNCTION_MULT, FUNCTION_MULTU, FUNCTION_OR, FUNCTION_SLL,
+    FUNCTION_SLLV, FUNCTION_SLT, FUNCTION_SLTU, FUNCTION_SRA, FUNCTION_SRL, FUNCTION_SRLV,
+    FUNCTION_SUB, FUNCTION_SUBU, FUNCTION_SYSCALL, FUNCTION_XOR, OP_ADDI, OP_ADDIU, OP_ANDI,
+    OP_BEQ, OP_BGEZ_BLTZ, OP_BGTZ, OP_BLEZ, OP_BNE, OP_J, OP_JAL, OP_LB, OP_LUI, OP_LW, OP_ORI,
+    OP_R_TYPE, OP_SB, OP_SLTI, OP_SLTIU, OP_SW, OP_XORI,
 };
 use mips_types::module::{
     R2KModule, R2KModuleHeader, R2KVersion, DATA_INDEX, R2K_MAGIC, SECTION_COUNT, TEXT_INDEX,
@@ -71,7 +74,6 @@ impl IrInstruction {
                 op_code,
                 pseudo_address,
             } => (op_code.code() as u32) << 26 | pseudo_address,
-            IrInstruction::Syscall => (OP_R_TYPE as u32) << 26 | FUNCTION_SYSCALL as u32,
         }
     }
 }
@@ -83,8 +85,25 @@ impl RTypeOp {
             RTypeOp::Add => FUNCTION_ADD,
             RTypeOp::Addu => FUNCTION_ADDU,
             RTypeOp::And => FUNCTION_AND,
+            RTypeOp::Div => FUNCTION_DIV,
+            RTypeOp::Divu => FUNCTION_DIVU,
             RTypeOp::Jr => FUNCTION_JR,
+            RTypeOp::Mfhi => FUNCTION_MFHI,
+            RTypeOp::Mflo => FUNCTION_MFLO,
+            RTypeOp::Mult => FUNCTION_MULT,
+            RTypeOp::Multu => FUNCTION_MULTU,
             RTypeOp::Or => FUNCTION_OR,
+            RTypeOp::Sll => FUNCTION_SLL,
+            RTypeOp::Sllv => FUNCTION_SLLV,
+            RTypeOp::Slt => FUNCTION_SLT,
+            RTypeOp::Sltu => FUNCTION_SLTU,
+            RTypeOp::Sra => FUNCTION_SRA,
+            RTypeOp::Srl => FUNCTION_SRL,
+            RTypeOp::Srlv => FUNCTION_SRLV,
+            RTypeOp::Sub => FUNCTION_SUB,
+            RTypeOp::Subu => FUNCTION_SUBU,
+            RTypeOp::Syscall => FUNCTION_SYSCALL,
+            RTypeOp::Xor => FUNCTION_XOR,
         }
     }
 }
@@ -102,10 +121,14 @@ impl ITypeOp {
             ITypeOp::Bgtz => OP_BGTZ,
             ITypeOp::Blez => OP_BLEZ,
             ITypeOp::Lui => OP_LUI,
+            ITypeOp::Lb => OP_LB,
             ITypeOp::Lw => OP_LW,
             ITypeOp::Ori => OP_ORI,
             ITypeOp::Slti => OP_SLTI,
+            ITypeOp::Sltiu => OP_SLTIU,
+            ITypeOp::Sb => OP_SB,
             ITypeOp::Sw => OP_SW,
+            ITypeOp::Xori => OP_XORI,
         }
     }
 }

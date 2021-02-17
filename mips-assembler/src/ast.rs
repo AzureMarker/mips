@@ -63,6 +63,7 @@ pub enum Instruction {
         rd: Register,
         rs: Register,
         rt: Register,
+        shift: Expr,
     },
     IType {
         op_code: ITypeOp,
@@ -74,7 +75,6 @@ pub enum Instruction {
         op_code: JTypeOp,
         label: Expr,
     },
-    Syscall,
     Pseudo(PseudoInstruction),
 }
 
@@ -90,8 +90,25 @@ pub enum RTypeOp {
     Add,
     Addu,
     And,
+    Div,
+    Divu,
     Jr,
+    Mfhi,
+    Mflo,
+    Mult,
+    Multu,
     Or,
+    Sll,
+    Sllv,
+    Slt,
+    Sltu,
+    Sra,
+    Srl,
+    Srlv,
+    Sub,
+    Subu,
+    Syscall,
+    Xor,
 }
 
 #[derive(Debug)]
@@ -108,10 +125,14 @@ pub enum ITypeOp {
     Bltz,
     Bltzal,
     Lui,
+    Lb,
     Lw,
     Ori,
     Slti,
+    Sltiu,
+    Sb,
     Sw,
+    Xori,
 }
 
 #[derive(Debug)]

@@ -122,14 +122,42 @@ Directive: Directive = {
 };
 
 Instruction: Instruction = {
-    <op_code:RTypeOpRdRsRt> <rd:Register> "," <rs:Register> "," <rt:Register> => Instruction::RType { op_code, rd, rs, rt },
-    <op_code:RTypeOpRs> <rs:Register> => Instruction::RType { op_code, rs, rd: Register::Number(0), rt: Register::Number(0) },
-    <op_code:ITypeOpRtRs> <rt:Register> "," <rs:Register> "," <immediate:Expr> => Instruction::IType { op_code, rt, rs, immediate },
-    <op_code:ITypeOpRsRt> <rs:Register> "," <rt:Register> "," <immediate:Expr> => Instruction::IType { op_code, rs, rt, immediate },
-    <op_data:ITypeOpRs> <rs:Register> "," <immediate:Expr> => Instruction::IType { op_code: op_data.0, rs, rt: Register::Number(op_data.1), immediate },
-    <op_code:StorageITypeOp> <rt:Register> "," <immediate:Expr> "(" <rs:Register> ")" => Instruction::IType { op_code, rs, rt, immediate },
-    <op_code:JTypeOp> <label:Expr> => Instruction::JType { op_code, label },
-    "syscall" => Instruction::Syscall,
+    <op_code:RTypeOpRdRsRt> <rd:Register> "," <rs:Register> "," <rt:Register>
+        => Instruction::RType { op_code, rd, rs, rt, shift: Expr::Number(0) },
+    <op_code:RTypeOpRdRtRs> <rd:Register> "," <rt:Register> "," <rs:Register>
+        => Instruction::RType { op_code, rd, rs, rt, shift: Expr::Number(0) },
+    <op_code:RTypeOpRdRtSh> <rd:Register> "," <rt:Register> "," <shift:Expr>
+        => Instruction::RType { op_code, rd, rs: Register::Number(0), rt, shift },
+    <op_code:RTypeOpRsRt> <rs:Register> "," <rt:Register>
+        => Instruction::RType { op_code, rd: Register::Number(0), rs, rt, shift: Expr::Number(0) },
+    <op_code:RTypeOpRs> <rs:Register>
+        => Instruction::RType { op_code, rs, rd: Register::Number(0), rt: Register::Number(0), shift: Expr::Number(0) },
+    <op_code:RTypeOpRd> <rd:Register>
+        => Instruction::RType { op_code, rs: Register::Number(0), rd, rt: Register::Number(0), shift: Expr::Number(0) },
+    <op_code:ITypeOpRtRs> <rt:Register> "," <rs:Register> "," <immediate:Expr>
+        => Instruction::IType { op_code, rt, rs, immediate },
+    <op_code:ITypeOpRsRt> <rs:Register> "," <rt:Register> "," <immediate:Expr>
+        => Instruction::IType { op_code, rs, rt, immediate },
+    <op_data:ITypeOpRs> <rs:Register> "," <immediate:Expr>
+        => Instruction::IType { op_code: op_data.0, rs, rt: Register::Number(op_data.1), immediate },
+    <op_code:StorageITypeOp> <rt:Register> "," <immediate:Expr> "(" <rs:Register> ")"
+        => Instruction::IType { op_code, rs, rt, immediate },
+    <op_code:JTypeOp> <label:Expr>
+        => Instruction::JType { op_code, label },
+    "syscall" => Instruction::RType {
+        op_code: RTypeOp::Syscall,
+        rd: Register::Number(0),
+        rs: Register::Number(0),
+        rt: Register::Number(0),
+        shift: Expr::Number(0)
+    },
+    "noop" => Instruction::RType {
+        op_code: RTypeOp::Sll,
+        rd: Register::Number(0),
+        rs: Register::Number(0),
+        rt: Register::Number(0),
+        shift: Expr::Number(0)
+    },
     PseudoInstruction => Instruction::Pseudo(<>),
 };
 
@@ -143,10 +171,38 @@ RTypeOpRdRsRt: RTypeOp = {
     "add" => RTypeOp::Add,
     "addu" => RTypeOp::Addu,
     "and" => RTypeOp::And,
+    "slt" => RTypeOp::Slt,
+    "sltu" => RTypeOp::Sltu,
+    "sub" => RTypeOp::Sub,
+    "subu" => RTypeOp::Subu,
+    "xor" => RTypeOp::Xor,
+};
+
+RTypeOpRdRtRs: RTypeOp = {
+    "sllv" => RTypeOp::Sllv,
+    "srlv" => RTypeOp::Srlv,
+};
+
+RTypeOpRdRtSh: RTypeOp = {
+    "sll" => RTypeOp::Sll,
+    "sra" => RTypeOp::Sra,
+    "srl" => RTypeOp::Srl,
+};
+
+RTypeOpRsRt: RTypeOp = {
+    "div" => RTypeOp::Div,
+    "divu" => RTypeOp::Divu,
+    "mult" => RTypeOp::Mult,
+    "multu" => RTypeOp::Multu,
 };
 
 RTypeOpRs: RTypeOp = {
     "jr" => RTypeOp::Jr,
+};
+
+RTypeOpRd: RTypeOp = {
+    "mfhi" => RTypeOp::Mfhi,
+    "mflo" => RTypeOp::Mflo,
 };
 
 ITypeOpRtRs: ITypeOp = {
@@ -154,6 +210,8 @@ ITypeOpRtRs: ITypeOp = {
     "addiu" => ITypeOp::Addiu,
     "andi" => ITypeOp::Andi,
     "slti" => ITypeOp::Slti,
+    "sltiu" => ITypeOp::Sltiu,
+    "xori" => ITypeOp::Xori,
 };
 
 ITypeOpRsRt: ITypeOp = {
@@ -172,7 +230,9 @@ ITypeOpRs: (ITypeOp, u8) = {
 };
 
 StorageITypeOp: ITypeOp = {
+    "sb" => ITypeOp::Sb,
     "sw" => ITypeOp::Sw,
+    "lb" => ITypeOp::Lb,
     "lw" => ITypeOp::Lw,
 };
 

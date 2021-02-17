@@ -168,10 +168,7 @@ impl Instruction {
     /// Get the number of instructions this instruction expands to
     pub fn expanded_size(&self, constants: &HashMap<String, i64>) -> usize {
         match self {
-            Instruction::RType { .. }
-            | Instruction::IType { .. }
-            | Instruction::JType { .. }
-            | Instruction::Syscall => 1,
+            Instruction::RType { .. } | Instruction::IType { .. } | Instruction::JType { .. } => 1,
             Instruction::Pseudo(pseduo) => pseduo.expanded_size(constants),
         }
     }
@@ -188,12 +185,14 @@ impl Instruction {
                 rs,
                 rt,
                 rd,
+                shift,
             } => vec![IrInstruction::RType {
                 op_code,
                 rs: rs.index().unwrap(),
                 rt: rt.index().unwrap(),
                 rd: rd.index().unwrap(),
-                shift: 0, // FIXME: add to AST, needed by some unimplemented ops
+                // TODO: check if shift is too big
+                shift: shift.evaluate(constants).unwrap() as u8,
             }],
             Instruction::IType {
                 op_code,
@@ -239,10 +238,14 @@ impl Instruction {
                 | ITypeOp::Addiu
                 | ITypeOp::Andi
                 | ITypeOp::Lui
+                | ITypeOp::Lb
                 | ITypeOp::Lw
                 | ITypeOp::Ori
                 | ITypeOp::Slti
-                | ITypeOp::Sw => vec![IrInstruction::IType {
+                | ITypeOp::Sltiu
+                | ITypeOp::Sb
+                | ITypeOp::Sw
+                | ITypeOp::Xori => vec![IrInstruction::IType {
                     op_code,
                     rs: rs.index().unwrap(),
                     rt: rt.index().unwrap(),
@@ -269,7 +272,6 @@ impl Instruction {
                     pseudo_address,
                 }]
             }
-            Instruction::Syscall => vec![IrInstruction::Syscall],
             Instruction::Pseudo(pseudo_instruction) => {
                 pseudo_instruction.lower(constants, symbol_table)
             }
