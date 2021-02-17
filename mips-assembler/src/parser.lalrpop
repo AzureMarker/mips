@@ -96,6 +96,9 @@ ExprOperation4: Operation = {
     "<<" => Operation::BitwiseShiftLeft
 };
 
+RepeatedExpr: RepeatedExpr = <expr:Expr> <times:(":" <Expr>)?>
+    => RepeatedExpr { expr, times: times.unwrap_or(Expr::Number(1)) };
+
 Number: i64 = r"[0-9]+" => i64::from_str(<>).unwrap();
 
 Identifier: String = r"[a-zA-Z_][a-zA-Z_0-9]*" => <>.to_string();
@@ -113,7 +116,7 @@ Directive: Directive = {
     ".data" => Directive::Data,
     ".align" <boundary:Expr> => Directive::Align { boundary },
     ".space" <size:Expr> => Directive::Space { size },
-    ".word" <values:Comma<Expr>> => Directive::Word { values },
+    ".word" <values:Comma<RepeatedExpr>> => Directive::Word { values },
     ".asciiz" <string:String> => Directive::Asciiz { string },
 };
 

@@ -40,6 +40,12 @@ pub enum Operation {
 }
 
 #[derive(Debug)]
+pub struct RepeatedExpr {
+    pub expr: Expr,
+    pub times: Expr,
+}
+
+#[derive(Debug)]
 pub struct ConstantDef {
     pub name: String,
     pub value: Expr,
@@ -52,7 +58,7 @@ pub enum Directive {
     Data,
     Align { boundary: Expr },
     Space { size: Expr },
-    Word { values: Vec<Expr> },
+    Word { values: Vec<RepeatedExpr> },
     Asciiz { string: String },
 }
 

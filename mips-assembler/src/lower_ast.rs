@@ -87,13 +87,18 @@ impl Program {
                         }
 
                         data.extend(values.iter().flat_map(|e| {
-                            // Values are explicitly truncated.
                             let value = e
+                                .expr
                                 .evaluate(&constants)
                                 .expect(".word cannot have forward references");
+                            let times = e
+                                .times
+                                .evaluate(&constants)
+                                .expect("Repeat expressions cannot have forward references")
+                                as usize;
 
+                            // Values are explicitly truncated.
                             let truncated = value as i32;
-
                             if truncated as i64 != value {
                                 // TODO: give more info, like a line number
                                 log::warn!(
@@ -103,7 +108,9 @@ impl Program {
                                 );
                             }
 
-                            truncated.to_be_bytes().to_vec()
+                            iter::repeat(truncated)
+                                .take(times)
+                                .flat_map(|item| item.to_be_bytes().to_vec())
                         }))
                     }
                     Directive::Asciiz { string } => {
