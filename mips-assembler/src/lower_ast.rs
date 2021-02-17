@@ -87,13 +87,23 @@ impl Program {
                         }
 
                         data.extend(values.iter().flat_map(|e| {
-                            // FIXME: check if value is too big
+                            // Values are explicitly truncated.
                             let value = e
                                 .evaluate(&constants)
-                                .expect(".word cannot have forward references")
-                                as u32;
+                                .expect(".word cannot have forward references");
 
-                            value.to_be_bytes().to_vec()
+                            let truncated = value as i32;
+
+                            if truncated as i64 != value {
+                                // TODO: give more info, like a line number
+                                log::warn!(
+                                    ".word: Truncated 0x{:016x} to 0x{:08x}",
+                                    value,
+                                    truncated
+                                );
+                            }
+
+                            truncated.to_be_bytes().to_vec()
                         }))
                     }
                     Directive::Asciiz { string } => {
