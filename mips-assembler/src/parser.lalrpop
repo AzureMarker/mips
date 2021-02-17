@@ -1,4 +1,5 @@
 use crate::ast::*;
+use mips_types::constants::{BCOND_RT_BGEZ, BCOND_RT_BGEZAL, BCOND_RT_BLTZ, BCOND_RT_BLTZAL};
 use std::str::FromStr;
 
 grammar;
@@ -171,9 +172,11 @@ RTypeOpRdRsRt: RTypeOp = {
     "sub" => RTypeOp::Sub,
     "subu" => RTypeOp::Subu,
     "xor" => RTypeOp::Xor,
+    "nor" => RTypeOp::Nor,
 };
 
 RTypeOpRdRtRs: RTypeOp = {
+    "srav" => RTypeOp::Srav,
     "sllv" => RTypeOp::Sllv,
     "srlv" => RTypeOp::Srlv,
 };
@@ -194,6 +197,8 @@ RTypeOpRsRt: RTypeOp = {
 RTypeOpRs: RTypeOp = {
     "jr" => RTypeOp::Jr,
     "jalr" => RTypeOp::Jalr,
+    "mthi" => RTypeOp::Mthi,
+    "mtlo" => RTypeOp::Mtlo,
 };
 
 RTypeOpRd: RTypeOp = {
@@ -217,19 +222,27 @@ ITypeOpRsRt: ITypeOp = {
 
 // The u8 is rt, which distinguishes some of the instructions
 ITypeOpRs: (ITypeOp, u8) = {
-    "bgez" => (ITypeOp::Bgez, 1),
-    "bgezal" => (ITypeOp::Bgezal, 0x11),
+    "bgez" => (ITypeOp::Bcond, BCOND_RT_BGEZ),
+    "bgezal" => (ITypeOp::Bcond, BCOND_RT_BGEZAL),
     "bgtz" => (ITypeOp::Bgtz, 0),
     "blez" => (ITypeOp::Blez, 0),
-    "bltz" => (ITypeOp::Bltz, 0),
-    "bltzal" => (ITypeOp::Bltzal, 0x10),
+    "bltz" => (ITypeOp::Bcond, BCOND_RT_BLTZ),
+    "bltzal" => (ITypeOp::Bcond, BCOND_RT_BLTZAL),
 };
 
 StorageITypeOp: ITypeOp = {
     "sb" => ITypeOp::Sb,
+    "sh" => ITypeOp::Sh,
     "sw" => ITypeOp::Sw,
+    "swl" => ITypeOp::Swl,
+    "swr" => ITypeOp::Swr,
     "lb" => ITypeOp::Lb,
+    "lbu" => ITypeOp::Lbu,
+    "lh" => ITypeOp::Lh,
+    "lhu" => ITypeOp::Lhu,
     "lw" => ITypeOp::Lw,
+    "lwl" => ITypeOp::Lwl,
+    "lwr" => ITypeOp::Lwr,
 };
 
 JTypeOp: JTypeOp = {

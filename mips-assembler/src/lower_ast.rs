@@ -201,14 +201,7 @@ impl Instruction {
                 immediate,
             } => match op_code {
                 // Branching instructions need offsets
-                ITypeOp::Beq
-                | ITypeOp::Bne
-                | ITypeOp::Bgez
-                | ITypeOp::Bgezal
-                | ITypeOp::Bgtz
-                | ITypeOp::Blez
-                | ITypeOp::Bltz
-                | ITypeOp::Bltzal => {
+                ITypeOp::Bcond | ITypeOp::Beq | ITypeOp::Bne | ITypeOp::Bgtz | ITypeOp::Blez => {
                     // FIXME: this only supports literal labels or integer offsets
                     let offset = match immediate {
                         Expr::Constant(label) => {
@@ -239,12 +232,20 @@ impl Instruction {
                 | ITypeOp::Andi
                 | ITypeOp::Lui
                 | ITypeOp::Lb
+                | ITypeOp::Lbu
+                | ITypeOp::Lh
+                | ITypeOp::Lhu
                 | ITypeOp::Lw
+                | ITypeOp::Lwl
+                | ITypeOp::Lwr
                 | ITypeOp::Ori
                 | ITypeOp::Slti
                 | ITypeOp::Sltiu
                 | ITypeOp::Sb
+                | ITypeOp::Sh
                 | ITypeOp::Sw
+                | ITypeOp::Swl
+                | ITypeOp::Swr
                 | ITypeOp::Xori => vec![IrInstruction::IType {
                     op_code,
                     rs: rs.index().unwrap(),
