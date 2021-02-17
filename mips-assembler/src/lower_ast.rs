@@ -353,61 +353,46 @@ impl Instruction {
                 rs,
                 rt,
                 immediate,
-            } => match op_code {
-                // Branching instructions need offsets
-                ITypeOp::Bcond | ITypeOp::Beq | ITypeOp::Bne | ITypeOp::Bgtz | ITypeOp::Blez => {
-                    // FIXME: this only supports literal labels or integer offsets
-                    let offset = match immediate {
-                        Expr::Constant(label) => {
-                            constants.get(&label).map(|&value| value as i16)
-                                .or_else(|| symbol_table.get(&label).map(|symbol| {
-                                    assert_eq!(symbol.location, SymbolLocation::Text, "Can only branch to labels in the text section");
-                                    // FIXME: make sure the offset isn't too big
-                                    // Divide by four because it's counted in instructions to skip,
-                                    // minus one because the offset affects the next PC
-                                    ((symbol.offset as isize - current_offset as isize) / 4 - 1) as i16
-                                }))
-                                .unwrap_or_else(|| panic!("Unable to find '{}'", label))
-                        },
-                        Expr::Number(offset) => offset as i16,
-                        _ => panic!("Only labels, constants, and numbers are currently allowed in branching instructions")
-                    };
+            } if op_code.needs_offset() => {
+                // FIXME: this only supports literal labels or integer offsets
+                let offset = match immediate {
+                    Expr::Constant(label) => constants
+                        .get(&label)
+                        .map(|&value| value as i16)
+                        .or_else(|| symbol_table.get(&label).map(|symbol| {
+                            assert_eq!(symbol.location, SymbolLocation::Text, "Can only branch to labels in the text section");
+                            // FIXME: make sure the offset isn't too big
+                            // Divide by four because it's counted in instructions to skip,
+                            // minus one because the offset affects the next PC
+                            ((symbol.offset as isize - current_offset as isize) / 4 - 1) as i16
+                        }))
+                        .unwrap_or_else(|| panic!("Unable to find '{}'", label)),
+                    Expr::Number(offset) => offset as i16,
+                    _ => panic!("Only labels, constants, and numbers are currently allowed in branching instructions")
+                };
 
-                    vec![IrInstruction::IType {
-                        op_code,
-                        rs: rs.index().unwrap(),
-                        rt: rt.index().unwrap(),
-                        immediate: offset,
-                    }]
-                }
-                // Other I-types use the written-down value
-                ITypeOp::Addi
-                | ITypeOp::Addiu
-                | ITypeOp::Andi
-                | ITypeOp::Lui
-                | ITypeOp::Lb
-                | ITypeOp::Lbu
-                | ITypeOp::Lh
-                | ITypeOp::Lhu
-                | ITypeOp::Lw
-                | ITypeOp::Lwl
-                | ITypeOp::Lwr
-                | ITypeOp::Ori
-                | ITypeOp::Slti
-                | ITypeOp::Sltiu
-                | ITypeOp::Sb
-                | ITypeOp::Sh
-                | ITypeOp::Sw
-                | ITypeOp::Swl
-                | ITypeOp::Swr
-                | ITypeOp::Xori => vec![IrInstruction::IType {
+                vec![IrInstruction::IType {
+                    op_code,
+                    rs: rs.index().unwrap(),
+                    rt: rt.index().unwrap(),
+                    immediate: offset,
+                }]
+            }
+            Instruction::IType {
+                op_code,
+                rs,
+                rt,
+                immediate,
+            } => {
+                // Non-offset based I-type instructions
+                vec![IrInstruction::IType {
                     op_code,
                     rs: rs.index().unwrap(),
                     rt: rt.index().unwrap(),
                     // FIXME: make sure the constant is not too big
                     immediate: immediate.evaluate(constants).unwrap() as i16,
-                }],
-            },
+                }]
+            }
             Instruction::JType { op_code, label } => {
                 let pseudo_address = match label {
                     Expr::Constant(label) => {

@@ -151,6 +151,16 @@ pub enum ITypeOp {
     Xori,
 }
 
+impl ITypeOp {
+    /// Check if the immediate is an offset. Branching instructions need offsets.
+    pub fn needs_offset(&self) -> bool {
+        matches!(
+            self,
+            ITypeOp::Bcond | ITypeOp::Beq | ITypeOp::Bne | ITypeOp::Bgtz | ITypeOp::Blez
+        )
+    }
+}
+
 #[derive(Debug)]
 pub enum JTypeOp {
     Jump,
