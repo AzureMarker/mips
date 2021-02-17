@@ -17,6 +17,7 @@ lalrpop_mod!(
 mod ast;
 mod ir;
 mod lower_ast;
+mod lower_ir_instruction;
 mod lower_ir;
 mod string_unescape;
 

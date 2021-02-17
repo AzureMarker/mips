@@ -30,6 +30,7 @@ pub enum IrInstruction {
         op_code: JTypeOp,
         pseudo_address: u32,
     },
+    Word(u32),
 }
 
 #[derive(Debug)]
