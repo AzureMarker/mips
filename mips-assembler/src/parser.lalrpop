@@ -11,19 +11,14 @@ Comma<T>: Vec<T> = {
 };
 
 pub Program: Program = {
-    <mut items:("\n"* <Item> "\n")*> <last:("\n"* <Item?>)> => Program {
-        items: {
-            items.extend(last);
-            items
-        }
-    }
+    <items:("\n"* <Item>)*> "\n"* => Program { items }
 };
 
 Item: Item = {
-    ConstantDef => Item::ConstantDef(<>),
-    Directive => Item::Directive(<>),
+    <ConstantDef> "\n" => Item::ConstantDef(<>),
+    <Directive> "\n" => Item::Directive(<>),
     <Identifier> ":" => Item::Label(<>),
-    Instruction => Item::Instruction(<>),
+    <Instruction> "\n" => Item::Instruction(<>),
 };
 
 Expr: Expr = {
