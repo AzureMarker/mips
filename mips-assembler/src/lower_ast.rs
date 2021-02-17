@@ -10,18 +10,21 @@ use mips_types::constants::{DATA_OFFSET, TEXT_OFFSET};
 use std::collections::HashMap;
 use std::iter;
 
+type Constants = HashMap<String, i64>;
+type SymbolTable = HashMap<String, Symbol>;
+
 impl Program {
     pub fn lower(self) -> IrProgram {
         let mut instructions: Vec<IrInstruction> = Vec::new();
         let mut data: Vec<u8> = Vec::new();
-        let mut symbol_table: HashMap<String, Symbol> = HashMap::new();
+        let mut symbol_table = SymbolTable::new();
         let mut globals: Vec<String> = Vec::new();
-        let mut constants: HashMap<String, i64> = HashMap::new();
+        let mut constants = Constants::new();
 
         let mut current_section = SymbolLocation::Text;
         let mut text_offset = 0;
         let mut text_words = HashMap::new();
-        let mut alignment_enabled = true;
+        let mut auto_align = true;
         let mut label_buffer = None;
         let mut current_label = None;
 
@@ -51,11 +54,11 @@ impl Program {
                 }
                 Item::Directive(directive) => match directive {
                     Directive::Text => {
-                        alignment_enabled = true;
+                        auto_align = true;
                         current_section = SymbolLocation::Text;
                     }
                     Directive::Data => {
-                        alignment_enabled = true;
+                        auto_align = true;
                         current_section = SymbolLocation::Data;
                     }
                     Directive::Global { label } => globals.push(label.clone()),
@@ -83,7 +86,7 @@ impl Program {
                         };
 
                         if alignment == 0 {
-                            alignment_enabled = false;
+                            auto_align = false;
                         } else {
                             align_section(
                                 section_data,
@@ -108,7 +111,7 @@ impl Program {
                         section_data.extend(iter::repeat(0).take(size));
                     }
                     Directive::Word { values } => {
-                        if alignment_enabled && current_section != SymbolLocation::Text {
+                        if auto_align && current_section != SymbolLocation::Text {
                             let section_data = match current_section {
                                 SymbolLocation::Text => unreachable!(),
                                 SymbolLocation::Data => &mut data,
@@ -238,7 +241,7 @@ fn align_section(
 }
 
 impl Expr {
-    pub fn evaluate(&self, constants: &HashMap<String, i64>) -> Result<i64, String> {
+    pub fn evaluate(&self, constants: &Constants) -> Result<i64, String> {
         match self {
             Expr::Number(num) => Ok(*num),
             Expr::Constant(name) => constants
@@ -272,7 +275,7 @@ impl Expr {
 
 impl Instruction {
     /// Get the number of instructions this instruction expands to
-    pub fn expanded_size(&self, constants: &HashMap<String, i64>) -> usize {
+    pub fn expanded_size(&self, constants: &Constants) -> usize {
         match self {
             Instruction::RType { .. } | Instruction::IType { .. } | Instruction::JType { .. } => 1,
             Instruction::Pseudo(pseduo) => pseduo.expanded_size(constants),
@@ -282,8 +285,8 @@ impl Instruction {
     pub fn lower(
         self,
         current_offset: usize,
-        constants: &HashMap<String, i64>,
-        symbol_table: &HashMap<String, Symbol>,
+        constants: &Constants,
+        symbol_table: &SymbolTable,
     ) -> Vec<IrInstruction> {
         match self {
             Instruction::RType {
@@ -388,7 +391,7 @@ impl Instruction {
 
 impl PseudoInstruction {
     /// Get the number of instructions this pseudo-instruction expands to
-    pub fn expanded_size(&self, constants: &HashMap<String, i64>) -> usize {
+    pub fn expanded_size(&self, constants: &Constants) -> usize {
         match self {
             PseudoInstruction::LoadImmediate { value, .. } => {
                 let value = value
@@ -408,11 +411,7 @@ impl PseudoInstruction {
         }
     }
 
-    pub fn lower(
-        self,
-        constants: &HashMap<String, i64>,
-        symbol_table: &HashMap<String, Symbol>,
-    ) -> Vec<IrInstruction> {
+    pub fn lower(self, constants: &Constants, symbol_table: &SymbolTable) -> Vec<IrInstruction> {
         match self {
             PseudoInstruction::LoadImmediate { rd, value } => {
                 let value = value.evaluate(constants).unwrap() as u32;
