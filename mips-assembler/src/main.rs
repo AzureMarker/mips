@@ -2,9 +2,11 @@
 extern crate lalrpop_util;
 
 use crate::ast::Program;
+use env_logger::Env;
 use lalrpop_util::ParseError;
 use std::error::Error;
 use std::fs::File;
+use std::io::Write;
 use std::path::PathBuf;
 use std::{fs, io};
 use structopt::StructOpt;
@@ -17,8 +19,8 @@ lalrpop_mod!(
 mod ast;
 mod ir;
 mod lower_ast;
-mod lower_ir_instruction;
 mod lower_ir;
+mod lower_ir_instruction;
 mod string_unescape;
 
 #[derive(StructOpt)]
@@ -37,7 +39,9 @@ struct CliArgs {
 
 fn main() -> Result<(), Box<dyn Error>> {
     // Setup logging and parse CLI args
-    env_logger::init();
+    env_logger::Builder::from_env(Env::default().default_filter_or("warn"))
+        .format(|buf, record| writeln!(buf, "[{}] {}", record.level(), record.args()))
+        .init();
     let args = CliArgs::from_args();
 
     // Load the assembly file
@@ -50,11 +54,11 @@ fn main() -> Result<(), Box<dyn Error>> {
 }
 
 fn assemble_file(program: Program, args: CliArgs) -> io::Result<()> {
-    println!("{:#?}", program);
+    log::trace!("{:#?}", program);
     let program_ir = program.lower();
-    println!("{:#?}", program_ir);
+    log::trace!("{:#?}", program_ir);
     let program_mips = program_ir.lower();
-    println!("{:#x?}", program_mips);
+    log::trace!("{:#x?}", program_mips);
 
     let mut output = File::create(&args.output_file)?;
     program_mips.write(&mut output)
@@ -67,7 +71,7 @@ fn parse(file_str: &str) -> Program {
         Ok(parsed_ast) => parsed_ast,
         Err(ParseError::InvalidToken { location }) => {
             let (line, col) = index_to_line_col(&file_str, location);
-            eprintln!("Invalid token at line {}, column {}", line, col);
+            log::error!("Invalid token at line {}, column {}", line, col);
             std::process::exit(1);
         }
         Err(ParseError::UnrecognizedToken {
@@ -75,7 +79,7 @@ fn parse(file_str: &str) -> Program {
             expected,
         }) => {
             let (line, col) = index_to_line_col(&file_str, lspan);
-            eprintln!(
+            log::error!(
                 "Unrecognized token '{}' at line {}, column {}, expected [{}]",
                 token,
                 line,
@@ -86,7 +90,7 @@ fn parse(file_str: &str) -> Program {
         }
         Err(ParseError::UnrecognizedEOF { location, expected }) => {
             let (line, col) = index_to_line_col(&file_str, location);
-            eprintln!(
+            log::error!(
                 "Unexpected EOF at line {}, column {}, expected [{}]",
                 line,
                 col,
@@ -98,14 +102,16 @@ fn parse(file_str: &str) -> Program {
             token: (lspan, token, _rspan),
         }) => {
             let (line, col) = index_to_line_col(&file_str, lspan);
-            eprintln!(
+            log::error!(
                 "Unexpected extra token '{}' at line {}, column {}",
-                token, line, col
+                token,
+                line,
+                col
             );
             std::process::exit(1);
         }
         Err(ParseError::User { error }) => {
-            eprintln!("{}", error);
+            log::error!("{}", error);
             std::process::exit(1);
         }
     }

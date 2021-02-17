@@ -188,7 +188,8 @@ impl Program {
             label_buffer = None;
         }
 
-        println!("Constants: {:#?}\nSymbols: {:#?}", constants, symbol_table);
+        log::trace!("Constants: {:#?}", constants);
+        log::trace!("Symbols: {:#?}", symbol_table);
 
         // Second pass: generate instruction IR
         for item in self.items {
