@@ -2,7 +2,7 @@
 
 use crate::ast::{
     ConstantDef, Directive, Expr, ITypeOp, Instruction, Item, Operation, Program,
-    PseudoInstruction, RTypeOp,
+    PseudoInstruction, RTypeOp, RepeatedExpr,
 };
 use crate::ir::{IrInstruction, IrProgram, Symbol, SymbolLocation};
 use crate::string_unescape::unescape_str;
@@ -15,227 +15,249 @@ type SymbolTable = HashMap<String, Symbol>;
 
 impl Program {
     pub fn lower(self) -> IrProgram {
-        let mut instructions: Vec<IrInstruction> = Vec::new();
-        let mut data: Vec<u8> = Vec::new();
-        let mut symbol_table = SymbolTable::new();
-        let mut globals: Vec<String> = Vec::new();
-        let mut constants = Constants::new();
+        IrBuilder::default().build(self)
+    }
+}
 
-        let mut current_section = SymbolLocation::Text;
-        let mut text_offset = 0;
-        let mut text_words = HashMap::new();
-        let mut auto_align = true;
-        let mut label_buffer = None;
-        let mut current_label = None;
+/// Performs the two assembler passes
+struct IrBuilder {
+    instructions: Vec<IrInstruction>,
+    data: Vec<u8>,
+    symbol_table: SymbolTable,
+    constants: Constants,
+    globals: Vec<String>,
+    current_section: SymbolLocation,
+    text_offset: usize,
+    text_words: HashMap<usize, u32>,
+    auto_align: bool,
+    current_label: Option<String>,
+}
 
-        // Find symbols and constants
-        for item in &self.items {
-            match item {
-                Item::ConstantDef(ConstantDef { name, value }) => {
-                    constants.insert(
-                        name.clone(),
-                        value
-                            .evaluate(&constants)
-                            .expect("Constants cannot have forward references"),
-                    );
-                }
-                Item::Label(name) => {
-                    label_buffer = Some(name);
-                    symbol_table.insert(
-                        name.clone(),
-                        Symbol {
-                            location: current_section,
-                            offset: match current_section {
-                                SymbolLocation::Text => text_offset,
-                                SymbolLocation::Data => data.len(),
-                            },
-                        },
-                    );
-                }
-                Item::Directive(directive) => match directive {
-                    Directive::Text => {
-                        auto_align = true;
-                        current_section = SymbolLocation::Text;
-                    }
-                    Directive::Data => {
-                        auto_align = true;
-                        current_section = SymbolLocation::Data;
-                    }
-                    Directive::Global { label } => globals.push(label.clone()),
-                    Directive::Align { boundary } => {
-                        let alignment = boundary
-                            .evaluate(&constants)
-                            .expect(".align cannot have forward references")
-                            as usize;
-
-                        let section_data = match current_section {
-                            SymbolLocation::Text => {
-                                if alignment <= 2 {
-                                    // Only warn on alignments of 2 or less in the text segment.
-                                    // This is not an error because only word-sized items are
-                                    // allowed in the text segment so it's always aligned to <= 2.
-                                    log::warn!(".align does nothing in the text segment");
-                                    continue;
-                                } else {
-                                    // An alignment greater than 2 does not make sense in the text
-                                    // segment.
-                                    panic!("Cannot use .align of 2 or greater in the text segment");
-                                }
-                            }
-                            SymbolLocation::Data => &mut data,
-                        };
-
-                        if alignment == 0 {
-                            auto_align = false;
-                        } else {
-                            align_section(
-                                section_data,
-                                alignment,
-                                current_label,
-                                &mut symbol_table,
-                            );
-                        }
-                    }
-                    Directive::Space { size } => {
-                        let section_data = match current_section {
-                            SymbolLocation::Text => panic!("Cannot use .space in the text segment"),
-                            SymbolLocation::Data => &mut data,
-                        };
-
-                        // FIXME: check if value is negative
-                        let size = size
-                            .evaluate(&constants)
-                            .expect(".space cannot have forward references")
-                            as usize;
-
-                        section_data.extend(iter::repeat(0).take(size));
-                    }
-                    Directive::Word { values } => {
-                        if auto_align && current_section != SymbolLocation::Text {
-                            let section_data = match current_section {
-                                SymbolLocation::Text => unreachable!(),
-                                SymbolLocation::Data => &mut data,
-                            };
-
-                            align_section(section_data, 2, current_label, &mut symbol_table);
-                        }
-
-                        let words = values.iter().flat_map(|e| {
-                            let value = e
-                                .expr
-                                .evaluate(&constants)
-                                .expect(".word cannot have forward references");
-                            let times = e
-                                .times
-                                .evaluate(&constants)
-                                .expect(".word cannot have forward references")
-                                as usize; // FIXME: check for negative repeat value
-
-                            // Values are explicitly truncated.
-                            let truncated = value as i32;
-                            if truncated as i64 != value {
-                                // TODO: give more info, like a line number
-                                log::warn!(
-                                    ".word: Truncated 0x{:016x} to 0x{:08x}",
-                                    value,
-                                    truncated
-                                );
-                            }
-
-                            iter::repeat(truncated as u32).take(times)
-                        });
-
-                        match current_section {
-                            SymbolLocation::Text => {
-                                words.for_each(|word| {
-                                    text_words.insert(text_offset, word);
-                                    text_offset += 4;
-                                });
-                            }
-                            _ => {
-                                let section_data = match current_section {
-                                    SymbolLocation::Text => unreachable!(),
-                                    SymbolLocation::Data => &mut data,
-                                };
-
-                                section_data
-                                    .extend(words.flat_map(|word| word.to_be_bytes().to_vec()));
-                            }
-                        }
-                    }
-                    Directive::Asciiz { string } => {
-                        let section_data = match current_section {
-                            SymbolLocation::Text => {
-                                panic!("Cannot use .asciiz in the text segment")
-                            }
-                            SymbolLocation::Data => &mut data,
-                        };
-
-                        if !string.is_ascii() {
-                            // TODO: return a proper error
-                            panic!("Strings must be ASCII");
-                        }
-
-                        // TODO: handle the error
-                        let unescaped = unescape_str(string).unwrap();
-
-                        section_data.extend(unescaped.bytes().chain(std::iter::once(0)))
-                    }
-                },
-                Item::Instruction(instruction) => {
-                    text_offset += 4 * instruction.expanded_size(&constants);
-                }
-            }
-
-            current_label = label_buffer;
-            label_buffer = None;
-        }
-
-        log::trace!("Constants: {:#?}", constants);
-        log::trace!("Symbols: {:#?}", symbol_table);
-
-        // Second pass: generate instruction IR
-        for item in self.items {
-            // Add in the text words we found in the first pass
-            while let Some(word) = text_words.remove(&instructions.len()) {
-                instructions.push(IrInstruction::Word(word));
-            }
-
-            if let Item::Instruction(instruction) = item {
-                instructions.extend(instruction.lower(
-                    instructions.len() * 4,
-                    &constants,
-                    &symbol_table,
-                ));
-            }
-        }
-
-        IrProgram {
-            text: instructions,
-            data,
-            symbol_table,
-            globals,
+impl Default for IrBuilder {
+    fn default() -> Self {
+        Self {
+            instructions: Vec::new(),
+            data: Vec::new(),
+            symbol_table: SymbolTable::new(),
+            constants: Constants::new(),
+            globals: Vec::new(),
+            current_section: SymbolLocation::Text,
+            text_offset: 0,
+            text_words: HashMap::new(),
+            auto_align: true,
+            current_label: None,
         }
     }
 }
 
-/// Aligns the section according to the alignment value. If there was a label
-/// pointing at this directive, it is realigned.
-fn align_section(
-    section: &mut Vec<u8>,
-    alignment: usize,
-    current_label: Option<&String>,
-    symbol_table: &mut HashMap<String, Symbol>,
-) {
-    let step_size = usize::pow(2, alignment as u32);
+impl IrBuilder {
+    /// Build an IR program from the AST program
+    fn build(mut self, program: Program) -> IrProgram {
+        // First pass: find symbols and constants
+        self.first_pass(&program);
 
-    if section.len() % step_size != 0 {
-        let alignment_amount = step_size - (section.len() % step_size);
-        section.extend(iter::repeat(0).take(alignment_amount));
+        log::trace!("Constants: {:#?}", self.constants);
+        log::trace!("Symbols: {:#?}", self.symbol_table);
 
-        // If there was a label pointing at this directive, realign it
-        if let Some(label) = current_label {
-            symbol_table.get_mut(label).unwrap().offset += alignment_amount;
+        // Second pass: generate instruction IR
+        self.second_pass(program);
+
+        IrProgram {
+            text: self.instructions,
+            data: self.data,
+            symbol_table: self.symbol_table,
+            globals: self.globals,
+        }
+    }
+
+    /// Run the first pass over the AST
+    fn first_pass(&mut self, program: &Program) {
+        for item in &program.items {
+            let mut label_buffer = None;
+
+            match item {
+                Item::ConstantDef(constant) => self.visit_constant_def(constant),
+                Item::Label(label) => {
+                    label_buffer = Some(label.clone());
+                    self.visit_label(label);
+                }
+                Item::Directive(directive) => self.visit_directive(directive),
+                Item::Instruction(instruction) => {
+                    self.text_offset += 4 * instruction.expanded_size(&self.constants);
+                }
+            }
+
+            self.current_label = label_buffer;
+        }
+    }
+
+    /// Run the second pass over the AST
+    fn second_pass(&mut self, program: Program) {
+        for item in program.items {
+            // Add in the text words we found in the first pass
+            while let Some(word) = self.text_words.remove(&self.instructions.len()) {
+                self.instructions.push(IrInstruction::Word(word));
+            }
+
+            if let Item::Instruction(instruction) = item {
+                self.instructions.extend(instruction.lower(
+                    self.instructions.len() * 4,
+                    &self.constants,
+                    &self.symbol_table,
+                ));
+            }
+        }
+    }
+
+    fn visit_constant_def(&mut self, constant: &ConstantDef) {
+        self.constants.insert(
+            constant.name.clone(),
+            constant
+                .value
+                .evaluate(&self.constants)
+                .expect("Constants cannot have forward references"),
+        );
+    }
+
+    fn visit_label(&mut self, label: &str) {
+        self.symbol_table.insert(
+            label.to_string(),
+            Symbol {
+                location: self.current_section,
+                offset: match self.current_section {
+                    SymbolLocation::Text => self.text_offset,
+                    SymbolLocation::Data => self.data.len(),
+                },
+            },
+        );
+    }
+
+    fn visit_directive(&mut self, directive: &Directive) {
+        match directive {
+            Directive::Text => {
+                self.auto_align = true;
+                self.current_section = SymbolLocation::Text;
+            }
+            Directive::Data => {
+                self.auto_align = true;
+                self.current_section = SymbolLocation::Data;
+            }
+            Directive::Global { label } => self.globals.push(label.clone()),
+            Directive::Align { boundary } => self.visit_align(boundary),
+            Directive::Space { size } => self.visit_space(size),
+            Directive::Word { values } => self.visit_word(values),
+            Directive::Asciiz { string } => self.visit_asciiz(string),
+        }
+    }
+
+    fn visit_align(&mut self, boundary: &Expr) {
+        let alignment = boundary
+            .evaluate(&self.constants)
+            .expect(".align cannot have forward references") as usize;
+
+        if self.current_section == SymbolLocation::Text {
+            if alignment <= 2 {
+                // Only warn on alignments of 2 or less in the text segment.
+                // This is not an error because only word-sized items are
+                // allowed in the text segment so it's always aligned to <= 2.
+                log::warn!(".align does nothing in the text segment");
+                return;
+            } else {
+                // An alignment greater than 2 does not make sense in the text
+                // segment.
+                panic!("Cannot use .align of 2 or greater in the text segment");
+            }
+        }
+
+        if alignment == 0 {
+            self.auto_align = false;
+        } else {
+            self.align_section(alignment);
+        }
+    }
+
+    fn visit_space(&mut self, size: &Expr) {
+        let section_data = match self.current_section {
+            SymbolLocation::Text => panic!("Cannot use .space in the text segment"),
+            SymbolLocation::Data => &mut self.data,
+        };
+
+        // FIXME: check if value is negative
+        let size = size
+            .evaluate(&self.constants)
+            .expect(".space cannot have forward references") as usize;
+
+        section_data.extend(iter::repeat(0).take(size));
+    }
+
+    fn visit_word(&mut self, values: &[RepeatedExpr]) {
+        if self.auto_align && self.current_section != SymbolLocation::Text {
+            self.align_section(2);
+        }
+
+        let words: Vec<u32> = values
+            .iter()
+            .flat_map(|e| e.as_word(&self.constants))
+            .collect();
+
+        match self.current_section {
+            SymbolLocation::Text => {
+                for word in words {
+                    self.text_words.insert(self.text_offset, word);
+                    self.text_offset += 4;
+                }
+            }
+            _ => {
+                let section_data = match self.current_section {
+                    SymbolLocation::Text => unreachable!(),
+                    SymbolLocation::Data => &mut self.data,
+                };
+
+                section_data.extend(
+                    words
+                        .into_iter()
+                        .flat_map(|word| word.to_be_bytes().to_vec()),
+                );
+            }
+        }
+    }
+
+    fn visit_asciiz(&mut self, string: &str) {
+        let section_data = match self.current_section {
+            SymbolLocation::Text => {
+                panic!("Cannot use .asciiz in the text segment")
+            }
+            SymbolLocation::Data => &mut self.data,
+        };
+
+        if !string.is_ascii() {
+            // TODO: return a proper error
+            panic!("Strings must be ASCII");
+        }
+
+        // TODO: handle the error
+        let unescaped = unescape_str(string).unwrap();
+
+        section_data.extend(unescaped.bytes().chain(std::iter::once(0)))
+    }
+
+    /// Aligns the current section according to the alignment value. If there
+    /// was a label pointing at this directive, it is realigned.
+    fn align_section(&mut self, alignment: usize) {
+        let section = match self.current_section {
+            SymbolLocation::Text => panic!("Cannot align the text segment"),
+            SymbolLocation::Data => &mut self.data,
+        };
+        let step_size = usize::pow(2, alignment as u32);
+
+        if section.len() % step_size != 0 {
+            let alignment_amount = step_size - (section.len() % step_size);
+            section.extend(iter::repeat(0).take(alignment_amount));
+
+            // If there was a label pointing at this directive, realign it
+            if let Some(label) = &self.current_label {
+                self.symbol_table.get_mut(label).unwrap().offset += alignment_amount;
+            }
         }
     }
 }
@@ -270,6 +292,29 @@ impl Expr {
             }
             Expr::Negated(expr) => Ok(-expr.evaluate(constants)?),
         }
+    }
+}
+
+impl RepeatedExpr {
+    /// Convert this repeated expression into a stream of truncated words
+    fn as_word(&self, constants: &Constants) -> impl Iterator<Item = u32> {
+        let value = self
+            .expr
+            .evaluate(&constants)
+            .expect(".word cannot have forward references");
+        let times = self
+            .times
+            .evaluate(&constants)
+            .expect(".word cannot have forward references") as usize; // FIXME: check for negative repeat value
+
+        // Values are explicitly truncated.
+        let truncated = value as i32;
+        if truncated as i64 != value {
+            // TODO: give more info, like a line number
+            log::warn!(".word: Truncated 0x{:016x} to 0x{:08x}", value, truncated);
+        }
+
+        iter::repeat(truncated as u32).take(times)
     }
 }
 
