@@ -193,6 +193,7 @@ RTypeOpRsRt: RTypeOp = {
 
 RTypeOpRs: RTypeOp = {
     "jr" => RTypeOp::Jr,
+    "jalr" => RTypeOp::Jalr,
 };
 
 RTypeOpRd: RTypeOp = {

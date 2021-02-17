@@ -92,6 +92,7 @@ pub enum RTypeOp {
     And,
     Div,
     Divu,
+    Jalr,
     Jr,
     Mfhi,
     Mflo,

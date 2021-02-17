@@ -27,6 +27,7 @@ pub const FUNCTION_SRA: u8 = 0x03;
 pub const FUNCTION_SLLV: u8 = 0x04;
 pub const FUNCTION_SRLV: u8 = 0x06;
 pub const FUNCTION_JR: u8 = 0x08;
+pub const FUNCTION_JALR: u8 = 0x09;
 pub const FUNCTION_SYSCALL: u8 = 0x0C;
 pub const FUNCTION_BREAK: u8 = 0x0D;
 pub const FUNCTION_MFHI: u8 = 0x10;
