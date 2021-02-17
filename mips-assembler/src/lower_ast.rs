@@ -20,7 +20,9 @@ impl Program {
 
         let mut current_section = SymbolLocation::Text;
         let mut text_offset = 0;
-        let mut alignment = 0;
+        let mut alignment_enabled = true;
+        let mut label_buffer = None;
+        let mut current_label = None;
 
         // Find symbols and constants
         for item in &self.items {
@@ -34,6 +36,7 @@ impl Program {
                     );
                 }
                 Item::Label(name) => {
+                    label_buffer = Some(name);
                     symbol_table.insert(
                         name.clone(),
                         Symbol {
@@ -48,18 +51,28 @@ impl Program {
                 Item::Directive(directive) => match directive {
                     // FIXME: We're not checking what section we're in for
                     //        directives that allocate memory
-                    Directive::Text => current_section = SymbolLocation::Text,
-                    Directive::Data => current_section = SymbolLocation::Data,
+                    Directive::Text => {
+                        alignment_enabled = true;
+                        current_section = SymbolLocation::Text;
+                    }
+                    Directive::Data => {
+                        alignment_enabled = true;
+                        current_section = SymbolLocation::Data;
+                    }
                     Directive::Global { label } => globals.push(label.clone()),
                     Directive::Align { boundary } => {
-                        alignment = boundary
+                        let alignment = boundary
                             .evaluate(&constants)
                             .expect(".align cannot have forward references")
                             as usize;
+
+                        if alignment == 0 {
+                            alignment_enabled = false;
+                        } else {
+                            align_section(&mut data, alignment, current_label, &mut symbol_table);
+                        }
                     }
                     Directive::Space { size } => {
-                        align_section(&mut data, alignment);
-
                         // FIXME: check if value is negative
                         let size = size
                             .evaluate(&constants)
@@ -69,7 +82,9 @@ impl Program {
                         data.extend(iter::repeat(0).take(size));
                     }
                     Directive::Word { values } => {
-                        align_section(&mut data, alignment);
+                        if alignment_enabled {
+                            align_section(&mut data, 2, current_label, &mut symbol_table);
+                        }
 
                         data.extend(values.iter().flat_map(|e| {
                             // FIXME: check if value is too big
@@ -82,12 +97,14 @@ impl Program {
                         }))
                     }
                     Directive::Asciiz { string } => {
-                        align_section(&mut data, alignment);
+                        if !string.is_ascii() {
+                            // TODO: return a proper error
+                            panic!("Strings must be ASCII");
+                        }
 
                         // TODO: handle the error
                         let unescaped = unescape_str(string).unwrap();
 
-                        // TODO: enforce only ASCII?
                         data.extend(unescaped.bytes().chain(std::iter::once(0)))
                     }
                 },
@@ -95,6 +112,9 @@ impl Program {
                     text_offset += 4 * instruction.expanded_size(&constants);
                 }
             }
+
+            current_label = label_buffer;
+            label_buffer = None;
         }
 
         println!("Constants: {:#?}\nSymbols: {:#?}", constants, symbol_table);
@@ -123,11 +143,23 @@ impl Program {
     }
 }
 
-fn align_section(section: &mut Vec<u8>, alignment: usize) {
+/// Aligns the section according to the alignment value. If there was a label
+/// pointing at this directive, it is realigned.
+fn align_section(
+    section: &mut Vec<u8>,
+    alignment: usize,
+    last_label: Option<&String>,
+    symbol_table: &mut HashMap<String, Symbol>,
+) {
     let step_size = usize::pow(2, alignment as u32);
 
     if section.len() % step_size != 0 {
         section.extend(iter::repeat(0).take(step_size - (section.len() % step_size)));
+    }
+
+    // If there was a label pointing at this directive, realign it
+    if let Some(label) = last_label {
+        symbol_table.get_mut(label).unwrap().offset = section.len();
     }
 }
 
