@@ -8,6 +8,7 @@ use crate::ir::{IrInstruction, IrProgram, Symbol, SymbolLocation};
 use crate::string_unescape::unescape_str;
 use mips_types::constants::{DATA_OFFSET, TEXT_OFFSET};
 use std::collections::HashMap;
+use std::fmt::{Display, LowerHex};
 use std::iter;
 
 type Constants = HashMap<String, i64>;
@@ -191,21 +192,40 @@ impl IrBuilder {
     }
 
     fn visit_word(&mut self, values: &[RepeatedExpr]) {
+        self.visit_number(
+            values,
+            RepeatedExpr::as_words,
+            |builder, words| {
+                for word in words {
+                    builder.text_words.insert(builder.text_offset, word);
+                    builder.text_offset += 4;
+                }
+            },
+            |word| word.to_be_bytes().to_vec(),
+        )
+    }
+
+    /// A general version of a directive which inserts numbers into a data segment,
+    /// such as .word or .float.
+    fn visit_number<T, I: Iterator<Item = T>>(
+        &mut self,
+        values: &[RepeatedExpr],
+        as_iterator: impl Fn(&RepeatedExpr, &Constants) -> I,
+        handle_text: impl FnOnce(&mut Self, Vec<T>),
+        to_vec: impl Fn(T) -> Vec<u8>,
+    ) {
         if self.auto_align && self.current_section != SymbolLocation::Text {
             self.align_section(2);
         }
 
-        let words: Vec<u32> = values
+        let words: Vec<T> = values
             .iter()
-            .flat_map(|e| e.as_word(&self.constants))
+            .flat_map(|e| as_iterator(e, &self.constants))
             .collect();
 
         match self.current_section {
             SymbolLocation::Text => {
-                for word in words {
-                    self.text_words.insert(self.text_offset, word);
-                    self.text_offset += 4;
-                }
+                handle_text(self, words);
             }
             _ => {
                 let section_data = match self.current_section {
@@ -213,11 +233,7 @@ impl IrBuilder {
                     SymbolLocation::Data => &mut self.data,
                 };
 
-                section_data.extend(
-                    words
-                        .into_iter()
-                        .flat_map(|word| word.to_be_bytes().to_vec()),
-                );
+                section_data.extend(words.into_iter().flat_map(to_vec));
             }
         }
     }
@@ -303,8 +319,21 @@ impl Expr {
 }
 
 impl RepeatedExpr {
-    /// Convert this repeated expression into a stream of truncated words
-    fn as_word(&self, constants: &Constants) -> impl Iterator<Item = u32> {
+    fn as_words(&self, constants: &Constants) -> impl Iterator<Item = u32> {
+        self.as_iterator(constants, ".word", 8, |value| {
+            let truncated = value as i32;
+            (truncated as u32, truncated as i64 == value)
+        })
+    }
+
+    /// Convert this repeated expression into a stream of truncated numbers
+    fn as_iterator<T: Display + LowerHex + Copy>(
+        &self,
+        constants: &Constants,
+        directive: &'static str,
+        format_width: usize,
+        truncate: impl FnOnce(i64) -> (T, bool),
+    ) -> impl Iterator<Item = T> {
         let value = self
             .expr
             .evaluate(&constants)
@@ -315,13 +344,19 @@ impl RepeatedExpr {
             .expect(".word cannot have forward references") as usize; // FIXME: check for negative repeat value
 
         // Values are explicitly truncated.
-        let truncated = value as i32;
-        if truncated as i64 != value {
+        let (truncated, is_same) = truncate(value);
+        if !is_same {
             // TODO: give more info, like a line number
-            log::warn!(".word: Truncated 0x{:016x} to 0x{:08x}", value, truncated);
+            log::warn!(
+                "{}: Truncated 0x{:016x} to 0x{:0width$x}",
+                directive,
+                value,
+                truncated,
+                width = format_width
+            );
         }
 
-        iter::repeat(truncated as u32).take(times)
+        iter::repeat(truncated).take(times)
     }
 }
 
