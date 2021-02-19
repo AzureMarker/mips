@@ -148,6 +148,7 @@ impl IrBuilder {
             Directive::Space { size } => self.visit_space(size),
             Directive::NumberDirective { ty, values } => match ty {
                 NumberDirective::Word => self.visit_word(values),
+                NumberDirective::Half => self.visit_half(values),
                 NumberDirective::Byte => self.visit_byte(values),
             },
             Directive::Ascii { string, zero_pad } => self.visit_ascii(string, *zero_pad),
@@ -200,6 +201,15 @@ impl IrBuilder {
             RepeatedExpr::as_bytes,
             |_, _| panic!("Cannot use .byte in the text segment"),
             Some,
+        )
+    }
+
+    fn visit_half(&mut self, values: &[RepeatedExpr]) {
+        self.visit_number(
+            values,
+            RepeatedExpr::as_halves,
+            |_, _| panic!("Cannot use .half in the text segment"),
+            |half| half.to_be_bytes().to_vec(),
         )
     }
 
@@ -335,6 +345,13 @@ impl RepeatedExpr {
         self.as_iterator(constants, ".byte", 2, |value| {
             let truncated = value as i8;
             (truncated as u8, truncated as i64 == value)
+        })
+    }
+
+    fn as_halves(&self, constants: &Constants) -> impl Iterator<Item = u16> {
+        self.as_iterator(constants, ".half", 4, |value| {
+            let truncated = value as i16;
+            (truncated as u16, truncated as i64 == value)
         })
     }
 

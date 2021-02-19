@@ -117,6 +117,7 @@ Directive: Directive = {
     ".align" <boundary:Expr> => Directive::Align { boundary },
     ".space" <size:Expr> => Directive::Space { size },
     ".byte" <values:Comma<RepeatedExpr>> => Directive::NumberDirective { ty: NumberDirective::Byte, values },
+    ".half" <values:Comma<RepeatedExpr>> => Directive::NumberDirective { ty: NumberDirective::Half, values },
     ".word" <values:Comma<RepeatedExpr>> => Directive::NumberDirective { ty: NumberDirective::Word, values },
     ".ascii" <string:String> => Directive::Ascii { string, zero_pad: false },
     ".asciiz" <string:String> => Directive::Ascii { string, zero_pad: true },

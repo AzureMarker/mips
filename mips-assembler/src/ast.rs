@@ -77,6 +77,7 @@ pub enum Directive {
 #[derive(Debug)]
 pub enum NumberDirective {
     Byte,
+    Half,
     Word,
 }
 
