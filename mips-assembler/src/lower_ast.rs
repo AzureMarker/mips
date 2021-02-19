@@ -204,6 +204,7 @@ impl IrBuilder {
     fn visit_byte(&mut self, values: &[RepeatedExpr]) {
         self.visit_number(
             values,
+            None,
             RepeatedExpr::as_bytes,
             |_, _| panic!("Cannot use .byte in the text segment"),
             Some,
@@ -213,6 +214,7 @@ impl IrBuilder {
     fn visit_half(&mut self, values: &[RepeatedExpr]) {
         self.visit_number(
             values,
+            Some(1),
             RepeatedExpr::as_halves,
             |_, _| panic!("Cannot use .half in the text segment"),
             |half| half.to_be_bytes().to_vec(),
@@ -222,6 +224,7 @@ impl IrBuilder {
     fn visit_word(&mut self, values: &[RepeatedExpr]) {
         self.visit_number(
             values,
+            Some(2),
             RepeatedExpr::as_words,
             |builder, words| {
                 for word in words {
@@ -238,12 +241,15 @@ impl IrBuilder {
     fn visit_number<T, I1: IntoIterator<Item = T>, I2: IntoIterator<Item = u8>>(
         &mut self,
         values: &[RepeatedExpr],
+        alignment: Option<usize>,
         as_iterator: impl Fn(&RepeatedExpr, &Constants) -> I1,
         handle_text: impl FnOnce(&mut Self, Vec<T>),
         to_bytes: impl Fn(T) -> I2,
     ) {
-        if self.auto_align && self.current_section != SymbolLocation::Text {
-            self.align_section(2);
+        if let Some(alignment) = alignment {
+            if self.auto_align && self.current_section != SymbolLocation::Text {
+                self.align_section(alignment);
+            }
         }
 
         let numbers: Vec<T> = values
