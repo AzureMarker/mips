@@ -103,6 +103,19 @@ pub enum Instruction {
     Pseudo(PseudoInstruction),
 }
 
+impl Instruction {
+    /// A no-operation instruction
+    pub fn noop() -> Self {
+        Instruction::RType {
+            op_code: RTypeOp::Sll,
+            rd: Register::Number(0),
+            rs: Register::Number(0),
+            rt: Register::Number(0),
+            shift: Expr::Number(0),
+        }
+    }
+}
+
 #[derive(Debug)]
 pub enum PseudoInstruction {
     LoadImmediate { rd: Register, value: Expr },

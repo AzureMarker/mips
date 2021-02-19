@@ -153,13 +153,7 @@ Instruction: Instruction = {
         rt: Register::Number(0),
         shift: Expr::Number(0)
     },
-    "noop" => Instruction::RType {
-        op_code: RTypeOp::Sll,
-        rd: Register::Number(0),
-        rs: Register::Number(0),
-        rt: Register::Number(0),
-        shift: Expr::Number(0)
-    },
+    r"noop|nop" => Instruction::noop(),
     PseudoInstruction => Instruction::Pseudo(<>),
 };
 
