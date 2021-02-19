@@ -1,7 +1,7 @@
 //! Lower the AST to IR
 
 use crate::ast::{
-    ConstantDef, Directive, Expr, ITypeOp, Instruction, Item, Operation, Program,
+    ConstantDef, Directive, Expr, ITypeOp, Instruction, Item, NumberDirective, Operation, Program,
     PseudoInstruction, RTypeOp, RepeatedExpr,
 };
 use crate::ir::{IrInstruction, IrProgram, Symbol, SymbolLocation};
@@ -146,7 +146,10 @@ impl IrBuilder {
             Directive::Global { label } => self.globals.push(label.clone()),
             Directive::Align { boundary } => self.visit_align(boundary),
             Directive::Space { size } => self.visit_space(size),
-            Directive::Word { values } => self.visit_word(values),
+            Directive::NumberDirective { ty, values } => match ty {
+                NumberDirective::Word => self.visit_word(values),
+                NumberDirective::Byte => self.visit_byte(values),
+            },
             Directive::Ascii { string, zero_pad } => self.visit_ascii(string, *zero_pad),
         }
     }
@@ -191,6 +194,15 @@ impl IrBuilder {
         section_data.extend(iter::repeat(0).take(size));
     }
 
+    fn visit_byte(&mut self, values: &[RepeatedExpr]) {
+        self.visit_number(
+            values,
+            RepeatedExpr::as_bytes,
+            |_, _| panic!("Cannot use .byte in the text segment"),
+            Some,
+        )
+    }
+
     fn visit_word(&mut self, values: &[RepeatedExpr]) {
         self.visit_number(
             values,
@@ -207,25 +219,25 @@ impl IrBuilder {
 
     /// A general version of a directive which inserts numbers into a data segment,
     /// such as .word or .float.
-    fn visit_number<T, I: Iterator<Item = T>>(
+    fn visit_number<T, I1: IntoIterator<Item = T>, I2: IntoIterator<Item = u8>>(
         &mut self,
         values: &[RepeatedExpr],
-        as_iterator: impl Fn(&RepeatedExpr, &Constants) -> I,
+        as_iterator: impl Fn(&RepeatedExpr, &Constants) -> I1,
         handle_text: impl FnOnce(&mut Self, Vec<T>),
-        to_vec: impl Fn(T) -> Vec<u8>,
+        to_bytes: impl Fn(T) -> I2,
     ) {
         if self.auto_align && self.current_section != SymbolLocation::Text {
             self.align_section(2);
         }
 
-        let words: Vec<T> = values
+        let numbers: Vec<T> = values
             .iter()
             .flat_map(|e| as_iterator(e, &self.constants))
             .collect();
 
         match self.current_section {
             SymbolLocation::Text => {
-                handle_text(self, words);
+                handle_text(self, numbers);
             }
             _ => {
                 let section_data = match self.current_section {
@@ -233,7 +245,7 @@ impl IrBuilder {
                     SymbolLocation::Data => &mut self.data,
                 };
 
-                section_data.extend(words.into_iter().flat_map(to_vec));
+                section_data.extend(numbers.into_iter().flat_map(to_bytes));
             }
         }
     }
@@ -319,6 +331,13 @@ impl Expr {
 }
 
 impl RepeatedExpr {
+    fn as_bytes(&self, constants: &Constants) -> impl Iterator<Item = u8> {
+        self.as_iterator(constants, ".byte", 2, |value| {
+            let truncated = value as i8;
+            (truncated as u8, truncated as i64 == value)
+        })
+    }
+
     fn as_words(&self, constants: &Constants) -> impl Iterator<Item = u32> {
         self.as_iterator(constants, ".word", 8, |value| {
             let truncated = value as i32;

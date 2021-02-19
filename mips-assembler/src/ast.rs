@@ -54,12 +54,30 @@ pub struct ConstantDef {
 #[derive(Debug)]
 pub enum Directive {
     Text,
-    Global { label: String },
+    Global {
+        label: String,
+    },
     Data,
-    Align { boundary: Expr },
-    Space { size: Expr },
-    Word { values: Vec<RepeatedExpr> },
-    Ascii { string: String, zero_pad: bool },
+    Align {
+        boundary: Expr,
+    },
+    Space {
+        size: Expr,
+    },
+    NumberDirective {
+        ty: NumberDirective,
+        values: Vec<RepeatedExpr>,
+    },
+    Ascii {
+        string: String,
+        zero_pad: bool,
+    },
+}
+
+#[derive(Debug)]
+pub enum NumberDirective {
+    Byte,
+    Word,
 }
 
 #[derive(Debug)]
