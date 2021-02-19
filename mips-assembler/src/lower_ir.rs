@@ -2,7 +2,8 @@
 
 use crate::ir::IrProgram;
 use mips_types::module::{
-    R2KModule, R2KModuleHeader, R2KVersion, DATA_INDEX, R2K_MAGIC, SECTION_COUNT, TEXT_INDEX,
+    R2KModule, R2KModuleHeader, R2KVersion, DATA_INDEX, R2K_MAGIC, RDATA_INDEX, SDATA_INDEX,
+    SECTION_COUNT, TEXT_INDEX,
 };
 
 impl IrProgram {
@@ -15,6 +16,8 @@ impl IrProgram {
         let mut section_sizes = [0; SECTION_COUNT];
         section_sizes[TEXT_INDEX] = text.len() as u32;
         section_sizes[DATA_INDEX] = self.data.len() as u32;
+        section_sizes[RDATA_INDEX] = self.rdata.len() as u32;
+        section_sizes[SDATA_INDEX] = self.sdata.len() as u32;
 
         R2KModule {
             header: R2KModuleHeader {
@@ -28,6 +31,8 @@ impl IrProgram {
             },
             text_section: text,
             data_section: self.data,
+            rdata_section: self.rdata,
+            sdata_section: self.sdata,
             ..Default::default()
         }
     }

@@ -24,6 +24,8 @@ impl Program {
 struct IrBuilder {
     instructions: Vec<IrInstruction>,
     data: Vec<u8>,
+    rdata: Vec<u8>,
+    sdata: Vec<u8>,
     symbol_table: SymbolTable,
     constants: Constants,
     globals: Vec<String>,
@@ -39,6 +41,8 @@ impl Default for IrBuilder {
         Self {
             instructions: Vec::new(),
             data: Vec::new(),
+            rdata: Vec::new(),
+            sdata: Vec::new(),
             symbol_table: SymbolTable::new(),
             constants: Constants::new(),
             globals: Vec::new(),
@@ -66,6 +70,8 @@ impl IrBuilder {
         IrProgram {
             text: self.instructions,
             data: self.data,
+            rdata: self.rdata,
+            sdata: self.sdata,
             symbol_table: self.symbol_table,
             globals: self.globals,
         }
@@ -128,6 +134,8 @@ impl IrBuilder {
                 offset: match self.current_section {
                     SymbolLocation::Text => self.text_offset,
                     SymbolLocation::Data => self.data.len(),
+                    SymbolLocation::RData => self.rdata.len(),
+                    SymbolLocation::SData => self.sdata.len(),
                 },
             },
         );
@@ -135,14 +143,10 @@ impl IrBuilder {
 
     fn visit_directive(&mut self, directive: &Directive) {
         match directive {
-            Directive::Text => {
-                self.auto_align = true;
-                self.current_section = SymbolLocation::Text;
-            }
-            Directive::Data => {
-                self.auto_align = true;
-                self.current_section = SymbolLocation::Data;
-            }
+            Directive::Text => self.set_section(SymbolLocation::Text),
+            Directive::Data => self.set_section(SymbolLocation::Data),
+            Directive::RData => self.set_section(SymbolLocation::RData),
+            Directive::SData => self.set_section(SymbolLocation::SData),
             Directive::Global { label } => self.globals.push(label.clone()),
             Directive::Align { boundary } => self.visit_align(boundary),
             Directive::Space { size } => self.visit_space(size),
@@ -185,6 +189,8 @@ impl IrBuilder {
         let section_data = match self.current_section {
             SymbolLocation::Text => panic!("Cannot use .space in the text segment"),
             SymbolLocation::Data => &mut self.data,
+            SymbolLocation::RData => &mut self.rdata,
+            SymbolLocation::SData => &mut self.sdata,
         };
 
         // FIXME: check if value is negative
@@ -253,6 +259,8 @@ impl IrBuilder {
                 let section_data = match self.current_section {
                     SymbolLocation::Text => unreachable!(),
                     SymbolLocation::Data => &mut self.data,
+                    SymbolLocation::RData => &mut self.rdata,
+                    SymbolLocation::SData => &mut self.sdata,
                 };
 
                 section_data.extend(numbers.into_iter().flat_map(to_bytes));
@@ -269,6 +277,8 @@ impl IrBuilder {
                 )
             }
             SymbolLocation::Data => &mut self.data,
+            SymbolLocation::RData => &mut self.rdata,
+            SymbolLocation::SData => &mut self.sdata,
         };
 
         if !string.is_ascii() {
@@ -286,12 +296,19 @@ impl IrBuilder {
         }
     }
 
+    fn set_section(&mut self, location: SymbolLocation) {
+        self.auto_align = true;
+        self.current_section = location;
+    }
+
     /// Aligns the current section according to the alignment value. If there
     /// was a label pointing at this directive, it is realigned.
     fn align_section(&mut self, alignment: usize) {
         let section = match self.current_section {
             SymbolLocation::Text => panic!("Cannot align the text segment"),
             SymbolLocation::Data => &mut self.data,
+            SymbolLocation::RData => &mut self.rdata,
+            SymbolLocation::SData => &mut self.sdata,
         };
         let step_size = usize::pow(2, alignment as u32);
 
@@ -588,7 +605,14 @@ impl Symbol {
     fn address(&self) -> u32 {
         match self.location {
             SymbolLocation::Text => TEXT_OFFSET + self.offset as u32,
-            SymbolLocation::Data => DATA_OFFSET + self.offset as u32,
+            // FIXME: rdata starts at 0x10000000, while data and the rest immediately follow.
+            //        The locations calculated here will probably change by the time the assembler
+            //        has read all of the directives (adding more space to rdata or data).
+            //        The module should be updated with reference/relocation data so these addresses
+            //        can be updated.
+            SymbolLocation::Data | SymbolLocation::RData | SymbolLocation::SData => {
+                DATA_OFFSET + self.offset as u32
+            }
         }
     }
 

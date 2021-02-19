@@ -58,6 +58,8 @@ pub enum Directive {
         label: String,
     },
     Data,
+    RData,
+    SData,
     Align {
         boundary: Expr,
     },

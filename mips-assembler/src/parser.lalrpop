@@ -114,6 +114,8 @@ Directive: Directive = {
     ".text" => Directive::Text,
     ".globl" <label:Identifier> => Directive::Global { label },
     ".data" => Directive::Data,
+    ".rdata" => Directive::RData,
+    ".sdata" => Directive::SData,
     ".align" <boundary:Expr> => Directive::Align { boundary },
     ".space" <size:Expr> => Directive::Space { size },
     ".byte" <values:Comma<RepeatedExpr>> => Directive::NumberDirective { ty: NumberDirective::Byte, values },
@@ -262,6 +264,9 @@ match {
     // Ignore whitespace (but keep newlines)
     "\t" => { },
     " " => { },
+
+    // noop/nop has higher priority over labels
+    r"noop|nop",
 
     // Catch-all for the rest of the terminals
     _

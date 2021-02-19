@@ -7,6 +7,8 @@ use std::collections::HashMap;
 pub struct IrProgram {
     pub text: Vec<IrInstruction>,
     pub data: Vec<u8>,
+    pub rdata: Vec<u8>,
+    pub sdata: Vec<u8>,
     pub symbol_table: HashMap<String, Symbol>,
     pub globals: Vec<String>,
 }
@@ -43,4 +45,6 @@ pub struct Symbol {
 pub enum SymbolLocation {
     Text,
     Data,
+    RData,
+    SData,
 }
