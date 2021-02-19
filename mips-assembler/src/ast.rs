@@ -59,7 +59,7 @@ pub enum Directive {
     Align { boundary: Expr },
     Space { size: Expr },
     Word { values: Vec<RepeatedExpr> },
-    Asciiz { string: String },
+    Ascii { string: String, zero_pad: bool },
 }
 
 #[derive(Debug)]

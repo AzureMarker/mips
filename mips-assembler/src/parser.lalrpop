@@ -117,7 +117,8 @@ Directive: Directive = {
     ".align" <boundary:Expr> => Directive::Align { boundary },
     ".space" <size:Expr> => Directive::Space { size },
     ".word" <values:Comma<RepeatedExpr>> => Directive::Word { values },
-    ".asciiz" <string:String> => Directive::Asciiz { string },
+    ".ascii" <string:String> => Directive::Ascii { string, zero_pad: false },
+    ".asciiz" <string:String> => Directive::Ascii { string, zero_pad: true },
 };
 
 Instruction: Instruction = {

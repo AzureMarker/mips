@@ -79,7 +79,7 @@ impl IrBuilder {
                 Item::ConstantDef(constant) => self.visit_constant_def(constant),
                 Item::Label(label) => {
                     label_buffer = Some(label.clone());
-                    self.visit_label(label);
+                    self.visit_label(label.clone());
                 }
                 Item::Directive(directive) => self.visit_directive(directive),
                 Item::Instruction(instruction) => {
@@ -119,9 +119,9 @@ impl IrBuilder {
         );
     }
 
-    fn visit_label(&mut self, label: &str) {
+    fn visit_label(&mut self, label: String) {
         self.symbol_table.insert(
-            label.to_string(),
+            label,
             Symbol {
                 location: self.current_section,
                 offset: match self.current_section {
@@ -146,7 +146,7 @@ impl IrBuilder {
             Directive::Align { boundary } => self.visit_align(boundary),
             Directive::Space { size } => self.visit_space(size),
             Directive::Word { values } => self.visit_word(values),
-            Directive::Asciiz { string } => self.visit_asciiz(string),
+            Directive::Ascii { string, zero_pad } => self.visit_ascii(string, *zero_pad),
         }
     }
 
@@ -222,10 +222,13 @@ impl IrBuilder {
         }
     }
 
-    fn visit_asciiz(&mut self, string: &str) {
+    fn visit_ascii(&mut self, string: &str, zero_pad: bool) {
         let section_data = match self.current_section {
             SymbolLocation::Text => {
-                panic!("Cannot use .asciiz in the text segment")
+                panic!(
+                    "Cannot use .ascii{} in the text segment",
+                    if zero_pad { "z" } else { "" }
+                )
             }
             SymbolLocation::Data => &mut self.data,
         };
@@ -238,7 +241,11 @@ impl IrBuilder {
         // TODO: handle the error
         let unescaped = unescape_str(string).unwrap();
 
-        section_data.extend(unescaped.bytes().chain(std::iter::once(0)))
+        if zero_pad {
+            section_data.extend(unescaped.bytes().chain(iter::once(0)));
+        } else {
+            section_data.extend(unescaped.bytes().chain(iter::empty()));
+        }
     }
 
     /// Aligns the current section according to the alignment value. If there
