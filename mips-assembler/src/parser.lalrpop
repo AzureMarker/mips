@@ -166,8 +166,14 @@ PseudoInstruction: PseudoInstruction = {
     "move" <rt:Register> "," <rs:Register> => PseudoInstruction::Move { rt, rs },
     "mul" <rd:Register> "," <rs:Register> "," <rt:Register> => PseudoInstruction::Mul { rd, rs, rt: Either::Left(rt) },
     "mul" <rd:Register> "," <rs:Register> "," <rt:Expr> => PseudoInstruction::Mul { rd, rs, rt: Either::Right(rt) },
+    "div" <rd:Register> "," <rs:Register> "," <rt:Register> => PseudoInstruction::Div { rd, rs, rt: Either::Left(rt) },
+    "div" <rd:Register> "," <rs:Register> "," <rt:Expr> => PseudoInstruction::Div { rd, rs, rt: Either::Right(rt) },
+    "rem" <rd:Register> "," <rs:Register> "," <rt:Register> => PseudoInstruction::Rem { rd, rs, rt: Either::Left(rt) },
+    "rem" <rd:Register> "," <rs:Register> "," <rt:Expr> => PseudoInstruction::Rem { rd, rs, rt: Either::Right(rt) },
+    "not" <rd:Register> "," <rs:Register> => PseudoInstruction::Not { rd, rs },
 };
 
+#[inline]
 RTypeOpRdRsRt: RTypeOp = {
     "add" => RTypeOp::Add,
     "addu" => RTypeOp::Addu,
@@ -180,18 +186,21 @@ RTypeOpRdRsRt: RTypeOp = {
     "nor" => RTypeOp::Nor,
 };
 
+#[inline]
 RTypeOpRdRtRs: RTypeOp = {
     "srav" => RTypeOp::Srav,
     "sllv" => RTypeOp::Sllv,
     "srlv" => RTypeOp::Srlv,
 };
 
+#[inline]
 RTypeOpRdRtSh: RTypeOp = {
     "sll" => RTypeOp::Sll,
     "sra" => RTypeOp::Sra,
     "srl" => RTypeOp::Srl,
 };
 
+#[inline]
 RTypeOpRsRt: RTypeOp = {
     "div" => RTypeOp::Div,
     "divu" => RTypeOp::Divu,
@@ -199,6 +208,7 @@ RTypeOpRsRt: RTypeOp = {
     "multu" => RTypeOp::Multu,
 };
 
+#[inline]
 RTypeOpRs: RTypeOp = {
     "jr" => RTypeOp::Jr,
     "jalr" => RTypeOp::Jalr,
@@ -206,11 +216,13 @@ RTypeOpRs: RTypeOp = {
     "mtlo" => RTypeOp::Mtlo,
 };
 
+#[inline]
 RTypeOpRd: RTypeOp = {
     "mfhi" => RTypeOp::Mfhi,
     "mflo" => RTypeOp::Mflo,
 };
 
+#[inline]
 ITypeOpRtRs: ITypeOp = {
     "addi" => ITypeOp::Addi,
     "addiu" => ITypeOp::Addiu,
@@ -220,12 +232,14 @@ ITypeOpRtRs: ITypeOp = {
     "xori" => ITypeOp::Xori,
 };
 
+#[inline]
 ITypeOpRsRt: ITypeOp = {
     "beq" => ITypeOp::Beq,
     "bne" => ITypeOp::Bne,
 };
 
 // The u8 is rt, which distinguishes some of the instructions
+#[inline]
 ITypeOpRs: (ITypeOp, u8) = {
     "bgez" => (ITypeOp::Bcond, BCOND_RT_BGEZ),
     "bgezal" => (ITypeOp::Bcond, BCOND_RT_BGEZAL),
@@ -235,6 +249,7 @@ ITypeOpRs: (ITypeOp, u8) = {
     "bltzal" => (ITypeOp::Bcond, BCOND_RT_BLTZAL),
 };
 
+#[inline]
 StorageITypeOp: ITypeOp = {
     "sb" => ITypeOp::Sb,
     "sh" => ITypeOp::Sh,
@@ -250,6 +265,7 @@ StorageITypeOp: ITypeOp = {
     "lwr" => ITypeOp::Lwr,
 };
 
+#[inline]
 JTypeOp: JTypeOp = {
     "j" => JTypeOp::Jump,
     "jal" => JTypeOp::Jal,

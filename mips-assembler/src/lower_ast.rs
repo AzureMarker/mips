@@ -2,7 +2,7 @@
 
 use crate::ast::{
     ConstantDef, Directive, Expr, ITypeOp, Instruction, Item, NumberDirective, Operation, Program,
-    PseudoInstruction, RTypeOp, RepeatedExpr,
+    PseudoInstruction, RTypeOp, Register, RepeatedExpr,
 };
 use crate::ir::{IrInstruction, IrProgram, Symbol, SymbolLocation};
 use crate::string_unescape::unescape_str;
@@ -533,8 +533,10 @@ impl PseudoInstruction {
                 Self::instructions_to_load_num(value)
             }
             PseudoInstruction::LoadAddress { .. } => 2,
-            PseudoInstruction::Move { .. } => 1,
-            PseudoInstruction::Mul { rt, .. } => match rt {
+            PseudoInstruction::Move { .. } | PseudoInstruction::Not { .. } => 1,
+            PseudoInstruction::Mul { rt, .. }
+            | PseudoInstruction::Div { rt, .. }
+            | PseudoInstruction::Rem { rt, .. } => match rt {
                 Either::Left(_) => 2,
                 Either::Right(value) => {
                     let value = value
@@ -569,32 +571,56 @@ impl PseudoInstruction {
                 shift: 0,
             }],
             PseudoInstruction::Mul { rd, rs, rt } => {
-                let (mut instructions, rt) = match rt {
-                    Either::Left(rt) => (Vec::new(), rt.index().unwrap()),
-                    Either::Right(value) => {
-                        let value = value.evaluate(&constants).unwrap() as u32;
-                        (Self::load_num_into_register(1, value), 1)
-                    }
-                };
-
-                instructions.push(IrInstruction::RType {
-                    op_code: RTypeOp::Mult,
-                    rs: rs.index().unwrap(),
-                    rt,
-                    rd: 0,
-                    shift: 0,
-                });
-                instructions.push(IrInstruction::RType {
-                    op_code: RTypeOp::Mflo,
-                    rs: 0,
-                    rt: 0,
-                    rd: rd.index().unwrap(),
-                    shift: 0,
-                });
-
-                instructions
+                Self::multiplicative_op(RTypeOp::Mult, RTypeOp::Mflo, constants, rd, rs, rt)
             }
+            PseudoInstruction::Div { rd, rs, rt } => {
+                Self::multiplicative_op(RTypeOp::Div, RTypeOp::Mflo, constants, rd, rs, rt)
+            }
+            PseudoInstruction::Rem { rd, rs, rt } => {
+                Self::multiplicative_op(RTypeOp::Div, RTypeOp::Mfhi, constants, rd, rs, rt)
+            }
+            PseudoInstruction::Not { rd, rs } => vec![IrInstruction::RType {
+                op_code: RTypeOp::Nor,
+                rd: rd.index().unwrap(),
+                rs: rs.index().unwrap(),
+                rt: 0,
+                shift: 0,
+            }],
         }
+    }
+
+    fn multiplicative_op(
+        op_code_1: RTypeOp,
+        op_code_2: RTypeOp,
+        constants: &Constants,
+        rd: Register,
+        rs: Register,
+        rt: Either<Register, Expr>,
+    ) -> Vec<IrInstruction> {
+        let (mut instructions, rt) = match rt {
+            Either::Left(rt) => (Vec::new(), rt.index().unwrap()),
+            Either::Right(value) => {
+                let value = value.evaluate(&constants).unwrap() as u32;
+                (Self::load_num_into_register(1, value), 1)
+            }
+        };
+
+        instructions.push(IrInstruction::RType {
+            op_code: op_code_1,
+            rs: rs.index().unwrap(),
+            rt,
+            rd: 0,
+            shift: 0,
+        });
+        instructions.push(IrInstruction::RType {
+            op_code: op_code_2,
+            rs: 0,
+            rt: 0,
+            rd: rd.index().unwrap(),
+            shift: 0,
+        });
+
+        instructions
     }
 
     fn instructions_to_load_num(value: u32) -> usize {

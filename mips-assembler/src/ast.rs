@@ -139,6 +139,20 @@ pub enum PseudoInstruction {
         rs: Register,
         rt: Either<Register, Expr>,
     },
+    Div {
+        rd: Register,
+        rs: Register,
+        rt: Either<Register, Expr>,
+    },
+    Rem {
+        rd: Register,
+        rs: Register,
+        rt: Either<Register, Expr>,
+    },
+    Not {
+        rd: Register,
+        rs: Register,
+    },
 }
 
 #[derive(Debug)]
