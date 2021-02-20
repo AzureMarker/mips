@@ -1,5 +1,7 @@
 //! Abstract Syntax Tree
 
+use either::Either;
+
 #[derive(Debug)]
 pub struct Program {
     pub items: Vec<Item>,
@@ -120,9 +122,23 @@ impl Instruction {
 
 #[derive(Debug)]
 pub enum PseudoInstruction {
-    LoadImmediate { rd: Register, value: Expr },
-    LoadAddress { rd: Register, label: String },
-    Move { rt: Register, rs: Register },
+    LoadImmediate {
+        rd: Register,
+        value: Expr,
+    },
+    LoadAddress {
+        rd: Register,
+        label: String,
+    },
+    Move {
+        rt: Register,
+        rs: Register,
+    },
+    Mul {
+        rd: Register,
+        rs: Register,
+        rt: Either<Register, Expr>,
+    },
 }
 
 #[derive(Debug)]

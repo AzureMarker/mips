@@ -1,4 +1,5 @@
 use crate::ast::*;
+use either::Either;
 use mips_types::constants::{BCOND_RT_BGEZ, BCOND_RT_BGEZAL, BCOND_RT_BLTZ, BCOND_RT_BLTZAL};
 use std::str::FromStr;
 
@@ -163,6 +164,8 @@ PseudoInstruction: PseudoInstruction = {
     "li" <rd:Register> "," <value:Expr> => PseudoInstruction::LoadImmediate { rd, value },
     "la" <rd:Register> "," <label:Identifier> => PseudoInstruction::LoadAddress { rd, label },
     "move" <rt:Register> "," <rs:Register> => PseudoInstruction::Move { rt, rs },
+    "mul" <rd:Register> "," <rs:Register> "," <rt:Register> => PseudoInstruction::Mul { rd, rs, rt: Either::Left(rt) },
+    "mul" <rd:Register> "," <rs:Register> "," <rt:Expr> => PseudoInstruction::Mul { rd, rs, rt: Either::Right(rt) },
 };
 
 RTypeOpRdRsRt: RTypeOp = {

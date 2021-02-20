@@ -6,6 +6,7 @@ use crate::ast::{
 };
 use crate::ir::{IrInstruction, IrProgram, Symbol, SymbolLocation};
 use crate::string_unescape::unescape_str;
+use either::Either;
 use mips_types::constants::{DATA_OFFSET, TEXT_OFFSET};
 use std::collections::HashMap;
 use std::fmt::{Display, LowerHex};
@@ -529,16 +530,20 @@ impl PseudoInstruction {
                     .evaluate(constants)
                     .expect("li cannot have forward references") as u32;
 
-                // We can fit an li into one instruction if the upper or lower
-                // 16 bits are zero.
-                if value >> 16 & 0xFFFF == 0 || value & 0xFFFF == 0 {
-                    1
-                } else {
-                    2
-                }
+                Self::instructions_to_load_num(value)
             }
             PseudoInstruction::LoadAddress { .. } => 2,
             PseudoInstruction::Move { .. } => 1,
+            PseudoInstruction::Mul { rt, .. } => match rt {
+                Either::Left(_) => 2,
+                Either::Right(value) => {
+                    let value = value
+                        .evaluate(constants)
+                        .expect("mul cannot have forward references")
+                        as u32;
+                    2 + Self::instructions_to_load_num(value)
+                }
+            },
         }
     }
 
@@ -547,27 +552,7 @@ impl PseudoInstruction {
             PseudoInstruction::LoadImmediate { rd, value } => {
                 let value = value.evaluate(constants).unwrap() as u32;
 
-                if value >> 16 & 0xFFFF == 0 {
-                    // If the upper 16 bits are zero, we only need to load the
-                    // lower bits
-                    vec![IrInstruction::IType {
-                        op_code: ITypeOp::Ori,
-                        rs: 0,
-                        rt: rd.index().unwrap(),
-                        immediate: value as i16,
-                    }]
-                } else if value & 0xFFFF == 0 {
-                    // If the lower 16 bits are zero, we only need to load the
-                    // upper bits
-                    vec![IrInstruction::IType {
-                        op_code: ITypeOp::Lui,
-                        rs: 0,
-                        rt: rd.index().unwrap(),
-                        immediate: (value >> 16) as i16,
-                    }]
-                } else {
-                    Self::load_u32_into_register(rd.index().unwrap(), value)
-                }
+                Self::load_num_into_register(rd.index().unwrap(), value)
             }
             PseudoInstruction::LoadAddress { rd, label } => {
                 let symbol = symbol_table
@@ -583,6 +568,66 @@ impl PseudoInstruction {
                 rd: rt.index().unwrap(),
                 shift: 0,
             }],
+            PseudoInstruction::Mul { rd, rs, rt } => {
+                let (mut instructions, rt) = match rt {
+                    Either::Left(rt) => (Vec::new(), rt.index().unwrap()),
+                    Either::Right(value) => {
+                        let value = value.evaluate(&constants).unwrap() as u32;
+                        (Self::load_num_into_register(1, value), 1)
+                    }
+                };
+
+                instructions.push(IrInstruction::RType {
+                    op_code: RTypeOp::Mult,
+                    rs: rs.index().unwrap(),
+                    rt,
+                    rd: 0,
+                    shift: 0,
+                });
+                instructions.push(IrInstruction::RType {
+                    op_code: RTypeOp::Mflo,
+                    rs: 0,
+                    rt: 0,
+                    rd: rd.index().unwrap(),
+                    shift: 0,
+                });
+
+                instructions
+            }
+        }
+    }
+
+    fn instructions_to_load_num(value: u32) -> usize {
+        // We can fit an li into one instruction if the upper or lower
+        // 16 bits are zero.
+        if value >> 16 & 0xFFFF == 0 || value & 0xFFFF == 0 {
+            1
+        } else {
+            2
+        }
+    }
+
+    fn load_num_into_register(register: u8, value: u32) -> Vec<IrInstruction> {
+        if value >> 16 & 0xFFFF == 0 {
+            // If the upper 16 bits are zero, we only need to load the
+            // lower bits
+            vec![IrInstruction::IType {
+                op_code: ITypeOp::Ori,
+                rs: 0,
+                rt: register,
+                immediate: value as i16,
+            }]
+        } else if value & 0xFFFF == 0 {
+            // If the lower 16 bits are zero, we only need to load the
+            // upper bits
+            vec![IrInstruction::IType {
+                op_code: ITypeOp::Lui,
+                rs: 0,
+                rt: register,
+                immediate: (value >> 16) as i16,
+            }]
+        } else {
+            Self::load_u32_into_register(register, value)
         }
     }
 
