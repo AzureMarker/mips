@@ -154,7 +154,10 @@ impl IrBuilder {
             Directive::Data => self.set_section(SymbolLocation::Data),
             Directive::RData => self.set_section(SymbolLocation::RData),
             Directive::SData => self.set_section(SymbolLocation::SData),
-            Directive::Global { label } => self.globals.push(label.clone()),
+            Directive::Global { label } => {
+                self.string_table.insert(label.clone());
+                self.globals.push(label.clone())
+            }
             Directive::Align { boundary } => self.visit_align(boundary),
             Directive::Space { size } => self.visit_space(size),
             Directive::NumberDirective { ty, values } => match ty {

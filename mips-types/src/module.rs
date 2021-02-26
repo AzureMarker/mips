@@ -219,7 +219,7 @@ impl R2KRelocationEntry {
 #[derive(Debug)]
 pub struct R2KReferenceEntry {
     pub address: u32,
-    pub symbol: u32,
+    pub str_idx: u32,
     pub section: u8,
     pub ref_type: u8,
 }
@@ -229,7 +229,7 @@ impl R2KReferenceEntry {
     pub fn parse<R: Read>(input: &mut R) -> io::Result<Self> {
         Ok(Self {
             address: read_u32(input)?,
-            symbol: read_u32(input)?,
+            str_idx: read_u32(input)?,
             section: read_u8(input)?,
             ref_type: read_u8(input)?,
         })
@@ -238,7 +238,7 @@ impl R2KReferenceEntry {
     /// Write the entry
     pub fn write<W: Write>(&self, output: &mut W) -> io::Result<()> {
         output.write_all(&self.address.to_be_bytes())?;
-        output.write_all(&self.symbol.to_be_bytes())?;
+        output.write_all(&self.str_idx.to_be_bytes())?;
         output.write_all(&[self.section, self.ref_type])?;
 
         Ok(())
@@ -249,7 +249,7 @@ impl R2KReferenceEntry {
 pub struct R2KSymbolEntry {
     pub flags: u32,
     pub value: u32,
-    pub symbol: u32,
+    pub str_idx: u32,
 }
 
 impl R2KSymbolEntry {
@@ -258,7 +258,7 @@ impl R2KSymbolEntry {
         Ok(Self {
             flags: read_u32(input)?,
             value: read_u32(input)?,
-            symbol: read_u32(input)?,
+            str_idx: read_u32(input)?,
         })
     }
 
@@ -266,7 +266,7 @@ impl R2KSymbolEntry {
     pub fn write<W: Write>(&self, output: &mut W) -> io::Result<()> {
         output.write_all(&self.flags.to_be_bytes())?;
         output.write_all(&self.value.to_be_bytes())?;
-        output.write_all(&self.symbol.to_be_bytes())?;
+        output.write_all(&self.str_idx.to_be_bytes())?;
 
         Ok(())
     }
