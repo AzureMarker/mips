@@ -1,6 +1,7 @@
 //! Intermediate Representation
 
 use crate::ast::{ITypeOp, JTypeOp, RTypeOp};
+use crate::string_table::StringTable;
 use std::collections::HashMap;
 
 #[derive(Debug)]
@@ -11,6 +12,7 @@ pub struct IrProgram {
     pub sdata: Vec<u8>,
     pub symbol_table: HashMap<String, Symbol>,
     pub globals: Vec<String>,
+    pub string_table: StringTable,
 }
 
 #[derive(Debug)]
@@ -39,6 +41,7 @@ pub enum IrInstruction {
 pub struct Symbol {
     pub location: SymbolLocation,
     pub offset: usize,
+    pub string_offset: usize,
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]

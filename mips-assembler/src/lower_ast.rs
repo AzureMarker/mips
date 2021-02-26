@@ -5,6 +5,7 @@ use crate::ast::{
     PseudoInstruction, RTypeOp, Register, RepeatedExpr,
 };
 use crate::ir::{IrInstruction, IrProgram, Symbol, SymbolLocation};
+use crate::string_table::StringTable;
 use crate::string_unescape::unescape_str;
 use either::Either;
 use mips_types::constants::{DATA_OFFSET, TEXT_OFFSET};
@@ -28,6 +29,7 @@ struct IrBuilder {
     rdata: Vec<u8>,
     sdata: Vec<u8>,
     symbol_table: SymbolTable,
+    string_table: StringTable,
     constants: Constants,
     globals: Vec<String>,
     current_section: SymbolLocation,
@@ -45,6 +47,7 @@ impl Default for IrBuilder {
             rdata: Vec::new(),
             sdata: Vec::new(),
             symbol_table: SymbolTable::new(),
+            string_table: StringTable::new(),
             constants: Constants::new(),
             globals: Vec::new(),
             current_section: SymbolLocation::Text,
@@ -75,6 +78,7 @@ impl IrBuilder {
             sdata: self.sdata,
             symbol_table: self.symbol_table,
             globals: self.globals,
+            string_table: self.string_table,
         }
     }
 
@@ -128,6 +132,7 @@ impl IrBuilder {
     }
 
     fn visit_label(&mut self, label: String) {
+        let string_offset = self.string_table.insert(label.clone());
         self.symbol_table.insert(
             label,
             Symbol {
@@ -138,6 +143,7 @@ impl IrBuilder {
                     SymbolLocation::RData => self.rdata.len(),
                     SymbolLocation::SData => self.sdata.len(),
                 },
+                string_offset,
             },
         );
     }
