@@ -11,6 +11,7 @@ pub struct IrProgram {
     pub rdata: Vec<u8>,
     pub sdata: Vec<u8>,
     pub symbol_table: HashMap<String, Symbol>,
+    pub relocation: Vec<RelocationEntry>,
     pub string_table: StringTable,
 }
 
@@ -57,4 +58,26 @@ pub enum SymbolType {
     Local,
     Import,
     Export,
+}
+
+#[derive(Debug)]
+pub struct RelocationEntry {
+    pub offset: usize,
+    pub location: SymbolLocation,
+    pub relocation_type: RelocationType,
+}
+
+#[derive(Debug)]
+pub enum RelocationType {
+    /// Update the immediate field with the lower 16 bits of the section offset
+    LowerImmediate,
+    /// Update the immediate field with the lower 16 bits of the section offset
+    UpperImmediate,
+    /// Update the immediate field of the next two instructions with the upper
+    /// (LUI) then lower (ORI) 16 bits of the section offset.
+    SplitImmediate,
+    /// Update the full word with the section offset
+    Word,
+    /// Update the jump instruction's pseudo address with the section offset
+    JumpAddress,
 }

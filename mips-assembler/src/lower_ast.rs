@@ -4,11 +4,12 @@ use crate::ast::{
     ConstantDef, Directive, Expr, ITypeOp, Instruction, Item, NumberDirective, Operation, Program,
     PseudoInstruction, RTypeOp, Register, RepeatedExpr,
 };
-use crate::ir::{IrInstruction, IrProgram, Symbol, SymbolLocation, SymbolType};
+use crate::ir::{
+    IrInstruction, IrProgram, RelocationEntry, RelocationType, Symbol, SymbolLocation, SymbolType,
+};
 use crate::string_table::StringTable;
 use crate::string_unescape::unescape_str;
 use either::Either;
-use mips_types::constants::{DATA_OFFSET, TEXT_OFFSET};
 use std::collections::{HashMap, HashSet};
 use std::fmt::{Display, LowerHex};
 use std::iter;
@@ -30,6 +31,7 @@ struct IrBuilder {
     sdata: Vec<u8>,
     symbol_table: SymbolTable,
     string_table: StringTable,
+    relocation: Vec<RelocationEntry>,
     constants: Constants,
     globals: HashSet<String>,
     current_section: SymbolLocation,
@@ -48,6 +50,7 @@ impl Default for IrBuilder {
             sdata: Vec::new(),
             symbol_table: SymbolTable::new(),
             string_table: StringTable::new(),
+            relocation: Vec::new(),
             constants: Constants::new(),
             globals: HashSet::new(),
             current_section: SymbolLocation::Text,
@@ -77,6 +80,7 @@ impl IrBuilder {
             rdata: self.rdata,
             sdata: self.sdata,
             symbol_table: self.symbol_table,
+            relocation: self.relocation,
             string_table: self.string_table,
         }
     }
@@ -146,6 +150,7 @@ impl IrBuilder {
                     self.instructions.len() * 4,
                     &self.constants,
                     &self.symbol_table,
+                    &mut self.relocation,
                 ));
             }
         }
@@ -164,6 +169,7 @@ impl IrBuilder {
     fn visit_label(&mut self, label: String) {
         let string_offset = self.string_table.insert(label.clone());
         let is_global = self.globals.contains(&label);
+
         self.symbol_table.insert(
             label,
             Symbol {
@@ -483,6 +489,7 @@ impl Instruction {
         current_offset: usize,
         constants: &Constants,
         symbol_table: &SymbolTable,
+        relocation: &mut Vec<RelocationEntry>,
     ) -> Vec<IrInstruction> {
         match self {
             Instruction::RType {
@@ -551,6 +558,12 @@ impl Instruction {
                             .get(&label)
                             .unwrap_or_else(|| panic!("Could not find symbol '{}'", label));
 
+                        relocation.push(RelocationEntry {
+                            offset: current_offset,
+                            location: SymbolLocation::Text,
+                            relocation_type: RelocationType::JumpAddress,
+                        });
+
                         symbol.pseudo_address()
                     }
                     // FIXME: make sure the constant is not too large or negative
@@ -564,7 +577,7 @@ impl Instruction {
                 }]
             }
             Instruction::Pseudo(pseudo_instruction) => {
-                pseudo_instruction.lower(constants, symbol_table)
+                pseudo_instruction.lower(current_offset, constants, symbol_table, relocation)
             }
         }
     }
@@ -598,7 +611,13 @@ impl PseudoInstruction {
         }
     }
 
-    pub fn lower(self, constants: &Constants, symbol_table: &SymbolTable) -> Vec<IrInstruction> {
+    pub fn lower(
+        self,
+        current_offset: usize,
+        constants: &Constants,
+        symbol_table: &SymbolTable,
+        relocation: &mut Vec<RelocationEntry>,
+    ) -> Vec<IrInstruction> {
         match self {
             PseudoInstruction::LoadImmediate { rd, value } => {
                 let value = value.evaluate(constants).unwrap() as u32;
@@ -610,7 +629,13 @@ impl PseudoInstruction {
                     .get(&label)
                     .unwrap_or_else(|| panic!("Could not find symbol '{}'", label));
 
-                Self::load_u32_into_register(rd.index().unwrap(), symbol.address())
+                relocation.push(RelocationEntry {
+                    offset: current_offset,
+                    location: symbol.location,
+                    relocation_type: RelocationType::SplitImmediate,
+                });
+
+                Self::load_u32_into_register(rd.index().unwrap(), symbol.offset as u32)
             }
             PseudoInstruction::Move { rs, rt } => vec![IrInstruction::RType {
                 op_code: RTypeOp::Or,
@@ -727,24 +752,9 @@ impl PseudoInstruction {
 }
 
 impl Symbol {
-    /// Calculate the address of the symbol
-    fn address(&self) -> u32 {
-        match self.location {
-            SymbolLocation::Text => TEXT_OFFSET + self.offset as u32,
-            // FIXME: rdata starts at 0x10000000, while data and the rest immediately follow.
-            //        The locations calculated here will probably change by the time the assembler
-            //        has read all of the directives (adding more space to rdata or data).
-            //        The module should be updated with reference/relocation data so these addresses
-            //        can be updated.
-            SymbolLocation::Data | SymbolLocation::RData | SymbolLocation::SData => {
-                DATA_OFFSET + self.offset as u32
-            }
-        }
-    }
-
-    /// Calculate the pseudo-address of the symbol
+    /// Calculate the pseudo-address of the symbol from the offset.
     /// (upper four bits and lower two bits removed)
     fn pseudo_address(&self) -> u32 {
-        (self.address() & 0x0FFFFFFC) >> 2
+        (self.offset as u32 & 0x0FFFFFFC) >> 2
     }
 }
