@@ -1,10 +1,14 @@
 //! Lower the IR to MIPS (in an R2K module)
 
-use crate::ir::{IrProgram, Symbol, SymbolLocation, SymbolType};
-use mips_types::constants::{SYM_DEF_LABEL, SYM_DEF_SEEN, SYM_DEF_UNDEF, SYM_GLOBAL};
+use crate::ir::{IrProgram, RelocationEntry, RelocationType, Symbol, SymbolLocation, SymbolType};
+use mips_types::constants::{
+    REL_JUMP, REL_LOWER_IMM, REL_SPLIT_IMM, REL_UPPER_IMM, REL_WORD, SYM_DEF_LABEL, SYM_DEF_SEEN,
+    SYM_DEF_UNDEF, SYM_GLOBAL,
+};
 use mips_types::module::{
-    R2KModule, R2KModuleHeader, R2KSymbolEntry, R2KVersion, DATA_INDEX, R2K_MAGIC, RDATA_INDEX,
-    SDATA_INDEX, SECTION_COUNT, STRINGS_INDEX, SYMBOLS_INDEX, TEXT_INDEX,
+    R2KModule, R2KModuleHeader, R2KRelocationEntry, R2KSymbolEntry, R2KVersion, DATA_INDEX,
+    R2K_MAGIC, RDATA_INDEX, RELOCATION_INDEX, SDATA_INDEX, SECTION_COUNT, STRINGS_INDEX,
+    SYMBOLS_INDEX, TEXT_INDEX,
 };
 
 impl IrProgram {
@@ -14,6 +18,7 @@ impl IrProgram {
             .into_iter()
             .flat_map(|instruction| instruction.lower().to_be_bytes().to_vec())
             .collect();
+        let relocation: Vec<_> = self.relocation.iter().map(RelocationEntry::lower).collect();
         let symbols: Vec<_> = self.symbol_table.values().map(Symbol::lower).collect();
         let strings = self.string_table.as_bytes();
         let mut section_sizes = [0; SECTION_COUNT];
@@ -22,6 +27,7 @@ impl IrProgram {
         section_sizes[DATA_INDEX] = self.data.len() as u32;
         section_sizes[RDATA_INDEX] = self.rdata.len() as u32;
         section_sizes[SDATA_INDEX] = self.sdata.len() as u32;
+        section_sizes[RELOCATION_INDEX] = relocation.len() as u32;
         section_sizes[SYMBOLS_INDEX] = symbols.len() as u32;
         section_sizes[STRINGS_INDEX] = strings.len() as u32;
 
@@ -39,6 +45,7 @@ impl IrProgram {
             data_section: self.data,
             rdata_section: self.rdata,
             sdata_section: self.sdata,
+            relocation_section: relocation,
             symbol_table: symbols,
             string_table: strings,
             ..Default::default()
@@ -78,6 +85,22 @@ impl SymbolLocation {
             SymbolLocation::RData => 0x2,
             SymbolLocation::Data => 0x3,
             SymbolLocation::SData => 0x4,
+        }
+    }
+}
+
+impl RelocationEntry {
+    fn lower(&self) -> R2KRelocationEntry {
+        R2KRelocationEntry {
+            address: self.offset as u32,
+            section: self.location as u8,
+            rel_type: match self.relocation_type {
+                RelocationType::LowerImmediate => REL_LOWER_IMM,
+                RelocationType::UpperImmediate => REL_UPPER_IMM,
+                RelocationType::SplitImmediate => REL_SPLIT_IMM,
+                RelocationType::Word => REL_WORD,
+                RelocationType::JumpAddress => REL_JUMP,
+            },
         }
     }
 }

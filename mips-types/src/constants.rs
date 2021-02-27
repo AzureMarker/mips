@@ -98,3 +98,10 @@ pub const SYM_DEF_SEEN: u32 = 0x20;
 pub const SYM_DEF_LABEL: u32 = 0x80;
 /// This symbol was defined as global
 pub const SYM_GLOBAL: u32 = 0x4000;
+
+// Relocation flags
+pub const REL_LOWER_IMM: u8 = 0x01;
+pub const REL_SPLIT_IMM: u8 = 0x02;
+pub const REL_WORD: u8 = 0x03;
+pub const REL_JUMP: u8 = 0x04;
+pub const REL_UPPER_IMM: u8 = 0x05;

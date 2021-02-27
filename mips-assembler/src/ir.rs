@@ -48,8 +48,8 @@ pub struct Symbol {
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum SymbolLocation {
     Text,
-    Data,
     RData,
+    Data,
     SData,
 }
 
