@@ -4,12 +4,12 @@ use crate::ast::{
     ConstantDef, Directive, Expr, ITypeOp, Instruction, Item, NumberDirective, Operation, Program,
     PseudoInstruction, RTypeOp, Register, RepeatedExpr,
 };
-use crate::ir::{IrInstruction, IrProgram, Symbol, SymbolLocation};
+use crate::ir::{IrInstruction, IrProgram, Symbol, SymbolLocation, SymbolType};
 use crate::string_table::StringTable;
 use crate::string_unescape::unescape_str;
 use either::Either;
 use mips_types::constants::{DATA_OFFSET, TEXT_OFFSET};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fmt::{Display, LowerHex};
 use std::iter;
 
@@ -31,7 +31,7 @@ struct IrBuilder {
     symbol_table: SymbolTable,
     string_table: StringTable,
     constants: Constants,
-    globals: Vec<String>,
+    globals: HashSet<String>,
     current_section: SymbolLocation,
     text_offset: usize,
     text_words: HashMap<usize, u32>,
@@ -49,7 +49,7 @@ impl Default for IrBuilder {
             symbol_table: SymbolTable::new(),
             string_table: StringTable::new(),
             constants: Constants::new(),
-            globals: Vec::new(),
+            globals: HashSet::new(),
             current_section: SymbolLocation::Text,
             text_offset: 0,
             text_words: HashMap::new(),
@@ -77,7 +77,6 @@ impl IrBuilder {
             rdata: self.rdata,
             sdata: self.sdata,
             symbol_table: self.symbol_table,
-            globals: self.globals,
             string_table: self.string_table,
         }
     }
@@ -100,6 +99,37 @@ impl IrBuilder {
             }
 
             self.current_label = label_buffer;
+        }
+
+        self.insert_import_symbols();
+    }
+
+    /// Insert imported global symbols into the symbol table.
+    /// Imported symbols (marked as global but not defined) are only confirmed as
+    /// imports once the first pass is done (all label declarations are found),
+    /// so this should happen at the end of the first pass.
+    fn insert_import_symbols(&mut self) {
+        let imports: Vec<_> = self
+            .globals
+            .iter()
+            .filter(|global| !self.symbol_table.contains_key(*global))
+            .collect();
+
+        for import in imports {
+            let string_offset = self
+                .string_table
+                .get_offset(import)
+                .expect("Imported global symbol not in string table");
+
+            self.symbol_table.insert(
+                import.to_string(),
+                Symbol {
+                    offset: 0,
+                    location: SymbolLocation::Text,
+                    string_offset,
+                    ty: SymbolType::Import,
+                },
+            );
         }
     }
 
@@ -133,6 +163,7 @@ impl IrBuilder {
 
     fn visit_label(&mut self, label: String) {
         let string_offset = self.string_table.insert(label.clone());
+        let is_global = self.globals.contains(&label);
         self.symbol_table.insert(
             label,
             Symbol {
@@ -144,6 +175,11 @@ impl IrBuilder {
                     SymbolLocation::SData => self.sdata.len(),
                 },
                 string_offset,
+                ty: if is_global {
+                    SymbolType::Export
+                } else {
+                    SymbolType::Local
+                },
             },
         );
     }
@@ -156,7 +192,11 @@ impl IrBuilder {
             Directive::SData => self.set_section(SymbolLocation::SData),
             Directive::Global { label } => {
                 self.string_table.insert(label.clone());
-                self.globals.push(label.clone())
+                self.globals.insert(label.clone());
+
+                if let Some(sym) = self.symbol_table.get_mut(label) {
+                    sym.ty = SymbolType::Export;
+                }
             }
             Directive::Align { boundary } => self.visit_align(boundary),
             Directive::Space { size } => self.visit_space(size),

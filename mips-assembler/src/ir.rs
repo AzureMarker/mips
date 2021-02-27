@@ -11,7 +11,6 @@ pub struct IrProgram {
     pub rdata: Vec<u8>,
     pub sdata: Vec<u8>,
     pub symbol_table: HashMap<String, Symbol>,
-    pub globals: Vec<String>,
     pub string_table: StringTable,
 }
 
@@ -42,6 +41,7 @@ pub struct Symbol {
     pub location: SymbolLocation,
     pub offset: usize,
     pub string_offset: usize,
+    pub ty: SymbolType,
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
@@ -50,4 +50,11 @@ pub enum SymbolLocation {
     Data,
     RData,
     SData,
+}
+
+#[derive(Debug)]
+pub enum SymbolType {
+    Local,
+    Import,
+    Export,
 }

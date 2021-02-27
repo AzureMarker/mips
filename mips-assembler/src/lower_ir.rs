@@ -1,7 +1,7 @@
 //! Lower the IR to MIPS (in an R2K module)
 
-use crate::ir::{IrProgram, Symbol, SymbolLocation};
-use mips_types::constants::{SYM_DEF_LABEL, SYM_DEF_SEEN, SYM_DEF_UNDEF};
+use crate::ir::{IrProgram, Symbol, SymbolLocation, SymbolType};
+use mips_types::constants::{SYM_DEF_LABEL, SYM_DEF_SEEN, SYM_DEF_UNDEF, SYM_GLOBAL};
 use mips_types::module::{
     R2KModule, R2KModuleHeader, R2KSymbolEntry, R2KVersion, DATA_INDEX, R2K_MAGIC, RDATA_INDEX,
     SDATA_INDEX, SECTION_COUNT, STRINGS_INDEX, SYMBOLS_INDEX, TEXT_INDEX,
@@ -14,25 +14,9 @@ impl IrProgram {
             .into_iter()
             .flat_map(|instruction| instruction.lower().to_be_bytes().to_vec())
             .collect();
-        let mut symbols: Vec<_> = self.symbol_table.values().map(Symbol::lower).collect();
+        let symbols: Vec<_> = self.symbol_table.values().map(Symbol::lower).collect();
         let strings = self.string_table.as_bytes();
         let mut section_sizes = [0; SECTION_COUNT];
-
-        // Add the globals imports into the symbol table
-        for global in self.globals {
-            if !self.symbol_table.contains_key(&global) {
-                let str_idx = self
-                    .string_table
-                    .get_offset(&global)
-                    .expect("Global import not found in string table")
-                    as u32;
-                symbols.push(R2KSymbolEntry {
-                    flags: SYM_DEF_UNDEF,
-                    value: 0,
-                    str_idx,
-                })
-            }
-        }
 
         section_sizes[TEXT_INDEX] = text.len() as u32;
         section_sizes[DATA_INDEX] = self.data.len() as u32;
@@ -64,10 +48,23 @@ impl IrProgram {
 
 impl Symbol {
     fn lower(&self) -> R2KSymbolEntry {
+        // Only label symbols are currently stored.
+        let mut flags = SYM_DEF_LABEL;
+
+        match self.ty {
+            SymbolType::Local => {
+                flags |= self.location.mode_flag() | SYM_DEF_SEEN;
+            }
+            SymbolType::Import => {
+                flags |= SYM_DEF_UNDEF | SYM_GLOBAL;
+            }
+            SymbolType::Export => {
+                flags |= self.location.mode_flag() | SYM_DEF_SEEN | SYM_GLOBAL;
+            }
+        }
+
         R2KSymbolEntry {
-            // Symbols are only stored in the IR symbol table if we've seen
-            // them, and only label symbols are currently stored.
-            flags: self.location.mode_flag() & SYM_DEF_LABEL & SYM_DEF_SEEN,
+            flags,
             value: self.offset as u32,
             str_idx: self.string_offset as u32,
         }

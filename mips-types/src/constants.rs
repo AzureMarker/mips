@@ -96,3 +96,5 @@ pub const SYM_DEF_UNDEF: u32 = 0x10;
 pub const SYM_DEF_SEEN: u32 = 0x20;
 /// This symbol defines a label
 pub const SYM_DEF_LABEL: u32 = 0x80;
+/// This symbol was defined as global
+pub const SYM_GLOBAL: u32 = 0x4000;
