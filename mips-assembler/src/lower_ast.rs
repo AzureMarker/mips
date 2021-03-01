@@ -559,7 +559,7 @@ impl Instruction {
                             .get(&label)
                             .unwrap_or_else(|| panic!("Could not find symbol '{}'", label));
 
-                        // TODO: 
+                        // TODO: Handle external symbols
                         relocation.push(RelocationEntry {
                             offset: current_offset,
                             location: SymbolLocation::Text,
