@@ -32,6 +32,8 @@ Expr: Expr = {
     "(" <Expr> ")",
     #[precedence(level = "1")]
     "-" <expr:Expr> => Expr::Negated(Box::new(expr)),
+    #[precedence(level = "1")]
+    "~" <expr:Expr> => Expr::BitwiseNegated(Box::new(expr)),
 
     #[precedence(level = "2")]
     #[assoc(side = "left")]

@@ -25,7 +25,7 @@ pub enum Expr {
         right: Box<Expr>,
     },
     Negated(Box<Expr>),
-    // TODO: add more unary operations
+    BitwiseNegated(Box<Expr>),
 }
 
 #[derive(Debug)]

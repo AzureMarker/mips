@@ -415,6 +415,7 @@ impl Expr {
                 })
             }
             Expr::Negated(expr) => Ok(-expr.evaluate(constants)?),
+            Expr::BitwiseNegated(expr) => Ok(expr.evaluate(constants)? ^ -1),
         }
     }
 }
@@ -558,6 +559,7 @@ impl Instruction {
                             .get(&label)
                             .unwrap_or_else(|| panic!("Could not find symbol '{}'", label));
 
+                        // TODO: 
                         relocation.push(RelocationEntry {
                             offset: current_offset,
                             location: SymbolLocation::Text,
