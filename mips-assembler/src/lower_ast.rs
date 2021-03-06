@@ -94,7 +94,18 @@ impl IrBuilder {
             let mut label_buffer = None;
 
             match item {
-                Item::ConstantDef(constant) => self.visit_constant_def(constant),
+                Item::ConstantDef(constant) => {
+                    // In the case where a constant definition is between a
+                    // label and a auto-aligning directive, make sure we
+                    // remember the label after visiting the constant defs. Ex:
+                    //
+                    //     .half 1
+                    // my_label: # This would be aligned on a 2 byte boundary
+                    // MY_CONSTANT = 2
+                    //     .word 3 # Auto-aligns to a 4 byte boundary, moving the label
+                    label_buffer = self.current_label.clone();
+                    self.visit_constant_def(constant)
+                }
                 Item::Label(label) => {
                     label_buffer = Some(label.clone());
                     self.visit_label(label.clone());
