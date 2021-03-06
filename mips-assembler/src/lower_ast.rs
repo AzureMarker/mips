@@ -328,21 +328,17 @@ impl IrBuilder {
             .flat_map(|e| as_iterator(e, &self.constants))
             .collect();
 
-        match self.current_section {
+        let section_data = match self.current_section {
             SymbolLocation::Text => {
                 handle_text(self, numbers);
+                return;
             }
-            _ => {
-                let section_data = match self.current_section {
-                    SymbolLocation::Text => unreachable!(),
-                    SymbolLocation::Data => &mut self.data,
-                    SymbolLocation::RData => &mut self.rdata,
-                    SymbolLocation::SData => &mut self.sdata,
-                };
+            SymbolLocation::Data => &mut self.data,
+            SymbolLocation::RData => &mut self.rdata,
+            SymbolLocation::SData => &mut self.sdata,
+        };
 
-                section_data.extend(numbers.into_iter().flat_map(to_bytes));
-            }
-        }
+        section_data.extend(numbers.into_iter().flat_map(to_bytes));
     }
 
     fn visit_ascii(&mut self, string: &str, zero_pad: bool) {
