@@ -1,0 +1,28 @@
+   1 0000               # Imports a function from lib.asm and executes it
+   2 0000               
+   3 0000               PRINT_INT = 1
+   4 0000               
+   5 0000                   .globl main
+   6 0000                   .globl lib_function
+   7 0000                   .text
+   8 0000               
+   9 0000               main:
+  10 0000 23BDFFFC	    addi $sp, $sp, -4
+  11 0004 AFBF0000	    sw $ra, 0($sp)
+  12 0008               
+  13 0008                   # Get the number
+  14 0008 0C000000	    jal lib_function
+  15 000c 00000000	    nop # In case delay slots are enabled
+  16 0010               
+  17 0010                   # Print the number
+  18 0010 00402021	    move $a0, $v0
+  19 0014 34020001	    li $v0, PRINT_INT
+  20 0018 0000000C	    syscall
+  21 001c               
+  22 001c 8FBF0000	    lw $ra, 0($sp)
+  23 0020 03E00008	    jr $ra
+
+
+PRINT_INT     = 00000001   
+lib_function    ******** XG
+main            00000000 RG text 

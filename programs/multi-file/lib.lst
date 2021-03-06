@@ -1,0 +1,11 @@
+   1 0000               # Exports a label
+   2 0000               
+   3 0000                   .globl lib_function
+   4 0000                   .text
+   5 0000               
+   6 0000               lib_function:
+   7 0000 3402002A	    li $v0, 42
+   8 0004 03E00008	    jr $ra
+
+
+lib_function    00000000 RG text 

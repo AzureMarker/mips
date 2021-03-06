@@ -1,0 +1,22 @@
+Load map
+========
+
+Module:  lib.obj
+ Text segment:  8 bytes, load point 0x00400000
+ Symbols:
+            Name Section Mode    Value
+    lib_function   Text   RG  0x00400000
+
+Module:  multi-file.obj
+ Text segment:  36 bytes, load point 0x00400008
+ Symbols:
+            Name Section Mode    Value
+            main   Text   RG  0x00400008
+       PRINT_INT          A   0x00000001
+
+Module:  r2k_startup.obj
+ Text segment:  36 bytes, load point 0x0040002c
+ Symbols:
+            Name Section Mode    Value
+       SYS_EXIT2          A   0x00000011
+  __r2k__entry__   Text   RG  0x00400030
