@@ -105,3 +105,13 @@ pub const REL_SPLIT_IMM: u8 = 0x02;
 pub const REL_WORD: u8 = 0x03;
 pub const REL_JUMP: u8 = 0x04;
 pub const REL_UPPER_IMM: u8 = 0x05;
+
+// Reference flags
+pub const REF_METHOD_ADD: u8 = 0x00;
+pub const REF_METHOD_REPLACE: u8 = 0x10;
+pub const REF_METHOD_SUBTRACT: u8 = 0x20;
+pub const REF_TARGET_IMM: u8 = 0x01;
+pub const REF_TARGET_HALF_WORD: u8 = 0x02;
+pub const REF_TARGET_SPLIT_IMM: u8 = 0x03;
+pub const REF_TARGET_WORD: u8 = 0x04;
+pub const REF_TARGET_JUMP: u8 = 0x05;

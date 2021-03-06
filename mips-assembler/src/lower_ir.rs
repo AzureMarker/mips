@@ -1,14 +1,18 @@
 //! Lower the IR to MIPS (in an R2K module)
 
-use crate::ir::{IrProgram, RelocationEntry, RelocationType, Symbol, SymbolLocation, SymbolType};
+use crate::ir::{
+    IrProgram, ReferenceEntry, ReferenceMethod, ReferenceTarget, ReferenceType, RelocationEntry,
+    RelocationType, Symbol, SymbolLocation, SymbolType,
+};
 use mips_types::constants::{
-    REL_JUMP, REL_LOWER_IMM, REL_SPLIT_IMM, REL_UPPER_IMM, REL_WORD, SYM_DEF_LABEL, SYM_DEF_SEEN,
-    SYM_DEF_UNDEF, SYM_GLOBAL,
+    REF_METHOD_ADD, REF_METHOD_REPLACE, REF_METHOD_SUBTRACT, REF_TARGET_HALF_WORD, REF_TARGET_IMM,
+    REF_TARGET_JUMP, REF_TARGET_SPLIT_IMM, REF_TARGET_WORD, REL_JUMP, REL_LOWER_IMM, REL_SPLIT_IMM,
+    REL_UPPER_IMM, REL_WORD, SYM_DEF_LABEL, SYM_DEF_SEEN, SYM_DEF_UNDEF, SYM_GLOBAL,
 };
 use mips_types::module::{
-    R2KModule, R2KModuleHeader, R2KRelocationEntry, R2KSymbolEntry, R2KVersion, DATA_INDEX,
-    R2K_MAGIC, RDATA_INDEX, RELOCATION_INDEX, SDATA_INDEX, SECTION_COUNT, STRINGS_INDEX,
-    SYMBOLS_INDEX, TEXT_INDEX,
+    R2KModule, R2KModuleHeader, R2KReferenceEntry, R2KRelocationEntry, R2KSymbolEntry, R2KVersion,
+    DATA_INDEX, R2K_MAGIC, RDATA_INDEX, REFERENCES_INDEX, RELOCATION_INDEX, SDATA_INDEX,
+    SECTION_COUNT, STRINGS_INDEX, SYMBOLS_INDEX, TEXT_INDEX,
 };
 
 impl IrProgram {
@@ -18,8 +22,9 @@ impl IrProgram {
             .into_iter()
             .flat_map(|instruction| instruction.lower().to_be_bytes().to_vec())
             .collect();
-        let relocation: Vec<_> = self.relocation.iter().map(RelocationEntry::lower).collect();
-        let symbols: Vec<_> = self.symbol_table.values().map(Symbol::lower).collect();
+        let relocation = self.relocation.iter().map(RelocationEntry::lower).collect();
+        let references = self.references.iter().map(ReferenceEntry::lower).collect();
+        let symbols = self.symbol_table.values().map(Symbol::lower).collect();
         let strings = self.string_table.as_bytes();
         let mut section_sizes = [0; SECTION_COUNT];
 
@@ -27,8 +32,9 @@ impl IrProgram {
         section_sizes[DATA_INDEX] = self.data.len() as u32;
         section_sizes[RDATA_INDEX] = self.rdata.len() as u32;
         section_sizes[SDATA_INDEX] = self.sdata.len() as u32;
-        section_sizes[RELOCATION_INDEX] = relocation.len() as u32;
-        section_sizes[SYMBOLS_INDEX] = symbols.len() as u32;
+        section_sizes[RELOCATION_INDEX] = self.relocation.len() as u32;
+        section_sizes[REFERENCES_INDEX] = self.references.len() as u32;
+        section_sizes[SYMBOLS_INDEX] = self.symbol_table.len() as u32;
         section_sizes[STRINGS_INDEX] = strings.len() as u32;
 
         R2KModule {
@@ -46,6 +52,7 @@ impl IrProgram {
             rdata_section: self.rdata,
             sdata_section: self.sdata,
             relocation_section: relocation,
+            reference_section: references,
             symbol_table: symbols,
             string_table: strings,
             ..Default::default()
@@ -102,5 +109,38 @@ impl RelocationEntry {
                 RelocationType::JumpAddress => REL_JUMP,
             },
         }
+    }
+}
+
+impl ReferenceEntry {
+    fn lower(&self) -> R2KReferenceEntry {
+        R2KReferenceEntry {
+            address: self.offset as u32,
+            str_idx: self.str_idx as u32,
+            section: self.location as u8,
+            ref_type: self.reference_type.lower(),
+        }
+    }
+}
+
+impl ReferenceType {
+    fn lower(&self) -> u8 {
+        let mut flags = 0;
+
+        flags |= match self.method {
+            ReferenceMethod::Add => REF_METHOD_ADD,
+            ReferenceMethod::Replace => REF_METHOD_REPLACE,
+            ReferenceMethod::Subtract => REF_METHOD_SUBTRACT,
+        };
+
+        flags |= match self.target {
+            ReferenceTarget::Immediate => REF_TARGET_IMM,
+            ReferenceTarget::HalfWord => REF_TARGET_HALF_WORD,
+            ReferenceTarget::SplitImmediate => REF_TARGET_SPLIT_IMM,
+            ReferenceTarget::Word => REF_TARGET_WORD,
+            ReferenceTarget::JumpAddress => REF_TARGET_JUMP,
+        };
+
+        flags
     }
 }

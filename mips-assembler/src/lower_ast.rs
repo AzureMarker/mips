@@ -5,7 +5,7 @@ use crate::ast::{
     PseudoInstruction, RTypeOp, Register, RepeatedExpr,
 };
 use crate::ir::{
-    IrInstruction, IrProgram, RelocationEntry, RelocationType, Symbol, SymbolLocation, SymbolType,
+    IrInstruction, IrProgram, ReferenceEntry, RelocationEntry, Symbol, SymbolLocation, SymbolType,
 };
 use crate::string_table::StringTable;
 use crate::string_unescape::unescape_str;
@@ -32,6 +32,7 @@ struct IrBuilder {
     symbol_table: SymbolTable,
     string_table: StringTable,
     relocation: Vec<RelocationEntry>,
+    references: Vec<ReferenceEntry>,
     constants: Constants,
     globals: HashSet<String>,
     current_section: SymbolLocation,
@@ -51,6 +52,7 @@ impl Default for IrBuilder {
             symbol_table: SymbolTable::new(),
             string_table: StringTable::new(),
             relocation: Vec::new(),
+            references: Vec::new(),
             constants: Constants::new(),
             globals: HashSet::new(),
             current_section: SymbolLocation::Text,
@@ -81,6 +83,7 @@ impl IrBuilder {
             sdata: self.sdata,
             symbol_table: self.symbol_table,
             relocation: self.relocation,
+            references: self.references,
             string_table: self.string_table,
         }
     }
@@ -151,6 +154,7 @@ impl IrBuilder {
                     &self.constants,
                     &self.symbol_table,
                     &mut self.relocation,
+                    &mut self.references,
                 ));
             }
         }
@@ -491,6 +495,7 @@ impl Instruction {
         constants: &Constants,
         symbol_table: &SymbolTable,
         relocation: &mut Vec<RelocationEntry>,
+        references: &mut Vec<ReferenceEntry>,
     ) -> Vec<IrInstruction> {
         match self {
             Instruction::RType {
@@ -559,12 +564,14 @@ impl Instruction {
                             .get(&label)
                             .unwrap_or_else(|| panic!("Could not find symbol '{}'", label));
 
-                        // TODO: Handle external symbols
-                        relocation.push(RelocationEntry {
-                            offset: current_offset,
-                            location: SymbolLocation::Text,
-                            relocation_type: RelocationType::JumpAddress,
-                        });
+                        match symbol.ty {
+                            SymbolType::Local | SymbolType::Export => {
+                                relocation.push(RelocationEntry::jump(current_offset));
+                            }
+                            SymbolType::Import => {
+                                references.push(ReferenceEntry::jump(symbol, current_offset));
+                            }
+                        }
 
                         symbol.pseudo_address()
                     }
@@ -578,9 +585,13 @@ impl Instruction {
                     pseudo_address,
                 }]
             }
-            Instruction::Pseudo(pseudo_instruction) => {
-                pseudo_instruction.lower(current_offset, constants, symbol_table, relocation)
-            }
+            Instruction::Pseudo(pseudo_instruction) => pseudo_instruction.lower(
+                current_offset,
+                constants,
+                symbol_table,
+                relocation,
+                references,
+            ),
         }
     }
 }
@@ -619,6 +630,7 @@ impl PseudoInstruction {
         constants: &Constants,
         symbol_table: &SymbolTable,
         relocation: &mut Vec<RelocationEntry>,
+        references: &mut Vec<ReferenceEntry>,
     ) -> Vec<IrInstruction> {
         match self {
             PseudoInstruction::LoadImmediate { rd, value } => {
@@ -631,11 +643,14 @@ impl PseudoInstruction {
                     .get(&label)
                     .unwrap_or_else(|| panic!("Could not find symbol '{}'", label));
 
-                relocation.push(RelocationEntry {
-                    offset: current_offset,
-                    location: symbol.location,
-                    relocation_type: RelocationType::SplitImmediate,
-                });
+                match symbol.ty {
+                    SymbolType::Local | SymbolType::Export => {
+                        relocation.push(RelocationEntry::split_immediate(current_offset));
+                    }
+                    SymbolType::Import => {
+                        references.push(ReferenceEntry::split_immediate(symbol, current_offset));
+                    }
+                }
 
                 Self::load_u32_into_register(rd.index().unwrap(), symbol.offset as u32)
             }
