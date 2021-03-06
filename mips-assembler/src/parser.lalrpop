@@ -5,16 +5,12 @@ use std::str::FromStr;
 
 grammar;
 
-Comma<T>: Vec<T> = {
-    <mut items:(<T> ",")*> <last:T?> => {
-        items.extend(last);
-        items
-    }
+Comma<T>: Vec<T> = <mut items:(<T> ",")*> <last:T?> => {
+    items.extend(last);
+    items
 };
 
-pub Program: Program = {
-    <items:("\n"* <Item>)*> "\n"* => Program { items }
-};
+pub Program: Program = <items:("\n"* <Item>)*> "\n"* => Program { items };
 
 Item: Item = {
     <ConstantDef> "\n" => Item::ConstantDef(<>),
