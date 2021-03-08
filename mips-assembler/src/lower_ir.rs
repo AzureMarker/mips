@@ -5,9 +5,10 @@ use crate::ir::{
     RelocationType, Symbol, SymbolLocation, SymbolType,
 };
 use mips_types::constants::{
-    REF_METHOD_ADD, REF_METHOD_REPLACE, REF_METHOD_SUBTRACT, REF_TARGET_HALF_WORD, REF_TARGET_IMM,
-    REF_TARGET_JUMP, REF_TARGET_SPLIT_IMM, REF_TARGET_WORD, REL_JUMP, REL_LOWER_IMM, REL_SPLIT_IMM,
-    REL_UPPER_IMM, REL_WORD, SYM_DEF_LABEL, SYM_DEF_SEEN, SYM_DEF_UNDEF, SYM_GLOBAL,
+    EXTERNAL_SECTION, REF_METHOD_ADD, REF_METHOD_REPLACE, REF_METHOD_SUBTRACT,
+    REF_TARGET_HALF_WORD, REF_TARGET_IMM, REF_TARGET_JUMP, REF_TARGET_SPLIT_IMM, REF_TARGET_WORD,
+    REL_JUMP, REL_LOWER_IMM, REL_SPLIT_IMM, REL_UPPER_IMM, REL_WORD, SYM_DEF_LABEL, SYM_DEF_SEEN,
+    SYM_GLOBAL,
 };
 use mips_types::module::{
     R2KModule, R2KModuleHeader, R2KReferenceEntry, R2KRelocationEntry, R2KSymbolEntry, R2KVersion,
@@ -63,17 +64,17 @@ impl IrProgram {
 impl Symbol {
     fn lower(&self) -> R2KSymbolEntry {
         // Only label symbols are currently stored.
-        let mut flags = SYM_DEF_LABEL;
+        let mut flags = 0;
 
         match self.ty {
             SymbolType::Local => {
-                flags |= self.location.mode_flag() | SYM_DEF_SEEN;
+                flags |= self.location.mode_flag() | SYM_DEF_LABEL | SYM_DEF_SEEN;
             }
             SymbolType::Import => {
-                flags |= SYM_DEF_UNDEF | SYM_GLOBAL;
+                flags |= EXTERNAL_SECTION | SYM_GLOBAL;
             }
             SymbolType::Export => {
-                flags |= self.location.mode_flag() | SYM_DEF_SEEN | SYM_GLOBAL;
+                flags |= self.location.mode_flag() | SYM_DEF_LABEL | SYM_DEF_SEEN | SYM_GLOBAL;
             }
         }
 
@@ -87,6 +88,7 @@ impl Symbol {
 
 impl SymbolLocation {
     fn mode_flag(&self) -> u32 {
+        // TODO: will this always be the same as the section number?
         match self {
             SymbolLocation::Text => 0x1,
             SymbolLocation::RData => 0x2,
@@ -100,7 +102,7 @@ impl RelocationEntry {
     fn lower(&self) -> R2KRelocationEntry {
         R2KRelocationEntry {
             address: self.offset as u32,
-            section: self.location as u8,
+            section: self.location.section_number(),
             rel_type: match self.relocation_type {
                 RelocationType::LowerImmediate => REL_LOWER_IMM,
                 RelocationType::UpperImmediate => REL_UPPER_IMM,
@@ -117,7 +119,7 @@ impl ReferenceEntry {
         R2KReferenceEntry {
             address: self.offset as u32,
             str_idx: self.str_idx as u32,
-            section: self.location as u8,
+            section: self.location.section_number(),
             ref_type: self.reference_type.lower(),
         }
     }

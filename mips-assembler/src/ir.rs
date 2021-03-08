@@ -54,6 +54,13 @@ pub enum SymbolLocation {
     SData,
 }
 
+impl SymbolLocation {
+    pub fn section_number(&self) -> u8 {
+        // Zero represents the undefined section, which we don't have
+        *self as u8 + 1
+    }
+}
+
 #[derive(Debug)]
 pub enum SymbolType {
     Local,
