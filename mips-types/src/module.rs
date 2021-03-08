@@ -227,19 +227,26 @@ pub struct R2KReferenceEntry {
 impl R2KReferenceEntry {
     /// Parse the input as an R2K reference entry
     pub fn parse<R: Read>(input: &mut R) -> io::Result<Self> {
-        Ok(Self {
+        let entry = Self {
             address: read_u32(input)?,
             str_idx: read_u32(input)?,
             section: read_u8(input)?,
             ref_type: read_u8(input)?,
-        })
+        };
+
+        // Skip past the two bytes of padding
+        read_u8(input)?;
+        read_u8(input)?;
+
+        Ok(entry)
     }
 
     /// Write the entry
     pub fn write<W: Write>(&self, output: &mut W) -> io::Result<()> {
+        // Note: there are two bytes of padding at the end of the binary format
         output.write_all(&self.address.to_be_bytes())?;
         output.write_all(&self.str_idx.to_be_bytes())?;
-        output.write_all(&[self.section, self.ref_type])?;
+        output.write_all(&[self.section, self.ref_type, 0, 0])?;
 
         Ok(())
     }
