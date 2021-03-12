@@ -5,12 +5,13 @@ use crate::ast::{
     PseudoInstruction, RTypeOp, Register, RepeatedExpr,
 };
 use crate::ir::{
-    IrInstruction, IrProgram, ReferenceEntry, RelocationEntry, Symbol, SymbolLocation, SymbolType,
+    IrInstruction, IrProgram, ReferenceEntry, ReferenceMethod, ReferenceTarget, ReferenceType,
+    RelocationEntry, RelocationType, Symbol, SymbolLocation, SymbolType,
 };
 use crate::string_table::StringTable;
 use crate::string_unescape::unescape_str;
 use either::Either;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::fmt::{Display, LowerHex};
 use std::iter;
 
@@ -34,7 +35,6 @@ struct IrBuilder {
     relocation: Vec<RelocationEntry>,
     references: Vec<ReferenceEntry>,
     constants: Constants,
-    globals: HashSet<String>,
     current_section: SymbolLocation,
     text_offset: usize,
     text_words: HashMap<usize, u32>,
@@ -54,7 +54,6 @@ impl Default for IrBuilder {
             relocation: Vec::new(),
             references: Vec::new(),
             constants: Constants::new(),
-            globals: HashSet::new(),
             current_section: SymbolLocation::Text,
             text_offset: 0,
             text_words: HashMap::new(),
@@ -118,37 +117,6 @@ impl IrBuilder {
 
             self.current_label = label_buffer;
         }
-
-        self.insert_import_symbols();
-    }
-
-    /// Insert imported global symbols into the symbol table.
-    /// Imported symbols (marked as global but not defined) are only confirmed as
-    /// imports once the first pass is done (all label declarations are found),
-    /// so this should happen at the end of the first pass.
-    fn insert_import_symbols(&mut self) {
-        let imports: Vec<_> = self
-            .globals
-            .iter()
-            .filter(|global| !self.symbol_table.contains_key(*global))
-            .collect();
-
-        for import in imports {
-            let string_offset = self
-                .string_table
-                .get_offset(import)
-                .expect("Imported global symbol not in string table");
-
-            self.symbol_table.insert(
-                import.to_string(),
-                Symbol {
-                    offset: 0,
-                    location: SymbolLocation::Text,
-                    string_offset,
-                    ty: SymbolType::Import,
-                },
-            );
-        }
     }
 
     /// Run the second pass over the AST
@@ -182,27 +150,44 @@ impl IrBuilder {
     }
 
     fn visit_label(&mut self, label: String) {
-        let string_offset = self.string_table.insert(label.clone());
-        let is_global = self.globals.contains(&label);
+        let offset = self.current_offset();
 
-        self.symbol_table.insert(
-            label,
-            Symbol {
-                location: self.current_section,
-                offset: match self.current_section {
-                    SymbolLocation::Text => self.text_offset,
-                    SymbolLocation::Data => self.data.len(),
-                    SymbolLocation::RData => self.rdata.len(),
-                    SymbolLocation::SData => self.sdata.len(),
+        if let Some(symbol) = self.symbol_table.get_mut(&label) {
+            match symbol.ty {
+                SymbolType::Local | SymbolType::Export => {
+                    // TODO: return a proper error
+                    panic!("Found duplicate definition of {}", label);
+                }
+                SymbolType::Import => {
+                    // We first found the symbol in .globl and assumed it was an import
+                    // because we hadn't seen it yet. Now that we found its declaration,
+                    // we know that it is an export.
+                    symbol.ty = SymbolType::Export;
+                    symbol.location = self.current_section;
+                    symbol.offset = offset;
+                }
+            }
+        } else {
+            // This is a never-before-seen label
+            self.symbol_table.insert(
+                label.clone(),
+                Symbol {
+                    location: self.current_section,
+                    offset,
+                    string_offset: self.string_table.insert(label),
+                    ty: SymbolType::Local,
                 },
-                string_offset,
-                ty: if is_global {
-                    SymbolType::Export
-                } else {
-                    SymbolType::Local
-                },
-            },
-        );
+            );
+        }
+    }
+
+    fn current_offset(&self) -> usize {
+        match self.current_section {
+            SymbolLocation::Text => self.text_offset,
+            SymbolLocation::Data => self.data.len(),
+            SymbolLocation::RData => self.rdata.len(),
+            SymbolLocation::SData => self.sdata.len(),
+        }
     }
 
     fn visit_directive(&mut self, directive: &Directive) {
@@ -212,11 +197,25 @@ impl IrBuilder {
             Directive::RData => self.set_section(SymbolLocation::RData),
             Directive::SData => self.set_section(SymbolLocation::SData),
             Directive::Global { label } => {
-                self.string_table.insert(label.clone());
-                self.globals.insert(label.clone());
-
-                if let Some(sym) = self.symbol_table.get_mut(label) {
-                    sym.ty = SymbolType::Export;
+                if let Some(symbol) = self.symbol_table.get_mut(label) {
+                    match symbol.ty {
+                        SymbolType::Local => symbol.ty = SymbolType::Export,
+                        SymbolType::Import | SymbolType::Export => {
+                            // TODO: return a proper error
+                            panic!("Found duplicate .globl {}", label);
+                        }
+                    }
+                } else {
+                    // Never-before-seen label, assume it is an import for now
+                    self.symbol_table.insert(
+                        label.clone(),
+                        Symbol {
+                            location: self.current_section,
+                            offset: self.current_offset(),
+                            string_offset: self.string_table.insert(label.clone()),
+                            ty: SymbolType::Import,
+                        },
+                    );
                 }
             }
             Directive::Align { boundary } => self.visit_align(boundary),
@@ -276,7 +275,7 @@ impl IrBuilder {
         self.visit_number(
             values,
             None,
-            RepeatedExpr::as_bytes,
+            |e, builder| RepeatedExpr::as_bytes(e, &builder.constants),
             |_, _| panic!("Cannot use .byte in the text segment"),
             Some,
         )
@@ -286,7 +285,7 @@ impl IrBuilder {
         self.visit_number(
             values,
             Some(1),
-            RepeatedExpr::as_halves,
+            |e, builder| RepeatedExpr::as_halves(e, &builder.constants),
             |_, _| panic!("Cannot use .half in the text segment"),
             |half| half.to_be_bytes().to_vec(),
         )
@@ -296,7 +295,45 @@ impl IrBuilder {
         self.visit_number(
             values,
             Some(2),
-            RepeatedExpr::as_words,
+            |e, builder| {
+                // .word can reference constants or labels
+                let value = e
+                    .expr
+                    .evaluate(&builder.constants)
+                    .ok()
+                    .or_else(|| match &e.expr {
+                        Expr::Constant(label) => {
+                            let symbol = builder.symbol_table.get(label)?;
+
+                            match symbol.ty {
+                                SymbolType::Local | SymbolType::Export => {
+                                    builder.relocation.push(RelocationEntry {
+                                        offset: builder.current_offset(),
+                                        location: builder.current_section,
+                                        relocation_type: RelocationType::Word,
+                                    });
+                                }
+                                SymbolType::Import => {
+                                    builder.references.push(ReferenceEntry {
+                                        offset: builder.current_offset(),
+                                        location: builder.current_section,
+                                        str_idx: symbol.string_offset,
+                                        reference_type: ReferenceType {
+                                            target: ReferenceTarget::Word,
+                                            method: ReferenceMethod::Replace,
+                                        },
+                                    });
+                                }
+                            }
+
+                            Some(symbol.offset as i64)
+                        }
+                        _ => None,
+                    })
+                    .expect(".word cannot have forward references");
+
+                e.as_words(value, &builder.constants)
+            },
             |builder, words| {
                 for word in words {
                     builder.text_words.insert(builder.text_offset, word);
@@ -313,7 +350,7 @@ impl IrBuilder {
         &mut self,
         values: &[RepeatedExpr],
         alignment: Option<usize>,
-        as_iterator: impl Fn(&RepeatedExpr, &Constants) -> I1,
+        as_iterator: impl Fn(&RepeatedExpr, &mut Self) -> I1,
         handle_text: impl FnOnce(&mut Self, Vec<T>),
         to_bytes: impl Fn(T) -> I2,
     ) {
@@ -323,10 +360,7 @@ impl IrBuilder {
             }
         }
 
-        let numbers: Vec<T> = values
-            .iter()
-            .flat_map(|e| as_iterator(e, &self.constants))
-            .collect();
+        let numbers: Vec<T> = values.iter().flat_map(|e| as_iterator(e, self)).collect();
 
         let section_data = match self.current_section {
             SymbolLocation::Text => {
@@ -433,42 +467,58 @@ impl Expr {
 
 impl RepeatedExpr {
     fn as_bytes(&self, constants: &Constants) -> impl Iterator<Item = u8> {
-        self.as_iterator(constants, ".byte", 2, |value| {
-            let truncated = value as i8;
-            (truncated as u8, truncated as i64 == value)
-        })
+        self.as_iterator(
+            self.get_const_value(constants, ".bytes"),
+            constants,
+            ".byte",
+            2,
+            |value| {
+                let truncated = value as i8;
+                (truncated as u8, truncated as i64 == value)
+            },
+        )
     }
 
     fn as_halves(&self, constants: &Constants) -> impl Iterator<Item = u16> {
-        self.as_iterator(constants, ".half", 4, |value| {
-            let truncated = value as i16;
-            (truncated as u16, truncated as i64 == value)
-        })
+        self.as_iterator(
+            self.get_const_value(constants, ".half"),
+            constants,
+            ".half",
+            4,
+            |value| {
+                let truncated = value as i16;
+                (truncated as u16, truncated as i64 == value)
+            },
+        )
     }
 
-    fn as_words(&self, constants: &Constants) -> impl Iterator<Item = u32> {
-        self.as_iterator(constants, ".word", 8, |value| {
+    fn as_words(&self, value: i64, constants: &Constants) -> impl Iterator<Item = u32> {
+        self.as_iterator(value, constants, ".word", 8, |value| {
             let truncated = value as i32;
             (truncated as u32, truncated as i64 == value)
         })
     }
 
+    fn get_const_value(&self, constants: &Constants, directive: &'static str) -> i64 {
+        self.expr
+            .evaluate(&constants)
+            .unwrap_or_else(|_| panic!("{} cannot have forward references", directive))
+    }
+
     /// Convert this repeated expression into a stream of truncated numbers
     fn as_iterator<T: Display + LowerHex + Copy>(
         &self,
+        value: i64,
         constants: &Constants,
         directive: &'static str,
         format_width: usize,
         truncate: impl FnOnce(i64) -> (T, bool),
     ) -> impl Iterator<Item = T> {
-        let value = self
-            .expr
-            .evaluate(&constants)
-            .expect(".word cannot have forward references");
         let times = self
             .times
             .evaluate(&constants)
-            .expect(".word cannot have forward references") as usize; // FIXME: check for negative repeat value
+            .unwrap_or_else(|_| panic!("{} cannot have forward references", directive))
+            as usize; // FIXME: check for negative repeat value
 
         // Values are explicitly truncated.
         let (truncated, is_same) = truncate(value);
