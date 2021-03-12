@@ -1,2 +1,2 @@
 [workspace]
-members = ["mips-assembler", "mips-debugger", "mips-types", "mips-simulator"]
+members = ["mips-assembler", "mips-debugger", "mips-linker", "mips-types", "mips-simulator"]

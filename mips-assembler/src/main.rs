@@ -40,7 +40,7 @@ struct CliArgs {
 
 fn main() -> Result<(), Box<dyn Error>> {
     // Setup logging and parse CLI args
-    env_logger::Builder::from_env(Env::default().default_filter_or("warn"))
+    env_logger::Builder::from_env(Env::default().default_filter_or("info"))
         .format(|buf, record| writeln!(buf, "[{}] {}", record.level(), record.args()))
         .init();
     let args = CliArgs::from_args();

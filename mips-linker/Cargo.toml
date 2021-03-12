@@ -1,0 +1,11 @@
+[package]
+name = "mips-linker"
+version = "0.1.0"
+authors = ["Mark Drobnak <mark.drobnak@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+env_logger = "0.7"
+log = "0.4"
+mips-types = { path = "../mips-types" }
+structopt = "0.3"

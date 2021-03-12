@@ -354,6 +354,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "mips-linker"
+version = "0.1.0"
+dependencies = [
+ "env_logger",
+ "log",
+ "mips-types",
+ "structopt",
+]
+
+[[package]]
 name = "mips-simulator"
 version = "0.1.0"
 dependencies = [
