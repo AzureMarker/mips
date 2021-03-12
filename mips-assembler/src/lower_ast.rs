@@ -70,7 +70,6 @@ impl IrBuilder {
         self.first_pass(&program);
 
         log::trace!("Constants: {:#?}", self.constants);
-        log::trace!("Symbols: {:#?}", self.symbol_table);
 
         // Second pass: generate instruction IR
         self.second_pass(program);
@@ -272,51 +271,60 @@ impl IrBuilder {
     }
 
     fn visit_byte(&mut self, values: &[RepeatedExpr]) {
-        self.visit_number(
-            values,
-            None,
-            |e, builder| RepeatedExpr::as_bytes(e, &builder.constants),
+        let numbers = values
+            .iter()
+            .flat_map(|e| e.as_bytes(&self.constants))
+            .collect();
+
+        self.extend_with_numbers(
+            numbers,
             |_, _| panic!("Cannot use .byte in the text segment"),
             Some,
         )
     }
 
     fn visit_half(&mut self, values: &[RepeatedExpr]) {
-        self.visit_number(
-            values,
-            Some(1),
-            |e, builder| RepeatedExpr::as_halves(e, &builder.constants),
+        self.auto_align(1);
+
+        let numbers = values
+            .iter()
+            .flat_map(|e| e.as_halves(&self.constants))
+            .collect();
+
+        self.extend_with_numbers(
+            numbers,
             |_, _| panic!("Cannot use .half in the text segment"),
             |half| half.to_be_bytes().to_vec(),
         )
     }
 
     fn visit_word(&mut self, values: &[RepeatedExpr]) {
-        self.visit_number(
-            values,
-            Some(2),
-            |e, builder| {
+        self.auto_align(2);
+
+        let numbers = values
+            .iter()
+            .flat_map(|e| {
                 // .word can reference constants or labels
                 let value = e
                     .expr
-                    .evaluate(&builder.constants)
+                    .evaluate(&self.constants)
                     .ok()
                     .or_else(|| match &e.expr {
                         Expr::Constant(label) => {
-                            let symbol = builder.symbol_table.get(label)?;
+                            let symbol = self.symbol_table.get(label)?;
 
                             match symbol.ty {
                                 SymbolType::Local | SymbolType::Export => {
-                                    builder.relocation.push(RelocationEntry {
-                                        offset: builder.current_offset(),
-                                        location: builder.current_section,
+                                    self.relocation.push(RelocationEntry {
+                                        offset: self.current_offset(),
+                                        location: self.current_section,
                                         relocation_type: RelocationType::Word,
                                     });
                                 }
                                 SymbolType::Import => {
-                                    builder.references.push(ReferenceEntry {
-                                        offset: builder.current_offset(),
-                                        location: builder.current_section,
+                                    self.references.push(ReferenceEntry {
+                                        offset: self.current_offset(),
+                                        location: self.current_section,
                                         str_idx: symbol.string_offset,
                                         reference_type: ReferenceType {
                                             target: ReferenceTarget::Word,
@@ -332,8 +340,12 @@ impl IrBuilder {
                     })
                     .expect(".word cannot have forward references");
 
-                e.as_words(value, &builder.constants)
-            },
+                e.as_words(value, &self.constants)
+            })
+            .collect();
+
+        self.extend_with_numbers(
+            numbers,
             |builder, words| {
                 for word in words {
                     builder.text_words.insert(builder.text_offset, word);
@@ -341,27 +353,21 @@ impl IrBuilder {
                 }
             },
             |word| word.to_be_bytes().to_vec(),
-        )
+        );
     }
 
-    /// A general version of a directive which inserts numbers into a data segment,
-    /// such as .word or .float.
-    fn visit_number<T, I1: IntoIterator<Item = T>, I2: IntoIterator<Item = u8>>(
-        &mut self,
-        values: &[RepeatedExpr],
-        alignment: Option<usize>,
-        as_iterator: impl Fn(&RepeatedExpr, &mut Self) -> I1,
-        handle_text: impl FnOnce(&mut Self, Vec<T>),
-        to_bytes: impl Fn(T) -> I2,
-    ) {
-        if let Some(alignment) = alignment {
-            if self.auto_align && self.current_section != SymbolLocation::Text {
-                self.align_section(alignment);
-            }
+    fn auto_align(&mut self, alignment: usize) {
+        if self.auto_align && self.current_section != SymbolLocation::Text {
+            self.align_section(alignment);
         }
+    }
 
-        let numbers: Vec<T> = values.iter().flat_map(|e| as_iterator(e, self)).collect();
-
+    fn extend_with_numbers<T, I: IntoIterator<Item = u8>>(
+        &mut self,
+        numbers: Vec<T>,
+        handle_text: impl FnOnce(&mut Self, Vec<T>),
+        to_bytes: impl Fn(T) -> I,
+    ) {
         let section_data = match self.current_section {
             SymbolLocation::Text => {
                 handle_text(self, numbers);
