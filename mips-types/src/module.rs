@@ -200,17 +200,24 @@ pub struct R2KRelocationEntry {
 impl R2KRelocationEntry {
     /// Parse the input as an R2K relocation entry
     pub fn parse<R: Read>(input: &mut R) -> io::Result<Self> {
-        Ok(Self {
+        let entry = Self {
             address: read_u32(input)?,
             section: read_u8(input)?,
             rel_type: read_u8(input)?,
-        })
+        };
+
+        // Skip past the two bytes of padding
+        read_u8(input)?;
+        read_u8(input)?;
+
+        Ok(entry)
     }
 
     /// Write the entry
     pub fn write<W: Write>(&self, output: &mut W) -> io::Result<()> {
+        // Note: there are two bytes of padding at the end of the binary format
         output.write_all(&self.address.to_be_bytes())?;
-        output.write_all(&[self.section, self.rel_type])?;
+        output.write_all(&[self.section, self.rel_type, 0, 0])?;
 
         Ok(())
     }
