@@ -8,7 +8,7 @@ use structopt::StructOpt;
 
 #[derive(StructOpt)]
 struct CliArgs {
-    #[structopt(parse(from_os_str))]
+    #[structopt(parse(from_os_str), required = true)]
     object_files: Vec<PathBuf>,
 
     #[structopt(
