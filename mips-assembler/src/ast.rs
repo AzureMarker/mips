@@ -2,6 +2,27 @@
 
 use either::Either;
 
+pub type Span = (usize, usize);
+
+#[derive(Debug, Clone)]
+pub struct Spanned<T> {
+    pub data: T,
+    pub span: Span,
+}
+
+impl<T> Spanned<T> {
+    pub fn new(span: Span, data: T) -> Self {
+        Spanned { span, data }
+    }
+
+    pub fn map<R>(self, f: impl FnOnce(T) -> R) -> Spanned<R> {
+        Spanned {
+            data: f(self.data),
+            span: self.span,
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct Program {
     pub items: Vec<Item>,
@@ -15,8 +36,29 @@ pub enum Item {
     Instruction(Instruction),
 }
 
+pub type Expr = Spanned<ExprData>;
+
+impl Expr {
+    pub fn calculated(operation: Operation, left: Expr, right: Expr) -> Expr {
+        Expr {
+            span: (left.span.0, right.span.1),
+            data: ExprData::Calculated {
+                operation,
+                left: Box::new(left),
+                right: Box::new(right),
+            },
+        }
+    }
+}
+
+impl From<ExprData> for Expr {
+    fn from(data: ExprData) -> Self {
+        Expr { data, span: (0, 0) }
+    }
+}
+
 #[derive(Debug)]
-pub enum Expr {
+pub enum ExprData {
     Number(i64),
     Constant(String),
     Calculated {
@@ -115,7 +157,7 @@ impl Instruction {
             rd: Register::Number(0),
             rs: Register::Number(0),
             rt: Register::Number(0),
-            shift: Expr::Number(0),
+            shift: ExprData::Number(0).into(),
         }
     }
 }

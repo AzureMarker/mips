@@ -10,6 +10,8 @@ Comma<T>: Vec<T> = <mut items:(<T> ",")*> <last:T?> => {
     items
 };
 
+Spanned<T>: Spanned<T> = <l:@L> <data:T> <r:@R> => Spanned { data, span: (l, r) };
+
 pub Program: Program = <items:("\n"* <Item>)*> "\n"* => Program { items };
 
 Item: Item = {
@@ -21,63 +23,41 @@ Item: Item = {
 
 Expr: Expr = {
     #[precedence(level = "1")]
-    Number => Expr::Number(<>),
+    Spanned<Number> => <>.map(ExprData::Number),
     #[precedence(level = "1")]
-    Identifier => Expr::Constant(<>),
+    Spanned<Identifier> => <>.map(ExprData::Constant),
     #[precedence(level = "1")]
     "(" <Expr> ")",
     #[precedence(level = "1")]
-    "-" <expr:Expr> => Expr::Negated(Box::new(expr)),
+    <l:@L> "-" <expr:Expr>
+        => Expr::new((l, expr.span.1), ExprData::Negated(Box::new(expr))),
     #[precedence(level = "1")]
-    "~" <expr:Expr> => Expr::BitwiseNegated(Box::new(expr)),
+    <l:@L> "~" <expr:Expr>
+        => Expr::new((l, expr.span.1), ExprData::BitwiseNegated(Box::new(expr))),
 
     #[precedence(level = "2")]
     #[assoc(side = "left")]
-    <left:Expr> <operation:ExprOperation2> <right:Expr> => Expr::Calculated {
-        operation,
-        left: Box::new(left),
-        right: Box::new(right),
-    },
+    <left:Expr> <operation:ExprOperation2> <right:Expr> => Expr::calculated(operation, left, right),
 
     #[precedence(level = "3")]
     #[assoc(side = "left")]
-    <left:Expr> <operation:ExprOperation3> <right:Expr> => Expr::Calculated {
-        operation,
-        left: Box::new(left),
-        right: Box::new(right),
-    },
+    <left:Expr> <operation:ExprOperation3> <right:Expr> => Expr::calculated(operation, left, right),
 
     #[precedence(level = "4")]
     #[assoc(side = "left")]
-    <left:Expr> <operation:ExprOperation4> <right:Expr> => Expr::Calculated {
-        operation,
-        left: Box::new(left),
-        right: Box::new(right),
-    },
+    <left:Expr> <operation:ExprOperation4> <right:Expr> => Expr::calculated(operation, left, right),
 
     #[precedence(level = "5")]
     #[assoc(side = "left")]
-    <left:Expr> "&" <right:Expr> => Expr::Calculated {
-        operation: Operation::BitwiseAnd,
-        left: Box::new(left),
-        right: Box::new(right),
-    },
+    <left:Expr> "&" <right:Expr> => Expr::calculated(Operation::BitwiseAnd, left, right),
 
     #[precedence(level = "6")]
     #[assoc(side = "left")]
-    <left:Expr> "^" <right:Expr> => Expr::Calculated {
-        operation: Operation::BitwiseXor,
-        left: Box::new(left),
-        right: Box::new(right),
-    },
+    <left:Expr> "^" <right:Expr> => Expr::calculated(Operation::BitwiseXor, left, right),
 
     #[precedence(level = "7")]
     #[assoc(side = "left")]
-    <left:Expr> "|" <right:Expr> => Expr::Calculated {
-        operation: Operation::BitwiseOr,
-        left: Box::new(left),
-        right: Box::new(right),
-    },
+    <left:Expr> "|" <right:Expr> => Expr::calculated(Operation::BitwiseOr, left, right),
 };
 
 ExprOperation2: Operation = {
@@ -96,7 +76,7 @@ ExprOperation4: Operation = {
 };
 
 RepeatedExpr: RepeatedExpr = <expr:Expr> <times:(":" <Expr>)?>
-    => RepeatedExpr { expr, times: times.unwrap_or(Expr::Number(1)) };
+    => RepeatedExpr { expr, times: times.unwrap_or_else(|| ExprData::Number(1).into()) };
 
 Number: i64 = r"[0-9]+" => i64::from_str(<>).unwrap();
 
@@ -126,17 +106,17 @@ Directive: Directive = {
 
 Instruction: Instruction = {
     <op_code:RTypeOpRdRsRt> <rd:Register> "," <rs:Register> "," <rt:Register>
-        => Instruction::RType { op_code, rd, rs, rt, shift: Expr::Number(0) },
+        => Instruction::RType { op_code, rd, rs, rt, shift: ExprData::Number(0).into() },
     <op_code:RTypeOpRdRtRs> <rd:Register> "," <rt:Register> "," <rs:Register>
-        => Instruction::RType { op_code, rd, rs, rt, shift: Expr::Number(0) },
+        => Instruction::RType { op_code, rd, rs, rt, shift: ExprData::Number(0).into() },
     <op_code:RTypeOpRdRtSh> <rd:Register> "," <rt:Register> "," <shift:Expr>
         => Instruction::RType { op_code, rd, rs: Register::Number(0), rt, shift },
     <op_code:RTypeOpRsRt> <rs:Register> "," <rt:Register>
-        => Instruction::RType { op_code, rd: Register::Number(0), rs, rt, shift: Expr::Number(0) },
+        => Instruction::RType { op_code, rd: Register::Number(0), rs, rt, shift: ExprData::Number(0).into() },
     <op_code:RTypeOpRs> <rs:Register>
-        => Instruction::RType { op_code, rs, rd: Register::Number(0), rt: Register::Number(0), shift: Expr::Number(0) },
+        => Instruction::RType { op_code, rs, rd: Register::Number(0), rt: Register::Number(0), shift: ExprData::Number(0).into() },
     <op_code:RTypeOpRd> <rd:Register>
-        => Instruction::RType { op_code, rs: Register::Number(0), rd, rt: Register::Number(0), shift: Expr::Number(0) },
+        => Instruction::RType { op_code, rs: Register::Number(0), rd, rt: Register::Number(0), shift: ExprData::Number(0).into() },
     <op_code:ITypeOpRtRs> <rt:Register> "," <rs:Register> "," <immediate:Expr>
         => Instruction::IType { op_code, rt, rs, immediate },
     <op_code:ITypeOpRsRt> <rs:Register> "," <rt:Register> "," <immediate:Expr>
@@ -152,7 +132,7 @@ Instruction: Instruction = {
         rd: Register::Number(0),
         rs: Register::Number(0),
         rt: Register::Number(0),
-        shift: Expr::Number(0)
+        shift: ExprData::Number(0).into()
     },
     r"noop|nop" => Instruction::noop(),
     PseudoInstruction => Instruction::Pseudo(<>),

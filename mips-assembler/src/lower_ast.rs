@@ -1,8 +1,8 @@
 //! Lower the AST to IR
 
 use crate::ast::{
-    ConstantDef, Directive, Expr, ITypeOp, Instruction, Item, NumberDirective, Operation, Program,
-    PseudoInstruction, RTypeOp, Register, RepeatedExpr,
+    ConstantDef, Directive, Expr, ExprData, ITypeOp, Instruction, Item, NumberDirective, Operation,
+    Program, PseudoInstruction, RTypeOp, Register, RepeatedExpr,
 };
 use crate::ir::{
     IrInstruction, IrProgram, ReferenceEntry, ReferenceMethod, ReferenceTarget, ReferenceType,
@@ -309,8 +309,8 @@ impl IrBuilder {
                     .expr
                     .evaluate(&self.constants)
                     .ok()
-                    .or_else(|| match &e.expr {
-                        Expr::Constant(label) => {
+                    .or_else(|| match &e.expr.data {
+                        ExprData::Constant(label) => {
                             let symbol = self.symbol_table.get(label)?;
 
                             match symbol.ty {
@@ -439,14 +439,14 @@ impl IrBuilder {
 
 impl Expr {
     pub fn evaluate(&self, constants: &Constants) -> Result<i64, String> {
-        match self {
-            Expr::Number(num) => Ok(*num),
-            Expr::Constant(name) => constants
+        match &self.data {
+            ExprData::Number(num) => Ok(*num),
+            ExprData::Constant(name) => constants
                 .get(name)
                 .copied()
                 // TODO: return a proper error
                 .ok_or_else(|| format!("Unable to find constant '{}'", name)),
-            Expr::Calculated {
+            ExprData::Calculated {
                 operation,
                 left,
                 right,
@@ -465,8 +465,8 @@ impl Expr {
                     Operation::BitwiseOr => left | right,
                 })
             }
-            Expr::Negated(expr) => Ok(-expr.evaluate(constants)?),
-            Expr::BitwiseNegated(expr) => Ok(expr.evaluate(constants)? ^ -1),
+            ExprData::Negated(expr) => Ok(-expr.evaluate(constants)?),
+            ExprData::BitwiseNegated(expr) => Ok(expr.evaluate(constants)? ^ -1),
         }
     }
 }
@@ -582,8 +582,8 @@ impl Instruction {
                 immediate,
             } if op_code.needs_offset() => {
                 // FIXME: this only supports literal labels or integer offsets
-                let offset = match immediate {
-                    Expr::Constant(label) => constants
+                let offset = match immediate.data {
+                    ExprData::Constant(label) => constants
                         .get(&label)
                         .map(|&value| value as i16)
                         .or_else(|| symbol_table.get(&label).map(|symbol| {
@@ -594,7 +594,7 @@ impl Instruction {
                             ((symbol.offset as isize - current_offset as isize) / 4 - 1) as i16
                         }))
                         .unwrap_or_else(|| panic!("Unable to find '{}'", label)),
-                    Expr::Number(offset) => offset as i16,
+                    ExprData::Number(offset) => offset as i16,
                     _ => panic!("Only labels, constants, and numbers are currently allowed in branching instructions")
                 };
 
@@ -621,8 +621,8 @@ impl Instruction {
                 }]
             }
             Instruction::JType { op_code, label } => {
-                let pseudo_address = match label {
-                    Expr::Constant(label) => {
+                let pseudo_address = match label.data {
+                    ExprData::Constant(label) => {
                         let symbol = symbol_table
                             .get(&label)
                             .unwrap_or_else(|| panic!("Could not find symbol '{}'", label));
@@ -639,7 +639,7 @@ impl Instruction {
                         symbol.pseudo_address()
                     }
                     // FIXME: make sure the constant is not too large or negative
-                    Expr::Number(address) => address as u32,
+                    ExprData::Number(address) => address as u32,
                     _ => panic!("Only labels and raw addresses are currently allowed in J-type instructions")
                 };
 
