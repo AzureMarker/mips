@@ -459,9 +459,7 @@ impl Expr {
             ExprData::Constant(name) => constants
                 .get(name)
                 .copied()
-                // TODO: return a proper error
-                // .ok_or_else(|| format!("Unable to find constant '{}'", name)),
-                .ok_or_else(|| IrBuildError::UnknownConstant(self.span)),
+                .ok_or(IrBuildError::UnknownConstant(self.span)),
             ExprData::Calculated {
                 operation,
                 left,
@@ -564,7 +562,7 @@ impl Instruction {
     pub fn expanded_size(&self, constants: &Constants) -> usize {
         match self {
             Instruction::RType { .. } | Instruction::IType { .. } | Instruction::JType { .. } => 1,
-            Instruction::Pseudo(pseduo) => pseduo.expanded_size(constants),
+            Instruction::Pseudo(pseudo) => pseudo.expanded_size(constants),
         }
     }
 
