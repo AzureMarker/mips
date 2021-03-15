@@ -1,7 +1,7 @@
 #[macro_use]
 extern crate lalrpop_util;
 
-use crate::ast::Program;
+use crate::ast::{Program, Span};
 use env_logger::Env;
 use lalrpop_util::ParseError;
 use std::error::Error;
@@ -49,20 +49,45 @@ fn main() -> Result<(), Box<dyn Error>> {
     let file_str = fs::read_to_string(&args.input_file)?;
     let program = parse(&file_str);
 
-    assemble_file(program, args)?;
+    assemble_file(program, &file_str, args)?;
 
     Ok(())
 }
 
-fn assemble_file(program: Program, args: CliArgs) -> io::Result<()> {
+fn assemble_file(program: Program, file_str: &str, args: CliArgs) -> io::Result<()> {
     log::trace!("{:#?}", program);
-    let program_ir = program.lower();
+    let program_ir = match program.lower() {
+        Ok(ir) => ir,
+        Err(e) => exit_with_error(file_str, e.span(), "message_goes_here"),
+    };
     log::trace!("{:#?}", program_ir);
     let program_mips = program_ir.lower();
     log::trace!("{:#x?}", program_mips);
 
     let mut output = File::create(&args.output_file)?;
     program_mips.write(&mut output)
+}
+
+fn exit_with_error(file_str: &str, span: Span, message: &str) -> ! {
+    let (line_start, col_start) = index_to_line_col(file_str, span.0);
+    let (_, col_end) = index_to_line_col(file_str, span.1);
+    let line = file_str
+        .lines()
+        .nth(line_start - 1)
+        .expect("Out of bounds line");
+    let underline: String = std::iter::repeat(' ')
+        .take(col_start - 1)
+        .chain(std::iter::repeat('~').take(col_end - col_start))
+        .collect();
+    log::error!(
+        "Error at line {} column {}:\n| {}\n| {}\nerror: {}",
+        line_start,
+        col_start,
+        line,
+        underline,
+        message
+    );
+    std::process::exit(1);
 }
 
 /// Parse the MIPS program. If there are errors during parsing, the program will

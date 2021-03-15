@@ -2,7 +2,7 @@
 
 use crate::ast::{
     ConstantDef, Directive, Expr, ExprData, ITypeOp, Instruction, Item, NumberDirective, Operation,
-    Program, PseudoInstruction, RTypeOp, Register, RepeatedExpr,
+    Program, PseudoInstruction, RTypeOp, Register, RepeatedExpr, Span,
 };
 use crate::ir::{
     IrInstruction, IrProgram, ReferenceEntry, ReferenceMethod, ReferenceTarget, ReferenceType,
@@ -19,8 +19,23 @@ type Constants = HashMap<String, i64>;
 type SymbolTable = HashMap<String, Symbol>;
 
 impl Program {
-    pub fn lower(self) -> IrProgram {
+    pub fn lower(self) -> Result<IrProgram, IrBuildError> {
         IrBuilder::default().build(self)
+    }
+}
+
+#[derive(Debug)]
+pub enum IrBuildError {
+    // DuplicateLabel(Span),
+    // UnexpectedForwardReference,
+    UnknownConstant(Span),
+}
+
+impl IrBuildError {
+    pub fn span(&self) -> Span {
+        match self {
+            IrBuildError::UnknownConstant(span) => *span,
+        }
     }
 }
 
@@ -65,16 +80,16 @@ impl Default for IrBuilder {
 
 impl IrBuilder {
     /// Build an IR program from the AST program
-    fn build(mut self, program: Program) -> IrProgram {
+    fn build(mut self, program: Program) -> Result<IrProgram, IrBuildError> {
         // First pass: find symbols and constants
-        self.first_pass(&program);
+        self.first_pass(&program)?;
 
         log::trace!("Constants: {:#?}", self.constants);
 
         // Second pass: generate instruction IR
         self.second_pass(program);
 
-        IrProgram {
+        Ok(IrProgram {
             text: self.instructions,
             data: self.data,
             rdata: self.rdata,
@@ -83,11 +98,11 @@ impl IrBuilder {
             relocation: self.relocation,
             references: self.references,
             string_table: self.string_table,
-        }
+        })
     }
 
     /// Run the first pass over the AST
-    fn first_pass(&mut self, program: &Program) {
+    fn first_pass(&mut self, program: &Program) -> Result<(), IrBuildError> {
         for item in &program.items {
             let mut label_buffer = None;
 
@@ -102,7 +117,7 @@ impl IrBuilder {
                     // MY_CONSTANT = 2
                     //     .word 3 # Auto-aligns to a 4 byte boundary, moving the label
                     label_buffer = self.current_label.clone();
-                    self.visit_constant_def(constant)
+                    self.visit_constant_def(constant)?;
                 }
                 Item::Label(label) => {
                     label_buffer = Some(label.clone());
@@ -116,6 +131,8 @@ impl IrBuilder {
 
             self.current_label = label_buffer;
         }
+
+        Ok(())
     }
 
     /// Run the second pass over the AST
@@ -138,14 +155,12 @@ impl IrBuilder {
         }
     }
 
-    fn visit_constant_def(&mut self, constant: &ConstantDef) {
+    fn visit_constant_def(&mut self, constant: &ConstantDef) -> Result<(), IrBuildError> {
         self.constants.insert(
             constant.name.clone(),
-            constant
-                .value
-                .evaluate(&self.constants)
-                .expect("Constants cannot have forward references"),
+            constant.value.evaluate(&self.constants)?,
         );
+        Ok(())
     }
 
     fn visit_label(&mut self, label: String) {
@@ -438,14 +453,15 @@ impl IrBuilder {
 }
 
 impl Expr {
-    pub fn evaluate(&self, constants: &Constants) -> Result<i64, String> {
+    pub fn evaluate(&self, constants: &Constants) -> Result<i64, IrBuildError> {
         match &self.data {
             ExprData::Number(num) => Ok(*num),
             ExprData::Constant(name) => constants
                 .get(name)
                 .copied()
                 // TODO: return a proper error
-                .ok_or_else(|| format!("Unable to find constant '{}'", name)),
+                // .ok_or_else(|| format!("Unable to find constant '{}'", name)),
+                .ok_or_else(|| IrBuildError::UnknownConstant(self.span)),
             ExprData::Calculated {
                 operation,
                 left,
