@@ -41,6 +41,38 @@ impl IrBuildError {
     }
 }
 
+/// The valid sections that the builder can be in (i.e. no special sections like
+/// "undefined" or BSS).
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+enum BuilderLocation {
+    Text,
+    RData,
+    Data,
+    SData,
+}
+
+impl PartialEq<SymbolLocation> for BuilderLocation {
+    fn eq(&self, other: &SymbolLocation) -> bool {
+        SymbolLocation::from(*self).eq(other)
+    }
+}
+impl PartialEq<BuilderLocation> for SymbolLocation {
+    fn eq(&self, other: &BuilderLocation) -> bool {
+        other.eq(self)
+    }
+}
+
+impl From<BuilderLocation> for SymbolLocation {
+    fn from(loc: BuilderLocation) -> Self {
+        match loc {
+            BuilderLocation::Text => SymbolLocation::Text,
+            BuilderLocation::RData => SymbolLocation::RData,
+            BuilderLocation::Data => SymbolLocation::Data,
+            BuilderLocation::SData => SymbolLocation::SData,
+        }
+    }
+}
+
 /// Performs the two assembler passes
 struct IrBuilder {
     instructions: Vec<IrInstruction>,
@@ -52,7 +84,7 @@ struct IrBuilder {
     relocation: Vec<RelocationEntry>,
     references: Vec<ReferenceEntry>,
     constants: Constants,
-    current_section: SymbolLocation,
+    current_section: BuilderLocation,
     text_offset: usize,
     text_words: HashMap<usize, u32>,
     auto_align: bool,
@@ -71,7 +103,7 @@ impl Default for IrBuilder {
             relocation: Vec::new(),
             references: Vec::new(),
             constants: Constants::new(),
-            current_section: SymbolLocation::Text,
+            current_section: BuilderLocation::Text,
             text_offset: 0,
             text_words: HashMap::new(),
             auto_align: true,
@@ -179,7 +211,7 @@ impl IrBuilder {
                     // because we hadn't seen it yet. Now that we found its declaration,
                     // we know that it is an export.
                     symbol.ty = SymbolType::Export;
-                    symbol.location = self.current_section;
+                    symbol.location = self.current_section.into();
                     symbol.offset = offset;
                 }
             }
@@ -188,7 +220,7 @@ impl IrBuilder {
             self.symbol_table.insert(
                 label.clone(),
                 Symbol {
-                    location: self.current_section,
+                    location: self.current_section.into(),
                     offset,
                     string_offset: self.string_table.insert(label),
                     ty: SymbolType::Local,
@@ -199,19 +231,19 @@ impl IrBuilder {
 
     fn current_offset(&self) -> usize {
         match self.current_section {
-            SymbolLocation::Text => self.text_offset,
-            SymbolLocation::Data => self.data.len(),
-            SymbolLocation::RData => self.rdata.len(),
-            SymbolLocation::SData => self.sdata.len(),
+            BuilderLocation::Text => self.text_offset,
+            BuilderLocation::Data => self.data.len(),
+            BuilderLocation::RData => self.rdata.len(),
+            BuilderLocation::SData => self.sdata.len(),
         }
     }
 
     fn visit_directive(&mut self, directive: &Directive) {
         match directive {
-            Directive::Text => self.set_section(SymbolLocation::Text),
-            Directive::Data => self.set_section(SymbolLocation::Data),
-            Directive::RData => self.set_section(SymbolLocation::RData),
-            Directive::SData => self.set_section(SymbolLocation::SData),
+            Directive::Text => self.set_section(BuilderLocation::Text),
+            Directive::Data => self.set_section(BuilderLocation::Data),
+            Directive::RData => self.set_section(BuilderLocation::RData),
+            Directive::SData => self.set_section(BuilderLocation::SData),
             Directive::Global { label } => {
                 if let Some(symbol) = self.symbol_table.get_mut(label) {
                     match symbol.ty {
@@ -226,7 +258,7 @@ impl IrBuilder {
                     self.symbol_table.insert(
                         label.clone(),
                         Symbol {
-                            location: self.current_section,
+                            location: self.current_section.into(),
                             offset: self.current_offset(),
                             string_offset: self.string_table.insert(label.clone()),
                             ty: SymbolType::Import,
@@ -273,10 +305,10 @@ impl IrBuilder {
 
     fn visit_space(&mut self, size: &Expr) {
         let section_data = match self.current_section {
-            SymbolLocation::Text => panic!("Cannot use .space in the text segment"),
-            SymbolLocation::Data => &mut self.data,
-            SymbolLocation::RData => &mut self.rdata,
-            SymbolLocation::SData => &mut self.sdata,
+            BuilderLocation::Text => panic!("Cannot use .space in the text segment"),
+            BuilderLocation::Data => &mut self.data,
+            BuilderLocation::RData => &mut self.rdata,
+            BuilderLocation::SData => &mut self.sdata,
         };
 
         // FIXME: check if value is negative
@@ -334,14 +366,14 @@ impl IrBuilder {
                                 SymbolType::Local | SymbolType::Export => {
                                     self.relocation.push(RelocationEntry {
                                         offset: self.current_offset(),
-                                        location: self.current_section,
+                                        location: self.current_section.into(),
                                         relocation_type: RelocationType::Word,
                                     });
                                 }
                                 SymbolType::Import => {
                                     self.references.push(ReferenceEntry {
                                         offset: self.current_offset(),
-                                        location: self.current_section,
+                                        location: self.current_section.into(),
                                         str_idx: symbol.string_offset,
                                         reference_type: ReferenceType {
                                             target: ReferenceTarget::Word,
@@ -386,13 +418,13 @@ impl IrBuilder {
         to_bytes: impl Fn(T) -> I,
     ) {
         let section_data = match self.current_section {
-            SymbolLocation::Text => {
+            BuilderLocation::Text => {
                 handle_text(self, numbers);
                 return;
             }
-            SymbolLocation::Data => &mut self.data,
-            SymbolLocation::RData => &mut self.rdata,
-            SymbolLocation::SData => &mut self.sdata,
+            BuilderLocation::Data => &mut self.data,
+            BuilderLocation::RData => &mut self.rdata,
+            BuilderLocation::SData => &mut self.sdata,
         };
 
         section_data.extend(numbers.into_iter().flat_map(to_bytes));
@@ -400,15 +432,15 @@ impl IrBuilder {
 
     fn visit_ascii(&mut self, string: &str, zero_pad: bool) {
         let section_data = match self.current_section {
-            SymbolLocation::Text => {
+            BuilderLocation::Text => {
                 panic!(
                     "Cannot use .ascii{} in the text segment",
                     if zero_pad { "z" } else { "" }
                 )
             }
-            SymbolLocation::Data => &mut self.data,
-            SymbolLocation::RData => &mut self.rdata,
-            SymbolLocation::SData => &mut self.sdata,
+            BuilderLocation::Data => &mut self.data,
+            BuilderLocation::RData => &mut self.rdata,
+            BuilderLocation::SData => &mut self.sdata,
         };
 
         if !string.is_ascii() {
@@ -426,7 +458,7 @@ impl IrBuilder {
         }
     }
 
-    fn set_section(&mut self, location: SymbolLocation) {
+    fn set_section(&mut self, location: BuilderLocation) {
         self.auto_align = true;
         self.current_section = location;
     }
@@ -435,10 +467,10 @@ impl IrBuilder {
     /// was a label pointing at this directive, it is realigned.
     fn align_section(&mut self, alignment: usize) {
         let section = match self.current_section {
-            SymbolLocation::Text => panic!("Cannot align the text segment"),
-            SymbolLocation::Data => &mut self.data,
-            SymbolLocation::RData => &mut self.rdata,
-            SymbolLocation::SData => &mut self.sdata,
+            BuilderLocation::Text => panic!("Cannot align the text segment"),
+            BuilderLocation::Data => &mut self.data,
+            BuilderLocation::RData => &mut self.rdata,
+            BuilderLocation::SData => &mut self.sdata,
         };
         let step_size = usize::pow(2, alignment as u32);
 
