@@ -1,8 +1,14 @@
 use env_logger::Env;
-use mips_types::module::R2KModule;
+use mips_types::constants::{
+    DATA_OFFSET, REL_JUMP, REL_LOWER_IMM, REL_SPLIT_IMM, REL_UPPER_IMM, REL_WORD, TEXT_OFFSET,
+};
+use mips_types::module::{
+    R2KModule, R2KModuleHeader, R2KRelocationEntry, R2KVersion, R2K_MAGIC, RELOCATION_INDEX,
+};
 use std::error::Error;
+use std::fs::File;
 use std::io::{Cursor, Write};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::{fs, io};
 use structopt::StructOpt;
 
@@ -27,14 +33,17 @@ fn main() -> Result<(), Box<dyn Error>> {
         .init();
     let args = CliArgs::from_args();
 
-    link_objects(&args.object_files)?;
+    link_objects(&args.object_files, &args.output_file)?;
 
     Ok(())
 }
 
-fn link_objects(obj_file_paths: &[PathBuf]) -> io::Result<()> {
+fn link_objects(obj_file_paths: &[PathBuf], output_file_path: &Path) -> io::Result<()> {
+    // FIXME: allow more than one object file
+    assert_eq!(obj_file_paths.len(), 1);
+
     // Load the object files
-    let obj_files = obj_file_paths
+    let mut obj_files = obj_file_paths
         .iter()
         .map(|obj_file_path| {
             let file_data = fs::read(obj_file_path)?;
@@ -42,8 +51,123 @@ fn link_objects(obj_file_paths: &[PathBuf]) -> io::Result<()> {
         })
         .collect::<io::Result<Vec<_>>>()?;
 
-    log::trace!("Loaded object files: {:#?}", obj_files);
+    log::trace!(
+        "Loaded object files: {:#?}",
+        obj_files.iter().map(|obj| &obj.header).collect::<Vec<_>>()
+    );
     log::info!("Loaded {} object files", obj_files.len());
 
+    let load_module = obj_to_load_module(obj_files.remove(0));
+
+    // Write out load module
+    let mut output_file = File::create(output_file_path)?;
+    load_module.write(&mut output_file)?;
+    log::info!("Wrote load module to {}", output_file_path.display());
+
     Ok(())
+}
+
+fn obj_to_load_module(obj_module: R2KModule) -> R2KModule {
+    let entry = TEXT_OFFSET;
+    let mut section_sizes = obj_module.header.section_sizes;
+    let mut relocation = obj_module.relocation_section;
+    let mut text_section = obj_module.text_section;
+    let mut data_section = obj_module.data_section;
+
+    relocate(&mut text_section, 1, TEXT_OFFSET, &mut relocation);
+    relocate(&mut data_section, 3, DATA_OFFSET, &mut relocation);
+
+    // FIXME: refactor and support all relocatable sections
+    assert!(
+        relocation.is_empty(),
+        "Only text and data relocation is currently supported"
+    );
+
+    section_sizes[RELOCATION_INDEX] = relocation.len() as u32;
+
+    R2KModule {
+        header: R2KModuleHeader {
+            magic: R2K_MAGIC,
+            version: R2KVersion::Version1,
+            flags: 0,
+            entry,
+            section_sizes,
+        },
+        text_section,
+        rdata_section: obj_module.rdata_section,
+        data_section,
+        sdata_section: obj_module.sdata_section,
+        sbss_size: obj_module.sbss_size,
+        bss_size: obj_module.bss_size,
+        relocation_section: relocation,
+        reference_section: obj_module.reference_section,
+        symbol_table: obj_module.symbol_table,
+        string_table: obj_module.string_table,
+    }
+}
+
+fn relocate(
+    section: &mut [u8],
+    section_num: u8,
+    section_offset: u32,
+    relocation: &mut Vec<R2KRelocationEntry>,
+) {
+    relocation.retain(|entry| {
+        if entry.section == section_num {
+            let address = entry.address as usize;
+
+            match entry.rel_type {
+                REL_LOWER_IMM => {
+                    update_immediate(section, address, section_offset as u16);
+                }
+                REL_SPLIT_IMM => {
+                    update_immediate(section, address, section_offset as u16);
+                    update_immediate(section, address + 4, (section_offset >> 16) as u16);
+                }
+                REL_WORD => {
+                    let word = read_word(section, address);
+                    let new_word = word + section_offset;
+                    let new_bytes = new_word.to_be_bytes();
+                    section[address..(address + 4)].copy_from_slice(&new_bytes);
+                }
+                REL_JUMP => {
+                    let word = read_word(section, address);
+                    let pseudo_address = word & 0x03FFFFFF;
+                    let section_pseudo = (section_offset & 0x0FFFFFFC) >> 2;
+                    let new_pseudo_address = (pseudo_address + section_pseudo) & 0x03FFFFFF;
+                    let bytes = new_pseudo_address.to_be_bytes();
+                    section[address] = (section[address] & 0b11111100) + (bytes[0]);
+                    section[(address + 1)..(address + 4)].copy_from_slice(&bytes[1..]);
+                }
+                REL_UPPER_IMM => {
+                    update_immediate(section, address, (section_offset >> 16) as u16);
+                }
+                _ => panic!("Unknown relocation type: {}", entry.rel_type),
+            }
+
+            false
+        } else {
+            true
+        }
+    });
+}
+
+/// Read a word (u32) from the section at the given offset
+fn read_word(section: &[u8], address: usize) -> u32 {
+    let bytes = [
+        section[address],
+        section[address + 1],
+        section[address + 2],
+        section[address + 3],
+    ];
+    u32::from_be_bytes(bytes)
+}
+
+/// Update the immediate value of the instruction at the address.
+/// The value is added to the immediate.
+fn update_immediate(section: &mut [u8], address: usize, value: u16) {
+    let immediate = read_word(section, address) as u16;
+    let new_immediate = immediate + value;
+    let new_bytes = new_immediate.to_be_bytes();
+    section[(address + 2)..(address + 4)].copy_from_slice(&new_bytes);
 }
