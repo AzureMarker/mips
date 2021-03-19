@@ -14,3 +14,4 @@ lalrpop-util = "0.19"
 log = "0.4"
 mips-types = { path = "../mips-types" }
 structopt = "0.3"
+thiserror = "1.0"

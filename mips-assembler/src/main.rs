@@ -58,7 +58,7 @@ fn assemble_file(program: Program, file_str: &str, args: CliArgs) -> io::Result<
     log::trace!("{:#?}", program);
     let program_ir = match program.lower() {
         Ok(ir) => ir,
-        Err(e) => exit_with_error(file_str, e.span(), "message_goes_here"),
+        Err(e) => exit_with_error(file_str, e.span(), &e.to_string()),
     };
     log::trace!("{:#?}", program_ir);
     let program_mips = program_ir.lower();

@@ -14,6 +14,7 @@ use either::Either;
 use std::collections::HashMap;
 use std::fmt::{Display, LowerHex};
 use std::iter;
+use thiserror::Error;
 
 type Constants = HashMap<String, i64>;
 type SymbolTable = HashMap<String, Symbol>;
@@ -24,10 +25,11 @@ impl Program {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum IrBuildError {
     // DuplicateLabel(Span),
     // UnexpectedForwardReference,
+    #[error("Unknown constant")]
     UnknownConstant(Span),
 }
 
