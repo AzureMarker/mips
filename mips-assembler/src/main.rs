@@ -77,7 +77,7 @@ fn exit_with_error(file_str: &str, span: Span, message: &str) -> ! {
         .expect("Out of bounds line");
     let underline: String = std::iter::repeat(' ')
         .take(col_start - 1)
-        .chain(std::iter::repeat('~').take(col_end - col_start))
+        .chain(std::iter::repeat('^').take(col_end - col_start))
         .collect();
     log::error!(
         "Error at line {} column {}:\n| {}\n| {}\nerror: {}",
