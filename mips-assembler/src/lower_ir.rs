@@ -2,7 +2,7 @@
 
 use crate::ir::{
     IrProgram, ReferenceEntry, ReferenceMethod, ReferenceTarget, ReferenceType, RelocationEntry,
-    RelocationType, Symbol, SymbolLocation, SymbolType,
+    RelocationType, Symbol, SymbolType,
 };
 use mips_types::constants::{
     EXTERNAL_SECTION, REF_METHOD_ADD, REF_METHOD_REPLACE, REF_METHOD_SUBTRACT,
@@ -68,13 +68,16 @@ impl Symbol {
 
         match self.ty {
             SymbolType::Local => {
-                flags |= self.location.mode_flag() | SYM_DEF_LABEL | SYM_DEF_SEEN;
+                flags |= self.location.section_number() as u32 | SYM_DEF_LABEL | SYM_DEF_SEEN;
             }
             SymbolType::Import => {
                 flags |= EXTERNAL_SECTION | SYM_GLOBAL;
             }
             SymbolType::Export => {
-                flags |= self.location.mode_flag() | SYM_DEF_LABEL | SYM_DEF_SEEN | SYM_GLOBAL;
+                flags |= self.location.section_number() as u32
+                    | SYM_DEF_LABEL
+                    | SYM_DEF_SEEN
+                    | SYM_GLOBAL;
             }
         }
 
@@ -82,18 +85,6 @@ impl Symbol {
             flags,
             value: self.offset as u32,
             str_idx: self.string_offset as u32,
-        }
-    }
-}
-
-impl SymbolLocation {
-    fn mode_flag(&self) -> u32 {
-        // TODO: will this always be the same as the section number?
-        match self {
-            SymbolLocation::Text => 0x1,
-            SymbolLocation::RData => 0x2,
-            SymbolLocation::Data => 0x3,
-            SymbolLocation::SData => 0x4,
         }
     }
 }

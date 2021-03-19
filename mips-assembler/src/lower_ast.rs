@@ -171,20 +171,19 @@ impl IrBuilder {
 
     /// Run the second pass over the AST
     fn second_pass(&mut self, program: Program) {
+        self.text_offset = 0;
+
         for item in program.items {
             // Add in the text words we found in the first pass
             while let Some(word) = self.text_words.remove(&self.instructions.len()) {
                 self.instructions.push(IrInstruction::Word(word));
+                self.text_offset += 4;
             }
 
             if let Item::Instruction(instruction) = item {
-                self.instructions.extend(instruction.lower(
-                    self.instructions.len() * 4,
-                    &self.constants,
-                    &self.symbol_table,
-                    &mut self.relocation,
-                    &mut self.references,
-                ));
+                let new_instructions = instruction.lower(self);
+                self.text_offset += new_instructions.len() * 4;
+                self.instructions.extend(new_instructions);
             }
         }
     }
@@ -244,28 +243,7 @@ impl IrBuilder {
             Directive::Data => self.set_section(BuilderLocation::Data),
             Directive::RData => self.set_section(BuilderLocation::RData),
             Directive::SData => self.set_section(BuilderLocation::SData),
-            Directive::Global { label } => {
-                if let Some(symbol) = self.symbol_table.get_mut(label) {
-                    match symbol.ty {
-                        SymbolType::Local => symbol.ty = SymbolType::Export,
-                        SymbolType::Import | SymbolType::Export => {
-                            // TODO: return a proper error
-                            panic!("Found duplicate .globl {}", label);
-                        }
-                    }
-                } else {
-                    // Never-before-seen label, assume it is an import for now
-                    self.symbol_table.insert(
-                        label.clone(),
-                        Symbol {
-                            location: self.current_section.into(),
-                            offset: self.current_offset(),
-                            string_offset: self.string_table.insert(label.clone()),
-                            ty: SymbolType::Import,
-                        },
-                    );
-                }
-            }
+            Directive::Global { label } => self.visit_global(label),
             Directive::Align { boundary } => self.visit_align(boundary),
             Directive::Space { size } => self.visit_space(size),
             Directive::NumberDirective { ty, values } => match ty {
@@ -274,6 +252,29 @@ impl IrBuilder {
                 NumberDirective::Byte => self.visit_byte(values),
             },
             Directive::Ascii { string, zero_pad } => self.visit_ascii(string, *zero_pad),
+        }
+    }
+
+    fn visit_global(&mut self, label: &str) {
+        if let Some(symbol) = self.symbol_table.get_mut(label) {
+            match symbol.ty {
+                SymbolType::Local => symbol.ty = SymbolType::Export,
+                SymbolType::Import | SymbolType::Export => {
+                    // TODO: return a proper error
+                    panic!("Found duplicate .globl {}", label);
+                }
+            }
+        } else {
+            // Never-before-seen label, assume it is an import for now
+            self.symbol_table.insert(
+                label.to_string(),
+                Symbol {
+                    location: SymbolLocation::Undefined,
+                    offset: self.current_offset(),
+                    string_offset: self.string_table.insert(label.to_string()),
+                    ty: SymbolType::Import,
+                },
+            );
         }
     }
 
@@ -362,25 +363,24 @@ impl IrBuilder {
                         ExprData::Constant(label) => {
                             let symbol = self.symbol_table.get(label)?;
 
-                            match symbol.ty {
-                                SymbolType::Local | SymbolType::Export => {
-                                    self.relocation.push(RelocationEntry {
-                                        offset: self.current_offset(),
-                                        location: self.current_section.into(),
-                                        relocation_type: RelocationType::Word,
-                                    });
-                                }
-                                SymbolType::Import => {
-                                    self.references.push(ReferenceEntry {
-                                        offset: self.current_offset(),
-                                        location: self.current_section.into(),
-                                        str_idx: symbol.string_offset,
-                                        reference_type: ReferenceType {
-                                            target: ReferenceTarget::Word,
-                                            method: ReferenceMethod::Replace,
-                                        },
-                                    });
-                                }
+                            if symbol.location == self.current_section {
+                                // Relocation only works when the symbol and
+                                // usage are in the same section
+                                self.relocation.push(RelocationEntry {
+                                    offset: self.current_offset(),
+                                    location: self.current_section.into(),
+                                    relocation_type: RelocationType::Word,
+                                });
+                            } else {
+                                self.references.push(ReferenceEntry {
+                                    offset: self.current_offset(),
+                                    location: self.current_section.into(),
+                                    str_idx: symbol.string_offset,
+                                    reference_type: ReferenceType {
+                                        target: ReferenceTarget::Word,
+                                        method: ReferenceMethod::Replace,
+                                    },
+                                });
                             }
 
                             Some(symbol.offset as i64)
@@ -593,21 +593,14 @@ impl RepeatedExpr {
 
 impl Instruction {
     /// Get the number of instructions this instruction expands to
-    pub fn expanded_size(&self, constants: &Constants) -> usize {
+    fn expanded_size(&self, constants: &Constants) -> usize {
         match self {
             Instruction::RType { .. } | Instruction::IType { .. } | Instruction::JType { .. } => 1,
             Instruction::Pseudo(pseudo) => pseudo.expanded_size(constants),
         }
     }
 
-    pub fn lower(
-        self,
-        current_offset: usize,
-        constants: &Constants,
-        symbol_table: &SymbolTable,
-        relocation: &mut Vec<RelocationEntry>,
-        references: &mut Vec<ReferenceEntry>,
-    ) -> Vec<IrInstruction> {
+    fn lower(self, builder: &mut IrBuilder) -> Vec<IrInstruction> {
         match self {
             Instruction::RType {
                 op_code,
@@ -621,7 +614,7 @@ impl Instruction {
                 rt: rt.index().unwrap(),
                 rd: rd.index().unwrap(),
                 // TODO: check if shift is too big
-                shift: shift.evaluate(constants).unwrap() as u8,
+                shift: shift.evaluate(&builder.constants).unwrap() as u8,
             }],
             Instruction::IType {
                 op_code,
@@ -631,15 +624,16 @@ impl Instruction {
             } if op_code.needs_offset() => {
                 // FIXME: this only supports literal labels or integer offsets
                 let offset = match immediate.data {
-                    ExprData::Constant(label) => constants
+                    ExprData::Constant(label) => builder.constants
                         .get(&label)
                         .map(|&value| value as i16)
-                        .or_else(|| symbol_table.get(&label).map(|symbol| {
+                        .or_else(|| builder.symbol_table.get(&label).map(|symbol| {
+                            // FIXME: support imported symbols
                             assert_eq!(symbol.location, SymbolLocation::Text, "Can only branch to labels in the text section");
                             // FIXME: make sure the offset isn't too big
                             // Divide by four because it's counted in instructions to skip,
                             // minus one because the offset affects the next PC
-                            ((symbol.offset as isize - current_offset as isize) / 4 - 1) as i16
+                            ((symbol.offset as isize - builder.current_offset() as isize) / 4 - 1) as i16
                         }))
                         .unwrap_or_else(|| panic!("Unable to find '{}'", label)),
                     ExprData::Number(offset) => offset as i16,
@@ -665,23 +659,20 @@ impl Instruction {
                     rs: rs.index().unwrap(),
                     rt: rt.index().unwrap(),
                     // FIXME: make sure the constant is not too big
-                    immediate: immediate.evaluate(constants).unwrap() as i16,
+                    immediate: immediate.evaluate(&builder.constants).unwrap() as i16,
                 }]
             }
             Instruction::JType { op_code, label } => {
                 let pseudo_address = match label.data {
                     ExprData::Constant(label) => {
-                        let symbol = symbol_table
+                        let symbol = builder.symbol_table
                             .get(&label)
                             .unwrap_or_else(|| panic!("Could not find symbol '{}'", label));
 
-                        match symbol.ty {
-                            SymbolType::Local | SymbolType::Export => {
-                                relocation.push(RelocationEntry::jump(current_offset));
-                            }
-                            SymbolType::Import => {
-                                references.push(ReferenceEntry::jump(symbol, current_offset));
-                            }
+                        if symbol.location == SymbolLocation::Text {
+                            builder.relocation.push(RelocationEntry::jump(builder.current_offset()));
+                        } else {
+                            builder.references.push(ReferenceEntry::jump(symbol, builder.current_offset()));
                         }
 
                         symbol.pseudo_address()
@@ -696,20 +687,14 @@ impl Instruction {
                     pseudo_address,
                 }]
             }
-            Instruction::Pseudo(pseudo_instruction) => pseudo_instruction.lower(
-                current_offset,
-                constants,
-                symbol_table,
-                relocation,
-                references,
-            ),
+            Instruction::Pseudo(pseudo_instruction) => pseudo_instruction.lower(builder),
         }
     }
 }
 
 impl PseudoInstruction {
     /// Get the number of instructions this pseudo-instruction expands to
-    pub fn expanded_size(&self, constants: &Constants) -> usize {
+    fn expanded_size(&self, constants: &Constants) -> usize {
         match self {
             PseudoInstruction::LoadImmediate { value, .. } => {
                 let value = value
@@ -735,32 +720,28 @@ impl PseudoInstruction {
         }
     }
 
-    pub fn lower(
-        self,
-        current_offset: usize,
-        constants: &Constants,
-        symbol_table: &SymbolTable,
-        relocation: &mut Vec<RelocationEntry>,
-        references: &mut Vec<ReferenceEntry>,
-    ) -> Vec<IrInstruction> {
+    fn lower(self, builder: &mut IrBuilder) -> Vec<IrInstruction> {
         match self {
             PseudoInstruction::LoadImmediate { rd, value } => {
-                let value = value.evaluate(constants).unwrap() as u32;
+                let value = value.evaluate(&builder.constants).unwrap() as u32;
 
                 Self::load_num_into_register(rd.index().unwrap(), value)
             }
             PseudoInstruction::LoadAddress { rd, label } => {
-                let symbol = symbol_table
+                let symbol = builder
+                    .symbol_table
                     .get(&label)
                     .unwrap_or_else(|| panic!("Could not find symbol '{}'", label));
 
-                match symbol.ty {
-                    SymbolType::Local | SymbolType::Export => {
-                        relocation.push(RelocationEntry::split_immediate(current_offset));
-                    }
-                    SymbolType::Import => {
-                        references.push(ReferenceEntry::split_immediate(symbol, current_offset));
-                    }
+                if symbol.location == SymbolLocation::Text {
+                    builder
+                        .relocation
+                        .push(RelocationEntry::split_immediate(builder.current_offset()));
+                } else {
+                    builder.references.push(ReferenceEntry::split_immediate(
+                        symbol,
+                        builder.current_offset(),
+                    ));
                 }
 
                 Self::load_u32_into_register(rd.index().unwrap(), symbol.offset as u32)
@@ -772,14 +753,19 @@ impl PseudoInstruction {
                 rd: rt.index().unwrap(),
                 shift: 0,
             }],
-            PseudoInstruction::Mul { rd, rs, rt } => {
-                Self::multiplicative_op(RTypeOp::Mult, RTypeOp::Mflo, constants, rd, rs, rt)
-            }
+            PseudoInstruction::Mul { rd, rs, rt } => Self::multiplicative_op(
+                RTypeOp::Mult,
+                RTypeOp::Mflo,
+                &builder.constants,
+                rd,
+                rs,
+                rt,
+            ),
             PseudoInstruction::Div { rd, rs, rt } => {
-                Self::multiplicative_op(RTypeOp::Div, RTypeOp::Mflo, constants, rd, rs, rt)
+                Self::multiplicative_op(RTypeOp::Div, RTypeOp::Mflo, &builder.constants, rd, rs, rt)
             }
             PseudoInstruction::Rem { rd, rs, rt } => {
-                Self::multiplicative_op(RTypeOp::Div, RTypeOp::Mfhi, constants, rd, rs, rt)
+                Self::multiplicative_op(RTypeOp::Div, RTypeOp::Mfhi, &builder.constants, rd, rs, rt)
             }
             PseudoInstruction::Not { rd, rs } => vec![IrInstruction::RType {
                 op_code: RTypeOp::Nor,

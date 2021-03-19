@@ -48,6 +48,7 @@ pub struct Symbol {
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum SymbolLocation {
+    Undefined,
     Text,
     RData,
     Data,
@@ -56,8 +57,7 @@ pub enum SymbolLocation {
 
 impl SymbolLocation {
     pub fn section_number(&self) -> u8 {
-        // Zero represents the undefined section, which we don't have
-        *self as u8 + 1
+        *self as u8
     }
 }
 
