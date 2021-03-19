@@ -10,7 +10,7 @@ lalrpop = { version = "0.19.0", features = ["lexer"] }
 [dependencies]
 either = "1.6"
 env_logger = "0.7"
-lalrpop-util = "0.19.0"
+lalrpop-util = "0.19"
 log = "0.4"
 mips-types = { path = "../mips-types" }
 structopt = "0.3"
