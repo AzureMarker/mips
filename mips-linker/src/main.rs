@@ -1,16 +1,16 @@
+use crate::relocation::relocate;
 use env_logger::Env;
-use mips_types::constants::{
-    DATA_OFFSET, REL_JUMP, REL_LOWER_IMM, REL_SPLIT_IMM, REL_UPPER_IMM, REL_WORD, TEXT_OFFSET,
-};
-use mips_types::module::{
-    R2KModule, R2KModuleHeader, R2KRelocationEntry, R2KVersion, R2K_MAGIC, RELOCATION_INDEX,
-};
+use mips_types::constants::{DATA_OFFSET, TEXT_OFFSET};
+use mips_types::module::{R2KModule, R2KModuleHeader, R2KVersion, R2K_MAGIC, RELOCATION_INDEX};
 use std::error::Error;
 use std::fs::File;
 use std::io::{Cursor, Write};
 use std::path::{Path, PathBuf};
 use std::{fs, io};
 use structopt::StructOpt;
+
+mod relocation;
+mod util;
 
 #[derive(StructOpt)]
 struct CliArgs {
@@ -104,70 +104,4 @@ fn obj_to_load_module(obj_module: R2KModule) -> R2KModule {
         symbol_table: obj_module.symbol_table,
         string_table: obj_module.string_table,
     }
-}
-
-fn relocate(
-    section: &mut [u8],
-    section_num: u8,
-    section_offset: u32,
-    relocation: &mut Vec<R2KRelocationEntry>,
-) {
-    relocation.retain(|entry| {
-        if entry.section == section_num {
-            let address = entry.address as usize;
-
-            match entry.rel_type {
-                REL_LOWER_IMM => {
-                    update_immediate(section, address, section_offset as u16);
-                }
-                REL_SPLIT_IMM => {
-                    update_immediate(section, address, section_offset as u16);
-                    update_immediate(section, address + 4, (section_offset >> 16) as u16);
-                }
-                REL_WORD => {
-                    let word = read_word(section, address);
-                    let new_word = word + section_offset;
-                    let new_bytes = new_word.to_be_bytes();
-                    section[address..(address + 4)].copy_from_slice(&new_bytes);
-                }
-                REL_JUMP => {
-                    let word = read_word(section, address);
-                    let pseudo_address = word & 0x03FFFFFF;
-                    let section_pseudo = (section_offset & 0x0FFFFFFC) >> 2;
-                    let new_pseudo_address = (pseudo_address + section_pseudo) & 0x03FFFFFF;
-                    let bytes = new_pseudo_address.to_be_bytes();
-                    section[address] = (section[address] & 0b11111100) + (bytes[0]);
-                    section[(address + 1)..(address + 4)].copy_from_slice(&bytes[1..]);
-                }
-                REL_UPPER_IMM => {
-                    update_immediate(section, address, (section_offset >> 16) as u16);
-                }
-                _ => panic!("Unknown relocation type: {}", entry.rel_type),
-            }
-
-            false
-        } else {
-            true
-        }
-    });
-}
-
-/// Read a word (u32) from the section at the given offset
-fn read_word(section: &[u8], address: usize) -> u32 {
-    let bytes = [
-        section[address],
-        section[address + 1],
-        section[address + 2],
-        section[address + 3],
-    ];
-    u32::from_be_bytes(bytes)
-}
-
-/// Update the immediate value of the instruction at the address.
-/// The value is added to the immediate.
-fn update_immediate(section: &mut [u8], address: usize, value: u16) {
-    let immediate = read_word(section, address) as u16;
-    let new_immediate = immediate + value;
-    let new_bytes = new_immediate.to_be_bytes();
-    section[(address + 2)..(address + 4)].copy_from_slice(&new_bytes);
 }
