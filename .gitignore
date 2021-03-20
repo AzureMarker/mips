@@ -3,3 +3,7 @@ target
 
 ### Jetbrains
 /.idea/
+
+### MIPS
+*.obj
+*.out
