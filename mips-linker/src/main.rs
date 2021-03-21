@@ -9,6 +9,7 @@ use std::path::{Path, PathBuf};
 use std::{fs, io};
 use structopt::StructOpt;
 
+mod references;
 mod relocation;
 mod util;
 
