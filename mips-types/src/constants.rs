@@ -100,6 +100,7 @@ pub const SYM_DEF_SEEN: u32 = 0x20;
 pub const SYM_DEF_LABEL: u32 = 0x80;
 /// This symbol was defined as global
 pub const SYM_GLOBAL: u32 = 0x4000;
+pub const SYM_MODE_MASK: u32 = 0xF;
 
 // Relocation flags
 pub const REL_LOWER_IMM: u8 = 0x01;
@@ -112,8 +113,13 @@ pub const REL_UPPER_IMM: u8 = 0x05;
 pub const REF_METHOD_ADD: u8 = 0x00;
 pub const REF_METHOD_REPLACE: u8 = 0x10;
 pub const REF_METHOD_SUBTRACT: u8 = 0x20;
+pub const REF_METHOD_MASK: u8 = 0x30;
 pub const REF_TARGET_IMM: u8 = 0x01;
 pub const REF_TARGET_HALF_WORD: u8 = 0x02;
 pub const REF_TARGET_SPLIT_IMM: u8 = 0x03;
 pub const REF_TARGET_WORD: u8 = 0x04;
 pub const REF_TARGET_JUMP: u8 = 0x05;
+pub const REF_TARGET_MASK: u8 = 0x0F;
+pub const REF_RESOLVABLE: u8 = 0x40;
+pub const REF_RESOLVED: u8 = 0x80;
+pub const REF_RESOLVED_MASK: u8 = 0xC0;

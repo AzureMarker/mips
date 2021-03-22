@@ -2,7 +2,7 @@ use mips_types::module::R2KSymbolEntry;
 use std::collections::HashMap;
 use std::str::from_utf8;
 
-/// Read a word (u32) from the section at the given offset
+/// Read a word (u32) from the section
 pub fn read_word(section: &[u8], address: usize) -> u32 {
     let bytes = [
         section[address],
@@ -13,32 +13,46 @@ pub fn read_word(section: &[u8], address: usize) -> u32 {
     u32::from_be_bytes(bytes)
 }
 
-/// Update the immediate value of the instruction at the address.
-/// The value is added to the immediate.
-pub fn update_immediate(section: &mut [u8], address: usize, value: u16) {
-    let immediate = read_word(section, address) as u16;
-    let new_immediate = immediate + value;
-    let new_bytes = new_immediate.to_be_bytes();
+/// Read a half (u16) from the section
+pub fn read_half(section: &[u8], address: usize) -> u16 {
+    let bytes = [section[address], section[address + 1]];
+    u16::from_be_bytes(bytes)
+}
+
+/// Read the immediate field of an instruction
+pub fn read_immediate(section: &[u8], address: usize) -> u16 {
+    read_half(section, address + 2)
+}
+
+/// Read the pseudo address of an instruction
+pub fn read_pseudo_address(section: &[u8], address: usize) -> u32 {
+    let word = read_word(section, address);
+    word & 0x03FFFFFF
+}
+
+/// Write a word (u32) to the section
+pub fn write_word(section: &mut [u8], address: usize, value: u32) {
+    let bytes = value.to_be_bytes();
+    section[address..(address + 4)].copy_from_slice(&bytes);
+}
+
+/// Write a half (u16) to the section
+pub fn write_half(section: &mut [u8], address: usize, value: u16) {
+    let bytes = value.to_be_bytes();
+    section[address..(address + 2)].copy_from_slice(&bytes);
+}
+
+/// Set the immediate value of an instruction
+pub fn write_immediate(section: &mut [u8], address: usize, value: u16) {
+    let new_bytes = value.to_be_bytes();
     section[(address + 2)..(address + 4)].copy_from_slice(&new_bytes);
 }
 
-/// Read the strings section into a map from offset to string
-pub fn read_strings(strings: &[u8]) -> HashMap<usize, String> {
-    let mut map = HashMap::new();
-    let mut s = String::new();
-    let mut index = 0;
-
-    for (i, byte) in strings.iter().copied().enumerate() {
-        if byte == 0 {
-            map.insert(index, std::mem::take(&mut s));
-            index = i + 1;
-            continue;
-        }
-
-        s.push(byte as char);
-    }
-
-    map
+/// Set the pseudo address of an instruction
+pub fn write_pseudo_address(section: &mut [u8], address: usize, value: u32) {
+    let bytes = value.to_be_bytes();
+    section[address] = (section[address] & 0b11111100) + (bytes[0] & 0b00000011);
+    section[(address + 1)..(address + 4)].copy_from_slice(&bytes[1..]);
 }
 
 #[derive(Copy, Clone)]
@@ -51,7 +65,7 @@ impl<'a> R2KStrings<'a> {
         Self { inner: strings }
     }
 
-    pub fn get_str(&self, id: u32) -> Option<&str> {
+    pub fn get_str(&self, id: u32) -> Option<&'a str> {
         let id = id as usize;
 
         if id >= self.inner.len() {
@@ -66,3 +80,20 @@ impl<'a> R2KStrings<'a> {
 }
 
 pub type R2KSymbolTable<'a> = HashMap<&'a str, &'a R2KSymbolEntry>;
+
+pub fn make_symbol_table<'a>(
+    strings: R2KStrings<'a>,
+    symbols: &'a [R2KSymbolEntry],
+) -> R2KSymbolTable<'a> {
+    let mut table = HashMap::new();
+
+    for symbol in symbols {
+        let string = strings
+            .get_str(symbol.str_idx)
+            .expect("Could not find symbol string in strings table");
+
+        table.insert(string, symbol);
+    }
+
+    table
+}

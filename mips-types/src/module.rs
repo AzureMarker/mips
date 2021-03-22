@@ -1,3 +1,4 @@
+use crate::constants::{REF_RESOLVABLE, REF_RESOLVED};
 use std::convert::{TryFrom, TryInto};
 use std::io;
 use std::io::{Read, Write};
@@ -256,6 +257,14 @@ impl R2KReferenceEntry {
         output.write_all(&[self.section, self.ref_type, 0, 0])?;
 
         Ok(())
+    }
+
+    pub fn is_resolvable(&self) -> bool {
+        self.ref_type & REF_RESOLVABLE != 0
+    }
+
+    pub fn is_resolved(&self) -> bool {
+        self.ref_type & REF_RESOLVED != 0
     }
 }
 

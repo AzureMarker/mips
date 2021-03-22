@@ -1,4 +1,6 @@
+use crate::references::resolve_references;
 use crate::relocation::relocate;
+use crate::util::{make_symbol_table, R2KStrings};
 use env_logger::Env;
 use mips_types::constants::{DATA_OFFSET, TEXT_OFFSET};
 use mips_types::module::{R2KModule, R2KModuleHeader, R2KVersion, R2K_MAGIC, RELOCATION_INDEX};
@@ -72,11 +74,16 @@ fn obj_to_load_module(obj_module: R2KModule) -> R2KModule {
     let entry = TEXT_OFFSET;
     let mut section_sizes = obj_module.header.section_sizes;
     let mut relocation = obj_module.relocation_section;
+    let mut references = obj_module.reference_section;
     let mut text_section = obj_module.text_section;
     let mut data_section = obj_module.data_section;
+    let strings = R2KStrings::new(&obj_module.string_table);
+    let symbols = make_symbol_table(strings, &obj_module.symbol_table);
 
     relocate(&mut text_section, 1, TEXT_OFFSET, &mut relocation);
     relocate(&mut data_section, 3, DATA_OFFSET, &mut relocation);
+    resolve_references(&mut text_section, 1, strings, &symbols, &mut references);
+    resolve_references(&mut data_section, 3, strings, &symbols, &mut references);
 
     // FIXME: refactor and support all relocatable sections
     assert!(
@@ -101,7 +108,7 @@ fn obj_to_load_module(obj_module: R2KModule) -> R2KModule {
         sbss_size: obj_module.sbss_size,
         bss_size: obj_module.bss_size,
         relocation_section: relocation,
-        reference_section: obj_module.reference_section,
+        reference_section: references,
         symbol_table: obj_module.symbol_table,
         string_table: obj_module.string_table,
     }
