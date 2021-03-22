@@ -26,12 +26,12 @@ pub fn relocate(
             REL_SPLIT_IMM => {
                 let immediate = read_immediate(section, address);
                 let second_immediate = read_immediate(section, address + 4);
-                write_immediate(section, address, immediate + section_offset as u16);
                 write_immediate(
                     section,
-                    address + 4,
+                    address,
                     second_immediate + (section_offset >> 16) as u16,
                 );
+                write_immediate(section, address + 4, immediate + section_offset as u16);
             }
             REL_WORD => {
                 let word = read_word(section, address);

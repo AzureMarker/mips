@@ -46,9 +46,9 @@ pub fn resolve_references(
             REF_TARGET_SPLIT_IMM => {
                 let immediate = read_immediate(section, address);
                 let second_immediate = read_immediate(section, address + 4);
-                let new_immediate = apply_method(method, symbol.value as u16, immediate);
+                let new_immediate = apply_method(method, (symbol.value >> 16) as u16, immediate);
                 let new_second_immediate =
-                    apply_method(method, (symbol.value >> 16) as u16, second_immediate);
+                    apply_method(method, symbol.value as u16, second_immediate);
 
                 write_immediate(section, address, new_immediate);
                 write_immediate(section, address + 4, new_second_immediate);
