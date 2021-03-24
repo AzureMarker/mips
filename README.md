@@ -1,4 +1,4 @@
-# MIPS assembler, simulator, and debugger
+# MIPS assembler, linker, simulator, and debugger
 
 ## Goals
 - Assembler
