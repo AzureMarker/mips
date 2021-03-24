@@ -5,11 +5,13 @@
   - [X] Parse assembly code
   - [X] Assemble code into object files
   - [ ] Support all directives and instructions
-  - [ ] Handle global (extern) references
-  - [ ] Support data sections like sdata
+  - [X] Handle global (extern) references
+  - [X] Support data sections like sdata
 - Linker
-  - [ ] Link object files into final executable
-  - [ ] TODO: expand goals
+  - [ ] Support transforming one independent object module (only exports
+        main) into an executable file (R2K format).
+  - [ ] Support linking (at least) two object modules together such that a
+        global exported by one and used by another is wired up correctly.
 - Simulator
   - [X] Create a simulated MIPS CPU
   - [X] Parse R instructions
