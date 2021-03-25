@@ -15,13 +15,14 @@ use mips_types::module::{
     DATA_INDEX, R2K_MAGIC, RDATA_INDEX, REFERENCES_INDEX, RELOCATION_INDEX, SDATA_INDEX,
     SECTION_COUNT, STRINGS_INDEX, SYMBOLS_INDEX, TEXT_INDEX,
 };
+use std::array::IntoIter;
 
 impl IrProgram {
     pub fn lower(self) -> R2KModule {
         let text: Vec<u8> = self
             .text
             .into_iter()
-            .flat_map(|instruction| instruction.lower().to_be_bytes().to_vec())
+            .flat_map(|instruction| IntoIter::new(instruction.lower().to_be_bytes()))
             .collect();
         let relocation = self.relocation.iter().map(RelocationEntry::lower).collect();
         let references = self.references.iter().map(ReferenceEntry::lower).collect();

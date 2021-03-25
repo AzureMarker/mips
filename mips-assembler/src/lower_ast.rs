@@ -11,6 +11,7 @@ use crate::ir::{
 use crate::string_table::StringTable;
 use crate::string_unescape::unescape_str;
 use either::Either;
+use std::array::IntoIter;
 use std::collections::HashMap;
 use std::fmt::{Display, LowerHex};
 use std::iter;
@@ -344,7 +345,7 @@ impl IrBuilder {
         self.extend_with_numbers(
             numbers,
             |_, _| panic!("Cannot use .half in the text segment"),
-            |half| half.to_be_bytes().to_vec(),
+            |half| IntoIter::new(half.to_be_bytes()),
         )
     }
 
@@ -401,7 +402,7 @@ impl IrBuilder {
                     builder.text_offset += 4;
                 }
             },
-            |word| word.to_be_bytes().to_vec(),
+            |word| IntoIter::new(word.to_be_bytes()),
         );
     }
 
