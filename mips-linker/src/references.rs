@@ -15,12 +15,12 @@ pub fn resolve_references(
     section_num: u8,
     strings: R2KStrings,
     symbols: &R2KSymbolTable,
-    references: &mut [R2KReferenceEntry],
+    references: &mut Vec<R2KReferenceEntry>,
 ) {
-    for reference in references.iter_mut() {
+    references.retain(|reference| {
         if reference.section != section_num /*|| !reference.is_resolvable()*/ || reference.is_resolved()
         {
-            continue;
+            return true;
         }
 
         let address = reference.address as usize;
@@ -66,9 +66,8 @@ pub fn resolve_references(
             }
             _ => panic!("Unknown target: 0x{:02x}", target),
         }
-
-        reference.ref_type |= REF_RESOLVED;
-    }
+        false
+    });
 }
 
 fn apply_method<T: Add<Output = T> + Sub<Output = T>>(

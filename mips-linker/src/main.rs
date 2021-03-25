@@ -87,8 +87,8 @@ fn obj_to_load_module(obj_module: R2KModule) -> R2KModule {
 
     // FIXME: refactor and support all relocatable sections
     assert!(
-        relocation.is_empty(),
-        "Only text and data relocation is currently supported"
+        relocation.is_empty() && references.is_empty(),
+        "Only text and data relocation/referencing is currently supported"
     );
 
     section_sizes[RELOCATION_INDEX] = relocation.len() as u32;
