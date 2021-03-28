@@ -1,4 +1,4 @@
-use crate::constants::{REF_RESOLVABLE, REF_RESOLVED};
+use crate::constants::SYM_MODE_MASK;
 use std::convert::{TryFrom, TryInto};
 use std::io;
 use std::io::{Read, Write};
@@ -191,10 +191,48 @@ impl TryFrom<u16> for R2KVersion {
     }
 }
 
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub enum R2KSection {
+    Undefined,
+    Text,
+    RData,
+    Data,
+    SData,
+}
+
+impl R2KSection {
+    /// Parse the input as an R2K section number
+    pub fn parse<R: Read>(input: &mut R) -> io::Result<Self> {
+        read_u8(input)?
+            .try_into()
+            .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "Unknown section number"))
+    }
+
+    /// Write the section number
+    pub fn write<W: Write>(&self, output: &mut W) -> io::Result<()> {
+        output.write_all(&[*self as u8])
+    }
+}
+
+impl TryFrom<u8> for R2KSection {
+    type Error = ();
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        match value {
+            0 => Ok(R2KSection::Undefined),
+            1 => Ok(R2KSection::Text),
+            2 => Ok(R2KSection::RData),
+            3 => Ok(R2KSection::Data),
+            4 => Ok(R2KSection::SData),
+            _ => Err(()),
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct R2KRelocationEntry {
     pub address: u32,
-    pub section: u8,
+    pub section: R2KSection,
     pub rel_type: u8,
 }
 
@@ -203,7 +241,7 @@ impl R2KRelocationEntry {
     pub fn parse<R: Read>(input: &mut R) -> io::Result<Self> {
         let entry = Self {
             address: read_u32(input)?,
-            section: read_u8(input)?,
+            section: R2KSection::parse(input)?,
             rel_type: read_u8(input)?,
         };
 
@@ -218,7 +256,8 @@ impl R2KRelocationEntry {
     pub fn write<W: Write>(&self, output: &mut W) -> io::Result<()> {
         // Note: there are two bytes of padding at the end of the binary format
         output.write_all(&self.address.to_be_bytes())?;
-        output.write_all(&[self.section, self.rel_type, 0, 0])?;
+        self.section.write(output)?;
+        output.write_all(&[self.rel_type, 0, 0])?;
 
         Ok(())
     }
@@ -228,7 +267,7 @@ impl R2KRelocationEntry {
 pub struct R2KReferenceEntry {
     pub address: u32,
     pub str_idx: u32,
-    pub section: u8,
+    pub section: R2KSection,
     pub ref_type: u8,
 }
 
@@ -238,7 +277,7 @@ impl R2KReferenceEntry {
         let entry = Self {
             address: read_u32(input)?,
             str_idx: read_u32(input)?,
-            section: read_u8(input)?,
+            section: R2KSection::parse(input)?,
             ref_type: read_u8(input)?,
         };
 
@@ -254,17 +293,10 @@ impl R2KReferenceEntry {
         // Note: there are two bytes of padding at the end of the binary format
         output.write_all(&self.address.to_be_bytes())?;
         output.write_all(&self.str_idx.to_be_bytes())?;
-        output.write_all(&[self.section, self.ref_type, 0, 0])?;
+        self.section.write(output)?;
+        output.write_all(&[self.ref_type, 0, 0])?;
 
         Ok(())
-    }
-
-    pub fn is_resolvable(&self) -> bool {
-        self.ref_type & REF_RESOLVABLE != 0
-    }
-
-    pub fn is_resolved(&self) -> bool {
-        self.ref_type & REF_RESOLVED != 0
     }
 }
 
@@ -292,6 +324,12 @@ impl R2KSymbolEntry {
         output.write_all(&self.str_idx.to_be_bytes())?;
 
         Ok(())
+    }
+
+    /// Get the section where the symbol lives
+    pub fn section(&self) -> R2KSection {
+        R2KSection::try_from((self.flags & SYM_MODE_MASK) as u8)
+            .expect("Symbol should have a valid section")
     }
 }
 

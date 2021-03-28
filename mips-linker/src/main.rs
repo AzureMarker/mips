@@ -3,7 +3,10 @@ use crate::relocation::relocate;
 use crate::util::{make_symbol_table, R2KStrings};
 use env_logger::Env;
 use mips_types::constants::{DATA_OFFSET, TEXT_OFFSET};
-use mips_types::module::{R2KModule, R2KModuleHeader, R2KVersion, R2K_MAGIC, RELOCATION_INDEX};
+use mips_types::module::{
+    R2KModule, R2KModuleHeader, R2KSection, R2KVersion, R2K_MAGIC, REFERENCES_INDEX,
+    RELOCATION_INDEX,
+};
 use std::error::Error;
 use std::fs::File;
 use std::io::{Cursor, Write};
@@ -80,10 +83,32 @@ fn obj_to_load_module(obj_module: R2KModule) -> R2KModule {
     let strings = R2KStrings::new(&obj_module.string_table);
     let symbols = make_symbol_table(strings, &obj_module.symbol_table);
 
-    relocate(&mut text_section, 1, TEXT_OFFSET, &mut relocation);
-    relocate(&mut data_section, 3, DATA_OFFSET, &mut relocation);
-    resolve_references(&mut text_section, 1, strings, &symbols, &mut references);
-    resolve_references(&mut data_section, 3, strings, &symbols, &mut references);
+    relocate(
+        &mut text_section,
+        R2KSection::Text,
+        TEXT_OFFSET,
+        &mut relocation,
+    );
+    relocate(
+        &mut data_section,
+        R2KSection::Data,
+        DATA_OFFSET,
+        &mut relocation,
+    );
+    resolve_references(
+        &mut text_section,
+        R2KSection::Text,
+        strings,
+        &symbols,
+        &mut references,
+    );
+    resolve_references(
+        &mut data_section,
+        R2KSection::Data,
+        strings,
+        &symbols,
+        &mut references,
+    );
 
     // FIXME: refactor and support all relocatable sections
     assert!(
@@ -92,6 +117,7 @@ fn obj_to_load_module(obj_module: R2KModule) -> R2KModule {
     );
 
     section_sizes[RELOCATION_INDEX] = relocation.len() as u32;
+    section_sizes[REFERENCES_INDEX] = references.len() as u32;
 
     R2KModule {
         header: R2KModuleHeader {

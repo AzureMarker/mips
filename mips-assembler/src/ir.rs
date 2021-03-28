@@ -55,12 +55,6 @@ pub enum SymbolLocation {
     SData,
 }
 
-impl SymbolLocation {
-    pub fn section_number(&self) -> u8 {
-        *self as u8
-    }
-}
-
 #[derive(Debug)]
 pub enum SymbolType {
     Local,
