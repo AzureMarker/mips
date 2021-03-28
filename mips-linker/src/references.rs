@@ -26,16 +26,7 @@ pub fn resolve_references(
         let symbol_name = strings
             .get_str(reference.str_idx)
             .expect("Could not find string");
-        let symbol = match symbols.get(symbol_name) {
-            Some(sym) => *sym,
-            None => {
-                log::info!(
-                    "Could not find symbol '{}' when resolving references",
-                    symbol_name
-                );
-                return true;
-            }
-        };
+        let symbol = *symbols.get(symbol_name).expect("Could not find symbol");
         let symbol_value = match symbol.section() {
             R2KSection::Undefined => symbol.value,
             R2KSection::Text => symbol.value + TEXT_OFFSET,
@@ -43,6 +34,20 @@ pub fn resolve_references(
             R2KSection::RData => symbol.value + DATA_OFFSET,
             R2KSection::Data => symbol.value + DATA_OFFSET,
             R2KSection::SData => symbol.value + DATA_OFFSET,
+            R2KSection::SBss => {
+                unimplemented!()
+            }
+            R2KSection::Bss => {
+                unimplemented!()
+            }
+            R2KSection::Absolute => symbol.value,
+            R2KSection::External => {
+                log::info!(
+                    "Could not find symbol '{}' when resolving references",
+                    symbol_name
+                );
+                return true;
+            }
         };
 
         let method = reference.ref_type & REF_METHOD_MASK;

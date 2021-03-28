@@ -198,6 +198,10 @@ pub enum R2KSection {
     RData,
     Data,
     SData,
+    SBss,
+    Bss,
+    Absolute,
+    External,
 }
 
 impl R2KSection {
@@ -224,6 +228,10 @@ impl TryFrom<u8> for R2KSection {
             2 => Ok(R2KSection::RData),
             3 => Ok(R2KSection::Data),
             4 => Ok(R2KSection::SData),
+            5 => Ok(R2KSection::SBss),
+            6 => Ok(R2KSection::Bss),
+            7 => Ok(R2KSection::Absolute),
+            8 => Ok(R2KSection::External),
             _ => Err(()),
         }
     }
