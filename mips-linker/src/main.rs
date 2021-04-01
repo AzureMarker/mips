@@ -58,12 +58,18 @@ fn link_objects(obj_file_paths: &[PathBuf], output_file_path: &Path) -> io::Resu
     );
     log::info!("Loaded {} object files", obj_files.len());
 
-    let load_module = obj_to_load_module(obj_files.remove(0));
+    let output_module = obj_to_load_module(obj_files.remove(0));
+    let is_load_module = output_module.is_load_module();
 
-    // Write out load module
+    // Write out the module
     let mut output_file = File::create(output_file_path)?;
-    load_module.write(&mut output_file)?;
-    log::info!("Wrote load module to {}", output_file_path.display());
+    output_module.write(&mut output_file)?;
+
+    log::info!(
+        "Wrote {} module to {}",
+        if is_load_module { "load" } else { "object" },
+        output_file_path.display()
+    );
 
     Ok(())
 }

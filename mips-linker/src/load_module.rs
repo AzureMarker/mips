@@ -10,7 +10,6 @@ use mips_types::module::{
 };
 
 pub fn obj_to_load_module(obj_module: R2KModule) -> R2KModule {
-    let entry = TEXT_OFFSET;
     let mut section_sizes = obj_module.header.section_sizes;
     let mut relocation = obj_module.relocation_section;
     let mut references = obj_module.reference_section;
@@ -48,12 +47,37 @@ pub fn obj_to_load_module(obj_module: R2KModule) -> R2KModule {
 
     // FIXME: refactor and support all relocatable sections
     assert!(
-        relocation.is_empty() && references.is_empty(),
+        relocation.is_empty(),
         "Only text and data relocation/referencing is currently supported"
     );
 
     section_sizes[RELOCATION_INDEX] = relocation.len() as u32;
     section_sizes[REFERENCES_INDEX] = references.len() as u32;
+
+    let entry = if references.is_empty() {
+        // All references are resolved, the output is a load module
+        TEXT_OFFSET
+    } else {
+        // Not all references were resolved, the output is an object file
+        let missing_symbol_names: Vec<_> = references
+            .iter()
+            .map(|reference| {
+                strings
+                    .get_str(reference.str_idx)
+                    .expect("Could not find string in string table")
+            })
+            .collect();
+
+        log::info!(
+            "Not all references were resolved. Missing {} symbol(s):",
+            missing_symbol_names.len()
+        );
+        for symbol_name in missing_symbol_names {
+            log::info!("  {}", symbol_name);
+        }
+
+        0
+    };
 
     R2KModule {
         header: R2KModuleHeader {

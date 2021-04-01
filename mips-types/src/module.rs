@@ -124,6 +124,12 @@ impl R2KModule {
 
         Ok(())
     }
+
+    /// Check if this module is a load module.
+    /// Note: the file should also be executable on the file system
+    pub fn is_load_module(&self) -> bool {
+        self.header.entry != 0
+    }
 }
 
 impl R2KModuleHeader {
