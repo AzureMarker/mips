@@ -2,8 +2,9 @@ use crate::load_module::obj_to_load_module;
 use env_logger::Env;
 use mips_types::module::R2KModule;
 use std::error::Error;
-use std::fs::File;
+use std::fs::OpenOptions;
 use std::io::{Cursor, Write};
+use std::os::unix::fs::OpenOptionsExt;
 use std::path::{Path, PathBuf};
 use std::{fs, io};
 use structopt::StructOpt;
@@ -62,7 +63,13 @@ fn link_objects(obj_file_paths: &[PathBuf], output_file_path: &Path) -> io::Resu
     let is_load_module = output_module.is_load_module();
 
     // Write out the module
-    let mut output_file = File::create(output_file_path)?;
+    let mut output_file = OpenOptions::new()
+        .write(true)
+        .create(true)
+        .truncate(true)
+        // Make load modules executable
+        .mode(if is_load_module { 0o755 } else { 0o644 })
+        .open(output_file_path)?;
     output_module.write(&mut output_file)?;
 
     log::info!(
