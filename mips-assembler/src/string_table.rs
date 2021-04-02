@@ -27,11 +27,6 @@ impl StringTable {
         offset
     }
 
-    /// Get the offset of a string if it exists in the table
-    pub fn get_offset(&self, s: &str) -> Option<usize> {
-        self.str_map.get(s).copied()
-    }
-
     /// Write the string table out as a contiguous block of bytes. The offsets
     /// obtained at insertion time can be used to recover the (null-terminated)
     /// strings.
