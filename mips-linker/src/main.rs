@@ -1,4 +1,5 @@
 use crate::load_module::obj_to_load_module;
+use crate::module_merging::merge_obj_modules;
 use env_logger::Env;
 use mips_types::module::R2KModule;
 use std::error::Error;
@@ -10,6 +11,7 @@ use std::{fs, io};
 use structopt::StructOpt;
 
 mod load_module;
+mod module_merging;
 mod references;
 mod relocation;
 mod util;
@@ -41,11 +43,10 @@ fn main() -> Result<(), Box<dyn Error>> {
 }
 
 fn link_objects(obj_file_paths: &[PathBuf], output_file_path: &Path) -> io::Result<()> {
-    // FIXME: allow more than one object file
-    assert_eq!(obj_file_paths.len(), 1);
+    assert!(!obj_file_paths.is_empty());
 
     // Load the object files
-    let mut obj_files = obj_file_paths
+    let obj_modules = obj_file_paths
         .iter()
         .map(|obj_file_path| {
             let file_data = fs::read(obj_file_path)?;
@@ -55,11 +56,18 @@ fn link_objects(obj_file_paths: &[PathBuf], output_file_path: &Path) -> io::Resu
 
     log::trace!(
         "Loaded object files: {:#?}",
-        obj_files.iter().map(|obj| &obj.header).collect::<Vec<_>>()
+        obj_modules
+            .iter()
+            .map(|obj| &obj.header)
+            .collect::<Vec<_>>()
     );
-    log::info!("Loaded {} object files", obj_files.len());
+    log::info!("Loaded {} object files", obj_modules.len());
 
-    let output_module = obj_to_load_module(obj_files.remove(0));
+    // Combine object files
+    let merged_module = obj_modules.into_iter().reduce(merge_obj_modules).unwrap();
+
+    // Try to build a load module
+    let output_module = obj_to_load_module(merged_module);
     let is_load_module = output_module.is_load_module();
 
     // Write out the module

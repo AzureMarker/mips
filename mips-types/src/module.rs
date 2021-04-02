@@ -1,4 +1,4 @@
-use crate::constants::SYM_MODE_MASK;
+use crate::constants::{SYM_DEF_LABEL, SYM_MODE_MASK};
 use std::convert::{TryFrom, TryInto};
 use std::io;
 use std::io::{Read, Write};
@@ -344,6 +344,10 @@ impl R2KSymbolEntry {
     pub fn section(&self) -> R2KSection {
         R2KSection::try_from((self.flags & SYM_MODE_MASK) as u8)
             .expect("Symbol should have a valid section")
+    }
+
+    pub fn is_label(&self) -> bool {
+        self.flags & SYM_DEF_LABEL != 0
     }
 }
 
