@@ -271,7 +271,7 @@ impl IrBuilder {
                 label.to_string(),
                 Symbol {
                     location: SymbolLocation::Undefined,
-                    offset: self.current_offset(),
+                    offset: 0,
                     string_offset: self.string_table.insert(label.to_string()),
                     ty: SymbolType::Import,
                 },
