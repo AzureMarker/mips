@@ -260,6 +260,7 @@ match {
 
     // Ignore whitespace (but keep newlines)
     "\t" => { },
+    "\r" => { },
     " " => { },
 
     // noop/nop has higher priority over labels
