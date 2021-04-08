@@ -134,6 +134,15 @@ Instruction: Instruction = {
         rt: Register::Number(0),
         shift: ExprData::Number(0).into()
     },
+    "break" <code:Expr?> => Instruction::RType {
+        op_code: RTypeOp::Break,
+        rd: Register::Number(0),
+        rs: Register::Number(0),
+        rt: Register::Number(0),
+        // Store the break code in shift temporarily.
+        // It will be resolved during the lowering to IR.
+        shift: code.unwrap_or_else(|| ExprData::Number(0).into())
+    },
     r"noop|nop" => Instruction::noop(),
     PseudoInstruction => Instruction::Pseudo(<>),
 };

@@ -202,6 +202,7 @@ pub enum RTypeOp {
     Add,
     Addu,
     And,
+    Break,
     Div,
     Divu,
     Jalr,

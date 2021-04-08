@@ -603,6 +603,22 @@ impl Instruction {
 
     fn lower(self, builder: &mut IrBuilder) -> Vec<IrInstruction> {
         match self {
+            // Special-case break. The code is stored in the shift expression,
+            // but must span the entire instruction from op code to function code.
+            Instruction::RType {
+                op_code: RTypeOp::Break,
+                shift,
+                ..
+            } => {
+                let code = shift.evaluate(&builder.constants).unwrap() as u32;
+                vec![IrInstruction::RType {
+                    op_code: RTypeOp::Break,
+                    rs: (code >> 15 & 0x1F) as u8,
+                    rt: (code >> 10 & 0x1F) as u8,
+                    rd: (code >> 5 & 0x1F) as u8,
+                    shift: (code & 0x1F) as u8,
+                }]
+            }
             Instruction::RType {
                 op_code,
                 rs,
