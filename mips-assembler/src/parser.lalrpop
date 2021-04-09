@@ -78,7 +78,10 @@ ExprOperation4: Operation = {
 RepeatedExpr: RepeatedExpr = <expr:Expr> <times:(":" <Expr>)?>
     => RepeatedExpr { expr, times: times.unwrap_or_else(|| ExprData::Number(1).into()) };
 
-Number: i64 = r"[0-9]+" => i64::from_str(<>).unwrap();
+Number: i64 = {
+    r"[0-9]+" => i64::from_str(<>).unwrap(),
+    r"0x[0-9a-zA-Z]+" => i64::from_str_radix(&<>[2..], 16).unwrap(),
+};
 
 Identifier: String = r"[a-zA-Z_][a-zA-Z_0-9]*" => <>.to_string();
 
