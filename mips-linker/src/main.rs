@@ -1,6 +1,8 @@
 use crate::load_module::obj_to_load_module;
 use crate::module_merging::merge_obj_modules;
+use crate::util::R2KStrings;
 use env_logger::Env;
+use mips_types::constants::R2K_ENTRYPOINT;
 use mips_types::module::R2KModule;
 use std::error::Error;
 use std::fs::OpenOptions;
@@ -15,6 +17,10 @@ mod module_merging;
 mod references;
 mod relocation;
 mod util;
+
+/// The assembled r2k_startup code which is linked in if the R2K entrypoint is
+/// not defined in the input object files.
+const R2K_STARTUP_OBJ: &[u8] = include_bytes!("../assets/r2k_startup.obj");
 
 #[derive(StructOpt)]
 struct CliArgs {
@@ -64,7 +70,18 @@ fn link_objects(obj_file_paths: &[PathBuf], output_file_path: &Path) -> io::Resu
     log::info!("Loaded {} object files", obj_modules.len());
 
     // Combine object files
-    let merged_module = obj_modules.into_iter().reduce(merge_obj_modules).unwrap();
+    let mut merged_module = obj_modules.into_iter().reduce(merge_obj_modules).unwrap();
+
+    // Add in r2k_startup if no entry is found
+    let strings = R2KStrings::new(&merged_module.string_table);
+    let contains_entry = merged_module.symbol_table.iter().any(|symbol| {
+        strings.get_str(symbol.str_idx).unwrap() == R2K_ENTRYPOINT && symbol.has_definition()
+    });
+    if !contains_entry {
+        let r2k_startup = R2KModule::parse(&mut Cursor::new(R2K_STARTUP_OBJ))
+            .expect("The embedded r2k_startup obj should be valid");
+        merged_module = merge_obj_modules(merged_module, r2k_startup);
+    }
 
     // Try to build a load module
     let output_module = obj_to_load_module(merged_module);

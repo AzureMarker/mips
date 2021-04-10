@@ -3,7 +3,7 @@
 use crate::references::resolve_references;
 use crate::relocation::relocate;
 use crate::util::{make_symbol_table, R2KStrings};
-use mips_types::constants::{DATA_OFFSET, TEXT_OFFSET};
+use mips_types::constants::{DATA_OFFSET, R2K_ENTRYPOINT, TEXT_OFFSET};
 use mips_types::module::{
     R2KModule, R2KModuleHeader, R2KSection, R2KVersion, R2K_MAGIC, REFERENCES_INDEX,
     RELOCATION_INDEX,
@@ -56,7 +56,10 @@ pub fn obj_to_load_module(obj_module: R2KModule) -> R2KModule {
 
     let entry = if references.is_empty() {
         // All references are resolved, the output is a load module
-        TEXT_OFFSET
+        symbols
+            .get(R2K_ENTRYPOINT)
+            .map(|entry_symbol| TEXT_OFFSET + entry_symbol.value)
+            .unwrap_or(TEXT_OFFSET)
     } else {
         // Not all references were resolved, the output is an object file
         let missing_symbol_names: Vec<_> = references

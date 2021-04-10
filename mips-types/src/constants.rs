@@ -89,6 +89,9 @@ pub const STACK_BOTTOM: u32 = 0x7fffefff;
 pub const TEXT_OFFSET: u32 = 0x00400000;
 pub const DATA_OFFSET: u32 = 0x10000000;
 
+/// The entrypoint of R2K programs
+pub const R2K_ENTRYPOINT: &str = "__r2k__entry__";
+
 // Symbol flags
 /// We have seen the definition of this symbol (is not a global import)
 pub const SYM_DEF_SEEN: u32 = 0x20;
