@@ -1,7 +1,7 @@
 //! Intermediate Representation
 
 use crate::ast::{ITypeOp, JTypeOp, RTypeOp};
-use crate::string_table::StringTable;
+use mips_types::string_table::StringTable;
 use std::collections::HashMap;
 
 #[derive(Debug)]

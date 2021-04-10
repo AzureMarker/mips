@@ -3,11 +3,12 @@ use mips_types::module::{
     R2KModule, R2KModuleHeader, R2KSection, DATA_INDEX, RDATA_INDEX, REFERENCES_INDEX,
     RELOCATION_INDEX, SDATA_INDEX, SECTION_COUNT, STRINGS_INDEX, SYMBOLS_INDEX, TEXT_INDEX,
 };
+use mips_types::string_table::StringTable;
 use std::collections::HashSet;
 
 /// Merge two object modules. The right module's sections will be placed after
 /// the left module's sections.
-pub fn merge_obj_modules(left: R2KModule, right: R2KModule) -> R2KModule {
+pub fn merge_obj_modules(mut left: R2KModule, right: R2KModule) -> R2KModule {
     let left_sizes = left.header.section_sizes;
     let update_address = |section, address: &mut u32, entry_type: &str| match section {
         R2KSection::Text => *address += left_sizes[TEXT_INDEX],
@@ -33,10 +34,10 @@ pub fn merge_obj_modules(left: R2KModule, right: R2KModule) -> R2KModule {
     let mut merged_sdata = left.sdata_section;
     merged_sdata.extend(right.sdata_section);
 
-    // Merge string table
-    let mut merged_str_table = left.string_table;
-    merged_str_table.extend(right.string_table);
-    // TODO: deduplicate strings table? Maybe once all modules are merged.
+    // Merge string tables by building a new, deduplicated one
+    let mut merged_str_table = StringTable::new();
+    let left_strings = R2KStrings::new(&left.string_table);
+    let right_strings = R2KStrings::new(&right.string_table);
 
     // Merge relocation
     let mut merged_relocation = left.relocation_section;
@@ -46,17 +47,27 @@ pub fn merge_obj_modules(left: R2KModule, right: R2KModule) -> R2KModule {
     }));
 
     // Merge references
+    for reference in &mut left.reference_section {
+        let str_idx = merged_str_table.insert(left_strings.get_str(reference.str_idx).unwrap());
+        reference.str_idx = str_idx as u32;
+    }
     let mut merged_references = left.reference_section;
     merged_references.extend(right.reference_section.into_iter().map(|mut entry| {
-        entry.str_idx += left_sizes[STRINGS_INDEX];
+        let str_idx = merged_str_table.insert(right_strings.get_str(entry.str_idx).unwrap());
+        entry.str_idx = str_idx as u32;
         update_address(entry.section, &mut entry.address, "reference");
         entry
     }));
 
     // Merge symbols
+    for symbol in &mut left.symbol_table {
+        let str_idx = merged_str_table.insert(left_strings.get_str(symbol.str_idx).unwrap());
+        symbol.str_idx = str_idx as u32;
+    }
     let mut merged_symbols = left.symbol_table;
     merged_symbols.extend(right.symbol_table.into_iter().map(|mut symbol| {
-        symbol.str_idx += left_sizes[STRINGS_INDEX];
+        let str_idx = merged_str_table.insert(right_strings.get_str(symbol.str_idx).unwrap());
+        symbol.str_idx = str_idx as u32;
 
         if symbol.is_label() {
             // Adjust the label offset
@@ -65,6 +76,9 @@ pub fn merge_obj_modules(left: R2KModule, right: R2KModule) -> R2KModule {
 
         symbol
     }));
+
+    // Finalize the merged strings into bytes
+    let merged_str_table = merged_str_table.as_bytes();
 
     // Remove import symbols if the definition has been found
     let mut seen_defs = HashSet::new();

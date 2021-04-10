@@ -8,9 +8,9 @@ use crate::ir::{
     IrInstruction, IrProgram, ReferenceEntry, ReferenceMethod, ReferenceTarget, ReferenceType,
     RelocationEntry, RelocationType, Symbol, SymbolLocation, SymbolType,
 };
-use crate::string_table::StringTable;
 use crate::string_unescape::unescape_str;
 use either::Either;
+use mips_types::string_table::StringTable;
 use std::array::IntoIter;
 use std::collections::HashMap;
 use std::fmt::{Display, LowerHex};
@@ -156,7 +156,7 @@ impl IrBuilder {
                 }
                 Item::Label(label) => {
                     label_buffer = Some(label.clone());
-                    self.visit_label(label.clone());
+                    self.visit_label(label);
                 }
                 Item::Directive(directive) => self.visit_directive(directive),
                 Item::Instruction(instruction) => {
@@ -197,10 +197,10 @@ impl IrBuilder {
         Ok(())
     }
 
-    fn visit_label(&mut self, label: String) {
+    fn visit_label(&mut self, label: &str) {
         let offset = self.current_offset();
 
-        if let Some(symbol) = self.symbol_table.get_mut(&label) {
+        if let Some(symbol) = self.symbol_table.get_mut(label) {
             match symbol.ty {
                 SymbolType::Local | SymbolType::Export => {
                     // TODO: return a proper error
@@ -218,7 +218,7 @@ impl IrBuilder {
         } else {
             // This is a never-before-seen label
             self.symbol_table.insert(
-                label.clone(),
+                label.to_string(),
                 Symbol {
                     location: self.current_section.into(),
                     offset,
@@ -272,7 +272,7 @@ impl IrBuilder {
                 Symbol {
                     location: SymbolLocation::Undefined,
                     offset: 0,
-                    string_offset: self.string_table.insert(label.to_string()),
+                    string_offset: self.string_table.insert(label),
                     ty: SymbolType::Import,
                 },
             );

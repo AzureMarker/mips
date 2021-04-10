@@ -15,16 +15,21 @@ impl StringTable {
 
     /// Insert a string into the table and get it's offset. If the string was
     /// already inserted, the existing offset will be returned.
-    pub fn insert(&mut self, s: String) -> usize {
-        if let Some(offset) = self.str_map.get(&s) {
+    pub fn insert(&mut self, s: &str) -> usize {
+        if let Some(offset) = self.str_map.get(s) {
             return *offset;
         }
 
         let offset = self.next_offset;
         self.next_offset = offset + s.len() + 1;
-        self.str_map.insert(s, offset);
+        self.str_map.insert(s.to_string(), offset);
 
         offset
+    }
+
+    /// Get the offset of a string if it exists in the table
+    pub fn get_offset(&self, s: &str) -> Option<usize> {
+        self.str_map.get(s).copied()
     }
 
     /// Write the string table out as a contiguous block of bytes. The offsets

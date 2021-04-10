@@ -21,7 +21,6 @@ mod ir;
 mod lower_ast;
 mod lower_ir;
 mod lower_ir_instruction;
-mod string_table;
 mod string_unescape;
 
 #[derive(StructOpt)]
