@@ -19,5 +19,7 @@ main:
     li $v0, PRINT_INT
     syscall
 
+    # Exit with code 0
+    li $v0, 0
     lw $ra, 0($sp)
     jr $ra
