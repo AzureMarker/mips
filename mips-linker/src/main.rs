@@ -67,7 +67,7 @@ fn link_objects(obj_file_paths: &[PathBuf], output_file_path: &Path) -> io::Resu
             .map(|obj| &obj.header)
             .collect::<Vec<_>>()
     );
-    log::info!("Loaded {} object files", obj_modules.len());
+    log::debug!("Loaded {} object files", obj_modules.len());
 
     // Combine object files
     let mut merged_module = obj_modules.into_iter().reduce(merge_obj_modules).unwrap();
@@ -78,6 +78,10 @@ fn link_objects(obj_file_paths: &[PathBuf], output_file_path: &Path) -> io::Resu
         strings.get_str(symbol.str_idx).unwrap() == R2K_ENTRYPOINT && symbol.has_definition()
     });
     if !contains_entry {
+        log::debug!(
+            "No entrypoint found ({}). Linking in r2k_startup.",
+            R2K_ENTRYPOINT
+        );
         let r2k_startup = R2KModule::parse(&mut Cursor::new(R2K_STARTUP_OBJ))
             .expect("The embedded r2k_startup obj should be valid");
         merged_module = merge_obj_modules(merged_module, r2k_startup);
@@ -97,7 +101,7 @@ fn link_objects(obj_file_paths: &[PathBuf], output_file_path: &Path) -> io::Resu
         .open(output_file_path)?;
     output_module.write(&mut output_file)?;
 
-    log::info!(
+    log::debug!(
         "Wrote {} module to {}",
         if is_load_module { "load" } else { "object" },
         output_file_path.display()
