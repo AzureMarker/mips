@@ -1,7 +1,9 @@
+use crate::util::R2KStrings;
 use mips_types::module::{
     R2KModule, R2KModuleHeader, R2KSection, DATA_INDEX, RDATA_INDEX, REFERENCES_INDEX,
     RELOCATION_INDEX, SDATA_INDEX, SECTION_COUNT, STRINGS_INDEX, SYMBOLS_INDEX, TEXT_INDEX,
 };
+use std::collections::HashSet;
 
 /// Merge two object modules. The right module's sections will be placed after
 /// the left module's sections.
@@ -63,6 +65,26 @@ pub fn merge_obj_modules(left: R2KModule, right: R2KModule) -> R2KModule {
 
         symbol
     }));
+
+    // Remove import symbols if the definition has been found
+    let mut seen_defs = HashSet::new();
+    let strings = R2KStrings::new(&merged_str_table);
+    for symbol in &merged_symbols {
+        if symbol.has_definition() {
+            seen_defs.insert(strings.get_str(symbol.str_idx).unwrap());
+        }
+    }
+    merged_symbols.retain(|symbol| {
+        if symbol.has_definition() {
+            // Always keep the local/export symbols
+            return true;
+        }
+
+        // This symbol is of an import. Only keep it if we haven't seen the
+        // symbol's definition.
+        let symbol_str = strings.get_str(symbol.str_idx).unwrap();
+        !seen_defs.contains(symbol_str)
+    });
 
     let mut section_sizes = [0; SECTION_COUNT];
     section_sizes[TEXT_INDEX] = merged_text.len() as u32;

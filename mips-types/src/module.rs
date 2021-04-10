@@ -1,4 +1,4 @@
-use crate::constants::{SYM_DEF_LABEL, SYM_MODE_MASK};
+use crate::constants::{SYM_DEF_LABEL, SYM_DEF_SEEN, SYM_MODE_MASK};
 use std::convert::{TryFrom, TryInto};
 use std::io;
 use std::io::{Read, Write};
@@ -346,8 +346,14 @@ impl R2KSymbolEntry {
             .expect("Symbol should have a valid section")
     }
 
+    /// Check if this symbol represents a label
     pub fn is_label(&self) -> bool {
         self.flags & SYM_DEF_LABEL != 0
+    }
+
+    /// Check if this symbol represents the definition (local/export)
+    pub fn has_definition(&self) -> bool {
+        self.flags & SYM_DEF_SEEN != 0
     }
 }
 
