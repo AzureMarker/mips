@@ -89,10 +89,6 @@ pub const STACK_BOTTOM: u32 = 0x7fffefff;
 pub const TEXT_OFFSET: u32 = 0x00400000;
 pub const DATA_OFFSET: u32 = 0x10000000;
 
-// Special section numbers
-/// The symbol section that holds imported symbols
-pub const EXTERNAL_SECTION: u32 = 8;
-
 // Symbol flags
 /// We have seen the definition of this symbol (is not a global import)
 pub const SYM_DEF_SEEN: u32 = 0x20;

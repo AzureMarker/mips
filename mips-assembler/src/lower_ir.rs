@@ -5,10 +5,9 @@ use crate::ir::{
     RelocationType, Symbol, SymbolLocation, SymbolType,
 };
 use mips_types::constants::{
-    EXTERNAL_SECTION, REF_METHOD_ADD, REF_METHOD_REPLACE, REF_METHOD_SUBTRACT,
-    REF_TARGET_HALF_WORD, REF_TARGET_IMM, REF_TARGET_JUMP, REF_TARGET_SPLIT_IMM, REF_TARGET_WORD,
-    REL_JUMP, REL_LOWER_IMM, REL_SPLIT_IMM, REL_UPPER_IMM, REL_WORD, SYM_DEF_LABEL, SYM_DEF_SEEN,
-    SYM_GLOBAL,
+    REF_METHOD_ADD, REF_METHOD_REPLACE, REF_METHOD_SUBTRACT, REF_TARGET_HALF_WORD, REF_TARGET_IMM,
+    REF_TARGET_JUMP, REF_TARGET_SPLIT_IMM, REF_TARGET_WORD, REL_JUMP, REL_LOWER_IMM, REL_SPLIT_IMM,
+    REL_UPPER_IMM, REL_WORD, SYM_DEF_LABEL, SYM_DEF_SEEN, SYM_GLOBAL,
 };
 use mips_types::module::{
     R2KModule, R2KModuleHeader, R2KReferenceEntry, R2KRelocationEntry, R2KSection, R2KSymbolEntry,
@@ -74,7 +73,7 @@ impl Symbol {
                 flags |= section as u32 | SYM_DEF_LABEL | SYM_DEF_SEEN;
             }
             SymbolType::Import => {
-                flags |= EXTERNAL_SECTION | SYM_GLOBAL;
+                flags |= R2KSection::External as u32 | SYM_GLOBAL;
             }
             SymbolType::Export => {
                 flags |= section as u32 | SYM_DEF_LABEL | SYM_DEF_SEEN | SYM_GLOBAL;
