@@ -1,32 +1,38 @@
 use crate::util::{
-    read_half, read_immediate, read_pseudo_address, read_word, write_half, write_immediate,
-    write_pseudo_address, write_word, R2KStrings, R2KSymbolTable,
+    make_symbol_table, read_half, read_immediate, read_pseudo_address, read_word, write_half,
+    write_immediate, write_pseudo_address, write_word, R2KStrings,
 };
 use mips_types::constants::{
     DATA_OFFSET, REF_METHOD_ADD, REF_METHOD_MASK, REF_METHOD_REPLACE, REF_METHOD_SUBTRACT,
     REF_TARGET_HALF_WORD, REF_TARGET_IMM, REF_TARGET_JUMP, REF_TARGET_MASK, REF_TARGET_SPLIT_IMM,
     REF_TARGET_WORD, TEXT_OFFSET,
 };
-use mips_types::module::{R2KReferenceEntry, R2KSection};
+use mips_types::module::{R2KModule, R2KSection};
+use std::collections::HashMap;
 use std::ops::{Add, Sub};
 
-pub fn resolve_references(
-    section_data: &mut [u8],
-    section: R2KSection,
-    strings: R2KStrings,
-    symbols: &R2KSymbolTable,
-    references: &mut Vec<R2KReferenceEntry>,
-) {
-    references.retain(|reference| {
-        if reference.section != section {
-            return true;
-        }
+pub fn resolve_references(obj_module: &mut R2KModule) {
+    let strings = R2KStrings::new(&obj_module.string_table);
+    let symbols: HashMap<_, _> = make_symbol_table(strings, &obj_module.symbol_table)
+        .into_iter()
+        .map(|(key, value)| (key.to_string(), *value))
+        .collect();
+    let mut references = std::mem::take(&mut obj_module.reference_section);
 
-        let address = reference.address as usize;
+    references.retain(|reference| {
+        let strings = R2KStrings::new(&obj_module.string_table);
         let symbol_name = strings
             .get_str(reference.str_idx)
-            .expect("Could not find string");
-        let symbol = *symbols.get(symbol_name).expect("Could not find symbol");
+            .expect("Could not find string")
+            .to_string();
+        let symbol = *symbols.get(&symbol_name).expect("Could not find symbol");
+
+        let (section_data, _) = match obj_module.get_mut_section(reference.section) {
+            Some(res) => res,
+            None => return true,
+        };
+
+        let address = reference.address as usize;
         let symbol_value = match symbol.section() {
             R2KSection::Undefined => symbol.value,
             R2KSection::Text => symbol.value + TEXT_OFFSET,
@@ -89,6 +95,8 @@ pub fn resolve_references(
         }
         false
     });
+
+    obj_module.reference_section = references;
 }
 
 fn apply_method<T: Add<Output = T> + Sub<Output = T>>(

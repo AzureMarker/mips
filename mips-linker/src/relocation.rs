@@ -3,20 +3,17 @@ use crate::util::{
     write_word,
 };
 use mips_types::constants::{REL_JUMP, REL_LOWER_IMM, REL_SPLIT_IMM, REL_UPPER_IMM, REL_WORD};
-use mips_types::module::{R2KRelocationEntry, R2KSection};
+use mips_types::module::R2KModule;
 
-pub fn relocate(
-    section_data: &mut [u8],
-    section: R2KSection,
-    section_offset: u32,
-    relocation: &mut Vec<R2KRelocationEntry>,
-) {
+pub fn relocate(obj_module: &mut R2KModule) {
+    let mut relocation = std::mem::take(&mut obj_module.relocation_section);
+
     relocation.retain(|entry| {
-        if entry.section != section {
-            return true;
-        }
-
         let address = entry.address as usize;
+        let (section_data, section_offset) = match obj_module.get_mut_section(entry.section) {
+            Some(res) => res,
+            None => return true,
+        };
 
         match entry.rel_type {
             REL_LOWER_IMM => {
@@ -56,4 +53,6 @@ pub fn relocate(
 
         false
     });
+
+    obj_module.relocation_section = relocation;
 }

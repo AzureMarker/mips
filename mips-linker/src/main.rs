@@ -88,8 +88,8 @@ fn link_objects(obj_file_paths: &[PathBuf], output_file_path: &Path) -> io::Resu
     }
 
     // Try to build a load module
-    let output_module = obj_to_load_module(merged_module);
-    let is_load_module = output_module.is_load_module();
+    obj_to_load_module(&mut merged_module);
+    let is_load_module = merged_module.is_load_module();
 
     // Write out the module
     let mut output_file = OpenOptions::new()
@@ -99,7 +99,7 @@ fn link_objects(obj_file_paths: &[PathBuf], output_file_path: &Path) -> io::Resu
         // Make load modules executable
         .mode(if is_load_module { 0o755 } else { 0o644 })
         .open(output_file_path)?;
-    output_module.write(&mut output_file)?;
+    merged_module.write(&mut output_file)?;
 
     log::debug!(
         "Wrote {} module to {}",

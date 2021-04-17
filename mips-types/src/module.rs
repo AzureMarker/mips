@@ -1,4 +1,4 @@
-use crate::constants::{SYM_DEF_LABEL, SYM_DEF_SEEN, SYM_MODE_MASK};
+use crate::constants::{DATA_OFFSET, SYM_DEF_LABEL, SYM_DEF_SEEN, SYM_MODE_MASK, TEXT_OFFSET};
 use std::convert::{TryFrom, TryInto};
 use std::io;
 use std::io::{Read, Write};
@@ -129,6 +129,28 @@ impl R2KModule {
     /// Note: the file should also be executable on the file system
     pub fn is_load_module(&self) -> bool {
         self.header.entry != 0
+    }
+
+    /// Get a mutable reference and offset to the given section. If the section
+    /// does not hold data (ex. undefined, bss, external) then None is returned.
+    pub fn get_mut_section(&mut self, section: R2KSection) -> Option<(&mut [u8], u32)> {
+        match section {
+            R2KSection::Text => Some((&mut self.text_section, TEXT_OFFSET)),
+            R2KSection::RData => Some((&mut self.rdata_section, DATA_OFFSET)),
+            R2KSection::Data => Some((
+                &mut self.data_section,
+                DATA_OFFSET + self.rdata_section.len() as u32,
+            )),
+            R2KSection::SData => Some((
+                &mut self.sdata_section,
+                DATA_OFFSET + self.rdata_section.len() as u32 + self.data_section.len() as u32,
+            )),
+            R2KSection::Undefined
+            | R2KSection::SBss
+            | R2KSection::Bss
+            | R2KSection::Absolute
+            | R2KSection::External => None,
+        }
     }
 }
 
@@ -314,7 +336,7 @@ impl R2KReferenceEntry {
     }
 }
 
-#[derive(Debug)]
+#[derive(Copy, Clone, Debug)]
 pub struct R2KSymbolEntry {
     pub flags: u32,
     pub value: u32,
