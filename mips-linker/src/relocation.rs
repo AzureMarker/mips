@@ -10,8 +10,9 @@ pub fn relocate(obj_module: &mut R2KModule) {
 
     relocation.retain(|entry| {
         let address = entry.address as usize;
-        let (section_data, section_offset) = match obj_module.get_mut_section(entry.section) {
-            Some(res) => res,
+        let section_offset = obj_module.get_section_offset(entry.section).unwrap_or(0);
+        let section_data = match obj_module.get_mut_section(entry.section) {
+            Some(data) => data,
             None => return true,
         };
 

@@ -3,9 +3,8 @@ use crate::util::{
     write_immediate, write_pseudo_address, write_word, R2KStrings,
 };
 use mips_types::constants::{
-    DATA_OFFSET, REF_METHOD_ADD, REF_METHOD_MASK, REF_METHOD_REPLACE, REF_METHOD_SUBTRACT,
-    REF_TARGET_HALF_WORD, REF_TARGET_IMM, REF_TARGET_JUMP, REF_TARGET_MASK, REF_TARGET_SPLIT_IMM,
-    REF_TARGET_WORD, TEXT_OFFSET,
+    REF_METHOD_ADD, REF_METHOD_MASK, REF_METHOD_REPLACE, REF_METHOD_SUBTRACT, REF_TARGET_HALF_WORD,
+    REF_TARGET_IMM, REF_TARGET_JUMP, REF_TARGET_MASK, REF_TARGET_SPLIT_IMM, REF_TARGET_WORD,
 };
 use mips_types::module::{R2KModule, R2KSection};
 use std::collections::HashMap;
@@ -23,30 +22,18 @@ pub fn resolve_references(obj_module: &mut R2KModule) {
         let strings = R2KStrings::new(&obj_module.string_table);
         let symbol_name = strings
             .get_str(reference.str_idx)
-            .expect("Could not find string")
-            .to_string();
-        let symbol = *symbols.get(&symbol_name).expect("Could not find symbol");
-
-        let (section_data, _) = match obj_module.get_mut_section(reference.section) {
-            Some(res) => res,
-            None => return true,
-        };
-
+            .expect("Could not find string");
+        let symbol = *symbols.get(symbol_name).expect("Could not find symbol");
         let address = reference.address as usize;
+        let symbol_section_offset = obj_module.get_section_offset(symbol.section()).unwrap_or(0);
         let symbol_value = match symbol.section() {
-            R2KSection::Undefined => symbol.value,
-            R2KSection::Text => symbol.value + TEXT_OFFSET,
-            // FIXME: calculate the actual offsets of each data section
-            R2KSection::RData => symbol.value + DATA_OFFSET,
-            R2KSection::Data => symbol.value + DATA_OFFSET,
-            R2KSection::SData => symbol.value + DATA_OFFSET,
-            R2KSection::SBss => {
+            R2KSection::Undefined | R2KSection::Absolute => symbol.value,
+            R2KSection::Text | R2KSection::RData | R2KSection::Data | R2KSection::SData => {
+                symbol.value + symbol_section_offset
+            }
+            R2KSection::SBss | R2KSection::Bss => {
                 unimplemented!()
             }
-            R2KSection::Bss => {
-                unimplemented!()
-            }
-            R2KSection::Absolute => symbol.value,
             R2KSection::External => {
                 log::info!(
                     "Could not find symbol '{}' when resolving references",
@@ -54,6 +41,11 @@ pub fn resolve_references(obj_module: &mut R2KModule) {
                 );
                 return true;
             }
+        };
+
+        let section_data = match obj_module.get_mut_section(reference.section) {
+            Some(res) => res,
+            None => return true,
         };
 
         let method = reference.ref_type & REF_METHOD_MASK;

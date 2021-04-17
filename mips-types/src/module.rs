@@ -131,20 +131,31 @@ impl R2KModule {
         self.header.entry != 0
     }
 
-    /// Get a mutable reference and offset to the given section. If the section
-    /// does not hold data (ex. undefined, bss, external) then None is returned.
-    pub fn get_mut_section(&mut self, section: R2KSection) -> Option<(&mut [u8], u32)> {
+    /// Get a mutable reference to the given section's data. If the section does
+    /// not hold data (ex. undefined, bss, external) then None is returned.
+    pub fn get_mut_section(&mut self, section: R2KSection) -> Option<&mut [u8]> {
         match section {
-            R2KSection::Text => Some((&mut self.text_section, TEXT_OFFSET)),
-            R2KSection::RData => Some((&mut self.rdata_section, DATA_OFFSET)),
-            R2KSection::Data => Some((
-                &mut self.data_section,
-                DATA_OFFSET + self.rdata_section.len() as u32,
-            )),
-            R2KSection::SData => Some((
-                &mut self.sdata_section,
-                DATA_OFFSET + self.rdata_section.len() as u32 + self.data_section.len() as u32,
-            )),
+            R2KSection::Text => Some(&mut self.text_section),
+            R2KSection::RData => Some(&mut self.rdata_section),
+            R2KSection::Data => Some(&mut self.data_section),
+            R2KSection::SData => Some(&mut self.sdata_section),
+            R2KSection::Undefined
+            | R2KSection::SBss
+            | R2KSection::Bss
+            | R2KSection::Absolute
+            | R2KSection::External => None,
+        }
+    }
+
+    /// Get the offset of the given section, if it holds data.
+    pub fn get_section_offset(&self, section: R2KSection) -> Option<u32> {
+        match section {
+            R2KSection::Text => Some(TEXT_OFFSET),
+            R2KSection::RData => Some(DATA_OFFSET),
+            R2KSection::Data => Some(DATA_OFFSET + self.rdata_section.len() as u32),
+            R2KSection::SData => {
+                Some(DATA_OFFSET + self.rdata_section.len() as u32 + self.data_section.len() as u32)
+            }
             R2KSection::Undefined
             | R2KSection::SBss
             | R2KSection::Bss
