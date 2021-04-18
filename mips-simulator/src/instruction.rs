@@ -1,8 +1,4 @@
-use mips_types::constants::{
-    FUNCTION_ADD, FUNCTION_ADDU, FUNCTION_BREAK, FUNCTION_DIV, FUNCTION_JR, FUNCTION_MFHI,
-    FUNCTION_MFLO, FUNCTION_OR, FUNCTION_SLL, FUNCTION_SLT, FUNCTION_SYSCALL, OP_ADDI, OP_BEQ,
-    OP_BNE, OP_J, OP_JAL, OP_LUI, OP_LW, OP_ORI, OP_R_TYPE, OP_SLTI, OP_SW, REGISTER_NAMES,
-};
+use mips_types::constants::*;
 use std::fmt;
 use std::fmt::{Display, Formatter};
 
@@ -60,6 +56,7 @@ impl Instruction {
 
     /// Decode and format the instruction
     pub fn stringify(&self, program_counter: u32) -> String {
+        // Shorthand functions to stringify common instruction forms.
         let dst = |name: &str| {
             format!(
                 "{} {}, {}, {}",
@@ -87,6 +84,59 @@ impl Instruction {
                 Register(self.s_register())
             )
         };
+        let dtsh = |name: &str| {
+            format!(
+                "{} {}, {}, {}",
+                name,
+                Register(self.d_register()),
+                Register(self.t_register()),
+                self.shift_amount()
+            )
+        };
+        let dts = |name: &str| {
+            format!(
+                "{} {}, {}, {}",
+                name,
+                Register(self.d_register()),
+                Register(self.t_register()),
+                Register(self.s_register())
+            )
+        };
+        let s = |name: &str| format!("{} {}", name, Register(self.s_register()));
+        let st = |name: &str| {
+            format!(
+                "{} {}, {}",
+                name,
+                Register(self.s_register()),
+                Register(self.t_register())
+            )
+        };
+        let si = |name: &str| {
+            format!(
+                "{} {}, {}",
+                name,
+                Register(self.s_register()),
+                self.immediate()
+            )
+        };
+        let tsi = |name: &str| {
+            format!(
+                "{} {}, {}, {}",
+                name,
+                Register(self.t_register()),
+                Register(self.s_register()),
+                self.immediate()
+            )
+        };
+        let tsiu = |name: &str| {
+            format!(
+                "{} {}, {}, 0x{:x}",
+                name,
+                Register(self.t_register()),
+                Register(self.s_register()),
+                self.immediate() as u16
+            )
+        };
 
         match self.op_code() {
             OP_R_TYPE => match self.function() {
@@ -94,59 +144,75 @@ impl Instruction {
                     if self.0 == 0 {
                         "noop".to_string()
                     } else {
-                        format!(
-                            "sll {}, {}, {}",
-                            Register(self.d_register()),
-                            Register(self.t_register()),
-                            self.shift_amount()
-                        )
+                        dtsh("sll")
                     }
                 }
-                FUNCTION_JR => format!("jr {}", Register(self.s_register())),
+                FUNCTION_SRL => dtsh("srl"),
+                FUNCTION_SRA => dtsh("sra"),
+                FUNCTION_SLLV => dts("sllv"),
+                FUNCTION_SRLV => dts("srlv"),
+                FUNCTION_SRAV => dts("srav"),
+                FUNCTION_JR => s("jr"),
+                FUNCTION_JALR => s("jalr"),
                 FUNCTION_SYSCALL => "syscall".to_string(),
                 FUNCTION_BREAK => "break".to_string(),
-                FUNCTION_ADD => dst("add"),
                 FUNCTION_MFHI => format!("mfhi {}", Register(self.d_register())),
+                FUNCTION_MTHI => s("mthi"),
                 FUNCTION_MFLO => format!("mflo {}", Register(self.d_register())),
-                FUNCTION_DIV => format!(
-                    "div {}, {}",
-                    Register(self.s_register()),
-                    Register(self.t_register())
-                ),
+                FUNCTION_MTLO => s("mtlo"),
+                FUNCTION_MULT => st("mult"),
+                FUNCTION_MULTU => st("multu"),
+                FUNCTION_DIV => st("div"),
+                FUNCTION_DIVU => st("divu"),
+                FUNCTION_ADD => dst("add"),
                 FUNCTION_ADDU => dst("addu"),
+                FUNCTION_SUB => dst("sub"),
+                FUNCTION_SUBU => dst("subu"),
+                FUNCTION_AND => dst("and"),
                 FUNCTION_OR => dst("or"),
+                FUNCTION_XOR => dst("xor"),
+                FUNCTION_NOR => dst("nor"),
                 FUNCTION_SLT => dst("slt"),
+                FUNCTION_SLTU => dst("sltu"),
                 function => panic!("Unknown R-type function 0x{:02x}", function),
+            },
+            OP_BCOND => match self.t_register() {
+                BCOND_RT_BLTZ => si("bltz"),
+                BCOND_RT_BGEZ => si("bgez"),
+                BCOND_RT_BLTZAL => si("bltzal"),
+                BCOND_RT_BGEZAL => si("bgezal"),
+                rt => panic!("Unknown bcond operation, $rt = 0x{:02x}", rt),
             },
             OP_J => format!("j 0x{:x}", self.real_address(program_counter)),
             OP_JAL => format!("jal 0x{:x}", self.real_address(program_counter)),
             OP_BEQ => sti("beq"),
             OP_BNE => sti("bne"),
-            OP_ADDI => format!(
-                "addi {}, {}, {}",
-                Register(self.t_register()),
-                Register(self.s_register()),
-                self.immediate()
-            ),
-            OP_SLTI => format!(
-                "slti {}, {}, {}",
-                Register(self.t_register()),
-                Register(self.s_register()),
-                self.immediate()
-            ),
-            OP_ORI => format!(
-                "ori {}, {}, 0x{:x}",
-                Register(self.t_register()),
-                Register(self.s_register()),
-                self.immediate() as u16
-            ),
+            OP_BLEZ => si("blez"),
+            OP_BGTZ => si("bgtz"),
+            OP_ADDI => tsi("addi"),
+            OP_ADDIU => tsi("addiu"),
+            OP_SLTI => tsi("slti"),
+            OP_SLTIU => tsi("sltiu"),
+            OP_ANDI => tsiu("andi"),
+            OP_ORI => tsiu("ori"),
+            OP_XORI => tsiu("xori"),
             OP_LUI => format!(
                 "lui {}, 0x{:x}",
                 Register(self.t_register()),
                 self.immediate() as u16
             ),
+            OP_LB => tis("lb"),
+            OP_LH => tis("lh"),
+            OP_LWL => tis("lwl"),
             OP_LW => tis("lw"),
+            OP_LBU => tis("lbu"),
+            OP_LHU => tis("lhu"),
+            OP_LWR => tis("lwr"),
+            OP_SB => tis("sb"),
+            OP_SH => tis("sh"),
+            OP_SWL => tis("swl"),
             OP_SW => tis("sw"),
+            OP_SWR => tis("swr"),
             op_code => panic!("Unknown op code 0x{:02x}", op_code),
         }
     }
