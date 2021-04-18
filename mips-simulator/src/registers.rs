@@ -1,6 +1,10 @@
 /// Holds the processor's registers
 #[derive(Debug)]
-pub struct Registers([u32; 32]);
+pub struct Registers {
+    registers: [u32; 32],
+    pub lo_register: u32,
+    pub hi_register: u32,
+}
 
 impl Default for Registers {
     fn default() -> Self {
@@ -10,7 +14,11 @@ impl Default for Registers {
 
 impl Registers {
     pub fn new() -> Self {
-        Registers([0; 32])
+        Registers {
+            registers: [0; 32],
+            lo_register: 0,
+            hi_register: 0,
+        }
     }
 
     /// Get the value of a register
@@ -19,7 +27,7 @@ impl Registers {
             return 0;
         }
 
-        self.0[register as usize]
+        self.registers[register as usize]
     }
 
     /// Set the value of a register
@@ -28,6 +36,6 @@ impl Registers {
             return;
         }
 
-        self.0[register as usize] = value
+        self.registers[register as usize] = value
     }
 }

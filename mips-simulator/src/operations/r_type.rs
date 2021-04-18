@@ -27,6 +27,37 @@ impl Processor {
         self.running = false;
     }
 
+    /// Move from HI
+    pub(crate) fn op_mfhi(&mut self, instruction: Instruction) {
+        self.registers
+            .set(instruction.d_register(), self.registers.hi_register);
+        self.advance_program_counter();
+    }
+
+    /// Move from LO
+    pub(crate) fn op_mflo(&mut self, instruction: Instruction) {
+        self.registers
+            .set(instruction.d_register(), self.registers.lo_register);
+        self.advance_program_counter();
+    }
+
+    /// Divide
+    pub(crate) fn op_div(&mut self, instruction: Instruction) {
+        let s = self.registers.get(instruction.s_register()) as i32;
+        let t = self.registers.get(instruction.t_register()) as i32;
+
+        if t == 0 {
+            panic!("Divide by zero");
+        }
+
+        let quotient = s / t;
+        let remainder = s % t;
+
+        self.registers.lo_register = quotient as u32;
+        self.registers.hi_register = remainder as u32;
+        self.advance_program_counter();
+    }
+
     /// Add (with overflow check)
     pub(crate) fn op_add(&mut self, instruction: Instruction) {
         let a = self.registers.get(instruction.s_register());
@@ -52,6 +83,15 @@ impl Processor {
         let a = self.registers.get(instruction.s_register());
         let b = self.registers.get(instruction.t_register());
         self.registers.set(instruction.d_register(), a | b);
+        self.advance_program_counter();
+    }
+
+    /// Set if less than
+    pub(crate) fn op_slt(&mut self, instruction: Instruction) {
+        let t = self.registers.get(instruction.t_register()) as i32;
+        let s = self.registers.get(instruction.s_register()) as i32;
+        let result = if s < t { 1 } else { 0 };
+        self.registers.set(instruction.d_register(), result);
         self.advance_program_counter();
     }
 }
