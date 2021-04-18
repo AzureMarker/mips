@@ -4,9 +4,11 @@ extern crate lalrpop_util;
 use crate::ast::{Program, Span};
 use env_logger::Env;
 use lalrpop_util::ParseError;
+use std::borrow::Cow;
 use std::error::Error;
 use std::fs::File;
 use std::io::Write;
+use std::ops::Deref;
 use std::path::PathBuf;
 use std::{fs, io};
 use structopt::StructOpt;
@@ -28,13 +30,10 @@ struct CliArgs {
     #[structopt(parse(from_os_str))]
     input_file: PathBuf,
 
-    #[structopt(
-        parse(from_os_str),
-        long = "output",
-        short = "o",
-        default_value = "out.obj"
-    )]
-    output_file: PathBuf,
+    /// The location to write the object file. By default it is the input file
+    /// with the extension changed to `.obj`.
+    #[structopt(parse(from_os_str), long = "output", short = "o")]
+    output_file: Option<PathBuf>,
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -63,7 +62,12 @@ fn assemble_file(program: Program, file_str: &str, args: CliArgs) -> io::Result<
     let program_mips = program_ir.lower();
     log::trace!("{:#x?}", program_mips);
 
-    let mut output = File::create(&args.output_file)?;
+    let output_path = args
+        .output_file
+        .as_ref()
+        .map(Cow::Borrowed)
+        .unwrap_or_else(|| Cow::Owned(args.input_file.with_extension("obj")));
+    let mut output = File::create(output_path.deref())?;
     program_mips.write(&mut output)
 }
 

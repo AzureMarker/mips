@@ -4,9 +4,11 @@ use crate::util::R2KStrings;
 use env_logger::Env;
 use mips_types::constants::R2K_ENTRYPOINT;
 use mips_types::module::R2KModule;
+use std::borrow::Cow;
 use std::error::Error;
 use std::fs::OpenOptions;
 use std::io::{Cursor, Write};
+use std::ops::Deref;
 use std::os::unix::fs::OpenOptionsExt;
 use std::path::{Path, PathBuf};
 use std::{fs, io};
@@ -27,13 +29,10 @@ struct CliArgs {
     #[structopt(parse(from_os_str), required = true)]
     object_files: Vec<PathBuf>,
 
-    #[structopt(
-        parse(from_os_str),
-        long = "output",
-        short = "o",
-        default_value = "out.out"
-    )]
-    output_file: PathBuf,
+    /// The location to write the load/object module. By default it is the first
+    /// input file with its extension changed to `.out`.
+    #[structopt(parse(from_os_str), long = "output", short = "o")]
+    output_file: Option<PathBuf>,
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -42,15 +41,19 @@ fn main() -> Result<(), Box<dyn Error>> {
         .format(|buf, record| writeln!(buf, "[{}] {}", record.level(), record.args()))
         .init();
     let args = CliArgs::from_args();
+    assert!(!args.object_files.is_empty());
 
-    link_objects(&args.object_files, &args.output_file)?;
+    let output_path = args
+        .output_file
+        .as_ref()
+        .map(Cow::Borrowed)
+        .unwrap_or_else(|| Cow::Owned(args.object_files[0].with_extension("out")));
+    link_objects(&args.object_files, output_path.deref())?;
 
     Ok(())
 }
 
 fn link_objects(obj_file_paths: &[PathBuf], output_file_path: &Path) -> io::Result<()> {
-    assert!(!obj_file_paths.is_empty());
-
     // Load the object files
     let obj_modules = obj_file_paths
         .iter()
