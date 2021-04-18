@@ -10,11 +10,7 @@ impl Processor {
 
     /// Jump and link
     pub(crate) fn op_jal(&mut self, instruction: Instruction) {
-        let offset = if self.config.disable_delay_slots {
-            4
-        } else {
-            8
-        };
+        let offset = if self.config.enable_delay_slots { 8 } else { 4 };
 
         self.registers.set(REG_RA, self.program_counter + offset);
         self.jump_to(instruction.real_address(self.program_counter));

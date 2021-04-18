@@ -12,9 +12,9 @@ extern crate log;
 
 #[derive(StructOpt)]
 struct CliArgs {
-    /// Disables jump/branch delay slots. RSIM code requires this option.
+    /// Enables jump/branch delay slots. RSIM code does not use this option.
     #[structopt(long)]
-    disable_delay_slots: bool,
+    enable_delay_slots: bool,
 
     #[structopt(parse(from_os_str))]
     file_path: PathBuf,
@@ -32,7 +32,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // Setup the processor
     let mut processor = Processor::new(Config {
-        disable_delay_slots: args.disable_delay_slots,
+        enable_delay_slots: args.enable_delay_slots,
     });
     processor.load_rsim_module(&module);
 

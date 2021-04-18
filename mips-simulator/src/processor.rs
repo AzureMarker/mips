@@ -80,15 +80,15 @@ impl Processor {
         self.next_program_counter += 4;
     }
 
-    /// Jump to an address. If delay slots are disabled, the jump is immediate.
-    /// Otherwise, the next instruction will be executed before the jump.
+    /// Jump to an address. If delay slots are enabled, the next instruction
+    /// will be executed before the jump. Otherwise, the jump is immediate.
     pub(crate) fn jump_to(&mut self, address: u32) {
-        if self.config.disable_delay_slots {
-            self.next_program_counter = address;
-            self.advance_program_counter()
-        } else {
+        if self.config.enable_delay_slots {
             self.program_counter = self.next_program_counter;
             self.next_program_counter = address;
+        } else {
+            self.next_program_counter = address;
+            self.advance_program_counter()
         }
     }
 
