@@ -1,3 +1,4 @@
+use crate::relocation::add_to_relocation_value;
 use crate::util::R2KStrings;
 use mips_types::module::{
     R2KModule, R2KModuleHeader, R2KSection, DATA_INDEX, RDATA_INDEX, REFERENCES_INDEX,
@@ -43,6 +44,24 @@ pub fn merge_obj_modules(mut left: R2KModule, right: R2KModule) -> R2KModule {
     let mut merged_relocation = left.relocation_section;
     merged_relocation.extend(right.relocation_section.into_iter().map(|mut entry| {
         update_address(entry.section, &mut entry.address, "relocation");
+
+        // The value stored in the section needs to be offset by the size of the
+        // left's section size.
+        let (section_data, section_offset) = match entry.section {
+            R2KSection::Text => (&mut merged_text, left_sizes[TEXT_INDEX]),
+            R2KSection::RData => (&mut merged_rdata, left_sizes[RDATA_INDEX]),
+            R2KSection::Data => (&mut merged_data, left_sizes[DATA_INDEX]),
+            R2KSection::SData => (&mut merged_sdata, left_sizes[SDATA_INDEX]),
+            _ => {
+                log::warn!(
+                    "Unexpected section for relocation entry during merge: {:?}",
+                    entry.section
+                );
+                return entry;
+            }
+        };
+
+        add_to_relocation_value(&entry, section_data, section_offset);
         entry
     }));
 
