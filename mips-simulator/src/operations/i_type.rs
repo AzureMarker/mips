@@ -1,5 +1,5 @@
 use crate::instruction::Instruction;
-use crate::math::{add_unsigned, checked_add_unsigned};
+use crate::math::add_unsigned;
 use crate::Processor;
 
 impl Processor {
@@ -33,12 +33,12 @@ impl Processor {
 
     /// Add immediate (with overflow check)
     pub(crate) fn op_addi(&mut self, instruction: Instruction) {
-        let value = checked_add_unsigned(
-            self.registers.get(instruction.s_register()),
-            instruction.immediate() as i32,
-        )
-        .unwrap_or_else(|| panic!("Overflow in addi"));
-        self.registers.set(instruction.t_register(), value);
+        let a = self.registers.get(instruction.s_register()) as i32;
+        let b = instruction.immediate() as i32;
+        let value = a
+            .checked_add(b)
+            .unwrap_or_else(|| panic!("Overflow in addi"));
+        self.registers.set(instruction.t_register(), value as u32);
         self.advance_program_counter()
     }
 

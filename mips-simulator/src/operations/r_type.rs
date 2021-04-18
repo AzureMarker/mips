@@ -60,21 +60,21 @@ impl Processor {
 
     /// Add (with overflow check)
     pub(crate) fn op_add(&mut self, instruction: Instruction) {
-        let a = self.registers.get(instruction.s_register());
-        let b = self.registers.get(instruction.t_register());
+        let a = self.registers.get(instruction.s_register()) as i32;
+        let b = self.registers.get(instruction.t_register()) as i32;
         let value = a
             .checked_add(b)
             .unwrap_or_else(|| panic!("Overflow in add"));
-        self.registers.set(instruction.d_register(), value);
+        self.registers.set(instruction.d_register(), value as u32);
         self.advance_program_counter();
     }
 
     /// Add unsigned (no overflow check)
     pub(crate) fn op_addu(&mut self, instruction: Instruction) {
-        let a = self.registers.get(instruction.s_register());
-        let b = self.registers.get(instruction.t_register());
+        let a = self.registers.get(instruction.s_register()) as i32;
+        let b = self.registers.get(instruction.t_register()) as i32;
         self.registers
-            .set(instruction.d_register(), a.wrapping_add(b));
+            .set(instruction.d_register(), a.wrapping_add(b) as u32);
         self.advance_program_counter();
     }
 
