@@ -5,8 +5,8 @@ use crate::registers::Registers;
 use mips_types::constants::{
     DATA_OFFSET, FUNCTION_ADD, FUNCTION_ADDU, FUNCTION_BREAK, FUNCTION_DIV, FUNCTION_JR,
     FUNCTION_MFHI, FUNCTION_MFLO, FUNCTION_OR, FUNCTION_SLL, FUNCTION_SLT, FUNCTION_SYSCALL,
-    OP_ADDI, OP_BEQ, OP_J, OP_JAL, OP_LUI, OP_LW, OP_ORI, OP_R_TYPE, OP_SLTI, OP_SW, REG_SP,
-    STACK_BOTTOM, TEXT_OFFSET,
+    OP_ADDI, OP_BEQ, OP_BNE, OP_J, OP_JAL, OP_LUI, OP_LW, OP_ORI, OP_R_TYPE, OP_SLTI, OP_SW,
+    REG_SP, STACK_BOTTOM, TEXT_OFFSET,
 };
 use mips_types::module::R2KModule;
 
@@ -113,6 +113,7 @@ impl Processor {
             OP_J => self.op_j(instruction),
             OP_JAL => self.op_jal(instruction),
             OP_BEQ => self.op_beq(instruction),
+            OP_BNE => self.op_bne(instruction),
             OP_ADDI => self.op_addi(instruction),
             OP_SLTI => self.op_slti(instruction),
             OP_ORI => self.op_ori(instruction),

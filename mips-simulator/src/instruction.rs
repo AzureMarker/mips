@@ -1,7 +1,7 @@
 use mips_types::constants::{
-    FUNCTION_ADD, FUNCTION_ADDU, FUNCTION_BREAK, FUNCTION_JR, FUNCTION_OR, FUNCTION_SLL,
-    FUNCTION_SYSCALL, OP_ADDI, OP_BEQ, OP_J, OP_JAL, OP_LUI, OP_LW, OP_ORI, OP_R_TYPE, OP_SLTI,
-    OP_SW, REGISTER_NAMES,
+    FUNCTION_ADD, FUNCTION_ADDU, FUNCTION_BREAK, FUNCTION_DIV, FUNCTION_JR, FUNCTION_MFHI,
+    FUNCTION_MFLO, FUNCTION_OR, FUNCTION_SLL, FUNCTION_SLT, FUNCTION_SYSCALL, OP_ADDI, OP_BEQ,
+    OP_BNE, OP_J, OP_JAL, OP_LUI, OP_LW, OP_ORI, OP_R_TYPE, OP_SLTI, OP_SW, REGISTER_NAMES,
 };
 use std::fmt;
 use std::fmt::{Display, Formatter};
@@ -60,6 +60,34 @@ impl Instruction {
 
     /// Decode and format the instruction
     pub fn stringify(&self, program_counter: u32) -> String {
+        let dst = |name: &str| {
+            format!(
+                "{} {}, {}, {}",
+                name,
+                Register(self.d_register()),
+                Register(self.s_register()),
+                Register(self.t_register())
+            )
+        };
+        let sti = |name: &str| {
+            format!(
+                "{} {}, {}, {}",
+                name,
+                Register(self.s_register()),
+                Register(self.t_register()),
+                self.immediate()
+            )
+        };
+        let tis = |name: &str| {
+            format!(
+                "{} {}, {}({})",
+                name,
+                Register(self.t_register()),
+                self.immediate(),
+                Register(self.s_register())
+            )
+        };
+
         match self.op_code() {
             OP_R_TYPE => match self.function() {
                 FUNCTION_SLL => {
@@ -77,34 +105,23 @@ impl Instruction {
                 FUNCTION_JR => format!("jr {}", Register(self.s_register())),
                 FUNCTION_SYSCALL => "syscall".to_string(),
                 FUNCTION_BREAK => "break".to_string(),
-                FUNCTION_ADD => format!(
-                    "add {}, {}, {}",
-                    Register(self.d_register()),
+                FUNCTION_ADD => dst("add"),
+                FUNCTION_MFHI => format!("mfhi {}", Register(self.d_register())),
+                FUNCTION_MFLO => format!("mflo {}", Register(self.d_register())),
+                FUNCTION_DIV => format!(
+                    "div {}, {}",
                     Register(self.s_register()),
                     Register(self.t_register())
                 ),
-                FUNCTION_ADDU => format!(
-                    "addu {}, {}, {}",
-                    Register(self.d_register()),
-                    Register(self.s_register()),
-                    Register(self.t_register())
-                ),
-                FUNCTION_OR => format!(
-                    "or {}, {}, {}",
-                    Register(self.d_register()),
-                    Register(self.s_register()),
-                    Register(self.t_register())
-                ),
+                FUNCTION_ADDU => dst("addu"),
+                FUNCTION_OR => dst("or"),
+                FUNCTION_SLT => dst("slt"),
                 function => panic!("Unknown R-type function 0x{:02x}", function),
             },
             OP_J => format!("j 0x{:x}", self.real_address(program_counter)),
             OP_JAL => format!("jal 0x{:x}", self.real_address(program_counter)),
-            OP_BEQ => format!(
-                "beq {}, {}, {}",
-                Register(self.s_register()),
-                Register(self.t_register()),
-                self.immediate()
-            ),
+            OP_BEQ => sti("beq"),
+            OP_BNE => sti("bne"),
             OP_ADDI => format!(
                 "addi {}, {}, {}",
                 Register(self.t_register()),
@@ -128,18 +145,8 @@ impl Instruction {
                 Register(self.t_register()),
                 self.immediate() as u16
             ),
-            OP_LW => format!(
-                "lw {}, {}({})",
-                Register(self.t_register()),
-                self.immediate(),
-                Register(self.s_register())
-            ),
-            OP_SW => format!(
-                "sw {}, {}({})",
-                Register(self.t_register()),
-                self.immediate(),
-                Register(self.s_register())
-            ),
+            OP_LW => tis("lw"),
+            OP_SW => tis("sw"),
             op_code => panic!("Unknown op code 0x{:02x}", op_code),
         }
     }

@@ -17,6 +17,20 @@ impl Processor {
         }
     }
 
+    /// Branch on not equal
+    pub(crate) fn op_bne(&mut self, instruction: Instruction) {
+        let offset = (instruction.immediate() as i32) << 2;
+        let address = add_unsigned(self.next_program_counter, offset);
+        let s_value = self.registers.get(instruction.s_register());
+        let t_value = self.registers.get(instruction.t_register());
+
+        if s_value != t_value {
+            self.jump_to(address);
+        } else {
+            self.advance_program_counter();
+        }
+    }
+
     /// Add immediate (with overflow check)
     pub(crate) fn op_addi(&mut self, instruction: Instruction) {
         let value = checked_add_unsigned(
