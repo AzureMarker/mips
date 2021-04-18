@@ -1,5 +1,6 @@
 use crate::instruction::Instruction;
 use crate::Processor;
+use mips_types::constants::REG_RA;
 
 impl Processor {
     /// Shift left logical
@@ -19,6 +20,13 @@ impl Processor {
     pub(crate) fn op_jr(&mut self, instruction: Instruction) {
         let address = self.registers.get(instruction.s_register());
         self.jump_to(address);
+    }
+
+    /// Jump and link register
+    pub(crate) fn op_jalr(&mut self, instruction: Instruction) {
+        let address = self.registers.get(instruction.s_register());
+        let return_address = self.jump_to(address);
+        self.registers.set(REG_RA, return_address);
     }
 
     /// Break (exceptions/debugger)
@@ -75,6 +83,17 @@ impl Processor {
         let b = self.registers.get(instruction.t_register()) as i32;
         self.registers
             .set(instruction.d_register(), a.wrapping_add(b) as u32);
+        self.advance_program_counter();
+    }
+
+    /// Subtract (with overflow check)
+    pub(crate) fn op_sub(&mut self, instruction: Instruction) {
+        let a = self.registers.get(instruction.s_register()) as i32;
+        let b = self.registers.get(instruction.t_register()) as i32;
+        let value = a
+            .checked_sub(b)
+            .unwrap_or_else(|| panic!("Overflow in sub"));
+        self.registers.set(instruction.d_register(), value as u32);
         self.advance_program_counter();
     }
 

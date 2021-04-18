@@ -42,6 +42,15 @@ impl Processor {
         self.advance_program_counter()
     }
 
+    /// Add immediate (no overflow check)
+    pub(crate) fn op_addiu(&mut self, instruction: Instruction) {
+        let a = self.registers.get(instruction.s_register()) as i32;
+        let b = instruction.immediate() as i32;
+        let value = a.wrapping_add(b);
+        self.registers.set(instruction.t_register(), value as u32);
+        self.advance_program_counter();
+    }
+
     /// Set on less than immediate (signed)
     pub(crate) fn op_slti(&mut self, instruction: Instruction) {
         let s = self.registers.get(instruction.s_register()) as i32;
@@ -70,6 +79,17 @@ impl Processor {
         self.advance_program_counter();
     }
 
+    /// Load byte
+    pub(crate) fn op_lb(&mut self, instruction: Instruction) {
+        let s_address = self.registers.get(instruction.s_register());
+        let value = self
+            .memory
+            .get(add_unsigned(s_address, instruction.immediate() as i32));
+        self.registers
+            .set(instruction.t_register(), value as i32 as u32);
+        self.advance_program_counter();
+    }
+
     /// Load word
     pub(crate) fn op_lw(&mut self, instruction: Instruction) {
         let s_address = self.registers.get(instruction.s_register());
@@ -77,6 +97,15 @@ impl Processor {
             .memory
             .get_word(add_unsigned(s_address, instruction.immediate() as i32));
         self.registers.set(instruction.t_register(), value);
+        self.advance_program_counter();
+    }
+
+    /// Store byte
+    pub(crate) fn op_sb(&mut self, instruction: Instruction) {
+        let s_address = self.registers.get(instruction.s_register());
+        let address = add_unsigned(s_address, instruction.immediate() as i32);
+        let value = self.registers.get(instruction.t_register()) as u8;
+        self.memory.set(address, value);
         self.advance_program_counter();
     }
 

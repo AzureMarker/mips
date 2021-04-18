@@ -2,12 +2,7 @@ use crate::config::Config;
 use crate::instruction::Instruction;
 use crate::memory::Memory;
 use crate::registers::Registers;
-use mips_types::constants::{
-    DATA_OFFSET, FUNCTION_ADD, FUNCTION_ADDU, FUNCTION_BREAK, FUNCTION_DIV, FUNCTION_JR,
-    FUNCTION_MFHI, FUNCTION_MFLO, FUNCTION_OR, FUNCTION_SLL, FUNCTION_SLT, FUNCTION_SYSCALL,
-    OP_ADDI, OP_BEQ, OP_BNE, OP_J, OP_JAL, OP_LUI, OP_LW, OP_ORI, OP_R_TYPE, OP_SLTI, OP_SW,
-    REG_SP, STACK_BOTTOM, TEXT_OFFSET,
-};
+use mips_types::constants::*;
 use mips_types::module::R2KModule;
 
 /// A MIPS processor
@@ -83,13 +78,18 @@ impl Processor {
 
     /// Jump to an address. If delay slots are enabled, the next instruction
     /// will be executed before the jump. Otherwise, the jump is immediate.
-    pub(crate) fn jump_to(&mut self, address: u32) {
+    /// The return address (next instruction that would have happened if not
+    /// for the jump) is returned.
+    pub(crate) fn jump_to(&mut self, address: u32) -> u32 {
         if self.config.enable_delay_slots {
             self.program_counter = self.next_program_counter;
             self.next_program_counter = address;
+            self.program_counter + 4
         } else {
+            let return_address = self.program_counter + 4;
             self.next_program_counter = address;
-            self.advance_program_counter()
+            self.advance_program_counter();
+            return_address
         }
     }
 
@@ -99,6 +99,7 @@ impl Processor {
             OP_R_TYPE => match instruction.function() {
                 FUNCTION_SLL => self.op_sll(instruction),
                 FUNCTION_JR => self.op_jr(instruction),
+                FUNCTION_JALR => self.op_jalr(instruction),
                 FUNCTION_SYSCALL => self.op_syscall(),
                 FUNCTION_BREAK => self.op_break(),
                 FUNCTION_MFHI => self.op_mfhi(instruction),
@@ -106,6 +107,7 @@ impl Processor {
                 FUNCTION_DIV => self.op_div(instruction),
                 FUNCTION_ADD => self.op_add(instruction),
                 FUNCTION_ADDU => self.op_addu(instruction),
+                FUNCTION_SUB => self.op_sub(instruction),
                 FUNCTION_OR => self.op_or(instruction),
                 FUNCTION_SLT => self.op_slt(instruction),
                 function => panic!("Unknown R-type function 0x{:02x}", function),
@@ -115,10 +117,13 @@ impl Processor {
             OP_BEQ => self.op_beq(instruction),
             OP_BNE => self.op_bne(instruction),
             OP_ADDI => self.op_addi(instruction),
+            OP_ADDIU => self.op_addiu(instruction),
             OP_SLTI => self.op_slti(instruction),
             OP_ORI => self.op_ori(instruction),
             OP_LUI => self.op_lui(instruction),
+            OP_LB => self.op_lb(instruction),
             OP_LW => self.op_lw(instruction),
+            OP_SB => self.op_sb(instruction),
             OP_SW => self.op_sw(instruction),
             op_code => panic!("Unknown op code 0x{:02x}", op_code),
         }
