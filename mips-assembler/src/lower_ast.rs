@@ -13,6 +13,7 @@ use either::Either;
 use mips_types::string_table::StringTable;
 use std::array::IntoIter;
 use std::collections::HashMap;
+use std::convert::TryFrom;
 use std::fmt::{Display, LowerHex};
 use std::iter;
 use thiserror::Error;
@@ -351,10 +352,17 @@ impl IrBuilder {
 
     fn visit_word(&mut self, values: &[RepeatedExpr]) {
         self.auto_align(2);
+        let mut offset = 0;
 
         let numbers = values
             .iter()
             .flat_map(|e| {
+                // TODO: return these errors instead of panicking
+                let times = e.times.evaluate(&self.constants).expect(
+                    ".word repeat count cannot have forward references or label references",
+                );
+                let times = usize::try_from(times).expect(".word repeat count must be positive");
+
                 // .word can reference constants or labels
                 let value = e
                     .expr
@@ -367,21 +375,25 @@ impl IrBuilder {
                             if symbol.location == self.current_section {
                                 // Relocation only works when the symbol and
                                 // usage are in the same section
-                                self.relocation.push(RelocationEntry {
-                                    offset: self.current_offset(),
-                                    location: self.current_section.into(),
-                                    relocation_type: RelocationType::Word,
-                                });
+                                for i in 0..times {
+                                    self.relocation.push(RelocationEntry {
+                                        offset: self.current_offset() + offset + i * 4,
+                                        location: self.current_section.into(),
+                                        relocation_type: RelocationType::Word,
+                                    });
+                                }
                             } else {
-                                self.references.push(ReferenceEntry {
-                                    offset: self.current_offset(),
-                                    location: self.current_section.into(),
-                                    str_idx: symbol.string_offset,
-                                    reference_type: ReferenceType {
-                                        target: ReferenceTarget::Word,
-                                        method: ReferenceMethod::Replace,
-                                    },
-                                });
+                                for i in 0..times {
+                                    self.references.push(ReferenceEntry {
+                                        offset: self.current_offset() + offset + i * 4,
+                                        location: self.current_section.into(),
+                                        str_idx: symbol.string_offset,
+                                        reference_type: ReferenceType {
+                                            target: ReferenceTarget::Word,
+                                            method: ReferenceMethod::Replace,
+                                        },
+                                    });
+                                }
                             }
 
                             Some(symbol.offset as i64)
@@ -390,6 +402,7 @@ impl IrBuilder {
                     })
                     .expect(".word cannot have forward references");
 
+                offset += 4 * times;
                 e.as_words(value, &self.constants)
             })
             .collect();
