@@ -12,10 +12,10 @@
         main) into an executable file (R2K format).
   - [X] Support linking (at least) two object modules together such that a
         global exported by one and used by another is wired up correctly.
-  - [ ] Link in the r2k_startup module if `__r2k__entry__` is not defined. This
+  - [X] Link in the r2k_startup module if `__r2k__entry__` is not defined. This
         handles calling `main` and closing the program at the end. This should
         also be set as the entry point of the program.
-  - [ ] All sections (including rdata/data/sdata) are relocated correctly.
+  - [X] All sections (including rdata/data/sdata) are relocated correctly.
 - Simulator
   - [X] Create a simulated MIPS CPU
   - [X] Parse R instructions
