@@ -11,6 +11,7 @@ impl Processor {
             SYSCALL_PRINT_STR => self.syscall_print_str(),
             SYSCALL_READ_INT => self.syscall_read_int(),
             SYSCALL_READ_STRING => self.syscall_read_str(),
+            SYSCALL_EXIT => self.syscall_exit(),
             SYSCALL_EXIT2 => self.syscall_exit2(),
             operation => panic!("Unknown syscall operation {}", operation),
         }
@@ -89,6 +90,14 @@ impl Processor {
 
         // Add the null byte
         self.memory.set(output_address + length, 0);
+    }
+
+    /// Exit
+    fn syscall_exit(&mut self) {
+        trace!("EXIT");
+        self.return_code = 0;
+        self.running = false;
+        trace!("Exit with code 0");
     }
 
     /// Exit with a code

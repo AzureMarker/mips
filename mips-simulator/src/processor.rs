@@ -110,6 +110,7 @@ impl Processor {
                 FUNCTION_ADDU => self.op_addu(instruction),
                 FUNCTION_SUB => self.op_sub(instruction),
                 FUNCTION_OR => self.op_or(instruction),
+                FUNCTION_XOR => self.op_xor(instruction),
                 FUNCTION_SLT => self.op_slt(instruction),
                 function => panic!("Unknown R-type function 0x{:02x}", function),
             },

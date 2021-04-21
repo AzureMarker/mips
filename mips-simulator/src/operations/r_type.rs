@@ -116,6 +116,14 @@ impl Processor {
         self.advance_program_counter();
     }
 
+    /// Exclusive Or
+    pub(crate) fn op_xor(&mut self, instruction: Instruction) {
+        let s = self.registers.get(instruction.s_register());
+        let t = self.registers.get(instruction.t_register());
+        self.registers.set(instruction.d_register(), s ^ t);
+        self.advance_program_counter();
+    }
+
     /// Set if less than
     pub(crate) fn op_slt(&mut self, instruction: Instruction) {
         let t = self.registers.get(instruction.t_register()) as i32;
