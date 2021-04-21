@@ -34,12 +34,8 @@ pub fn add_to_relocation_value(entry: &R2KRelocationEntry, section_data: &mut [u
         REL_SPLIT_IMM => {
             let immediate = read_immediate(section_data, address);
             let second_immediate = read_immediate(section_data, address + 4);
-            write_immediate(
-                section_data,
-                address,
-                second_immediate + (value >> 16) as u16,
-            );
-            write_immediate(section_data, address + 4, immediate + value as u16);
+            write_immediate(section_data, address, immediate + (value >> 16) as u16);
+            write_immediate(section_data, address + 4, second_immediate + value as u16);
         }
         REL_WORD => {
             let word = read_word(section_data, address);
