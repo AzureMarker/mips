@@ -170,7 +170,7 @@ pub enum PseudoInstruction {
     },
     LoadAddress {
         rd: Register,
-        label: String,
+        label: Expr,
     },
     Move {
         rt: Register,

@@ -778,7 +778,21 @@ impl PseudoInstruction {
                 Self::load_num_into_register(rd.index().unwrap(), value)
             }
             PseudoInstruction::LoadAddress { rd, label } => {
-                Self::load_symbol_into_register(builder, rd.index().unwrap(), &label)
+                // We might be given a constant
+                match label.evaluate(&builder.constants) {
+                    // Still use two instructions because this is 'la'
+                    Ok(value) => Self::load_u32_into_register(rd.index().unwrap(), value as u32),
+                    Err(e) => {
+                        // If we didn't recognize the constant, it has to be a label
+                        let label = match &label.data {
+                            ExprData::Constant(label) => label,
+                            // If it isn't a label, then return the original constant error
+                            _ => panic!("{:?}", e),
+                        };
+
+                        Self::load_symbol_into_register(builder, rd.index().unwrap(), label)
+                    }
+                }
             }
             PseudoInstruction::Move { rs, rt } => vec![IrInstruction::RType {
                 op_code: RTypeOp::Or,

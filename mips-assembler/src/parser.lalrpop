@@ -157,7 +157,7 @@ Instruction: Instruction = {
 
 PseudoInstruction: PseudoInstruction = {
     "li" <rd:Register> "," <value:Expr> => PseudoInstruction::LoadImmediate { rd, value },
-    "la" <rd:Register> "," <label:Identifier> => PseudoInstruction::LoadAddress { rd, label },
+    "la" <rd:Register> "," <label:Expr> => PseudoInstruction::LoadAddress { rd, label },
     "move" <rt:Register> "," <rs:Register> => PseudoInstruction::Move { rt, rs },
     "mul" <rd:Register> "," <rs:Register> "," <rt:Register> => PseudoInstruction::Mul { rd, rs, rt: Either::Left(rt) },
     "mul" <rd:Register> "," <rs:Register> "," <rt:Expr> => PseudoInstruction::Mul { rd, rs, rt: Either::Right(rt) },
