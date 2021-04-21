@@ -88,6 +88,7 @@ impl RelocationEntry {
 }
 
 #[derive(Debug)]
+#[allow(unused)]
 pub enum RelocationType {
     /// Update the immediate field with the lower 16 bits of the section offset
     LowerImmediate,
@@ -143,6 +144,7 @@ pub struct ReferenceType {
 }
 
 #[derive(Debug)]
+#[allow(unused)]
 pub enum ReferenceMethod {
     Add,
     Replace,
@@ -150,6 +152,7 @@ pub enum ReferenceMethod {
 }
 
 #[derive(Debug)]
+#[allow(unused)]
 pub enum ReferenceTarget {
     Immediate,
     HalfWord,
