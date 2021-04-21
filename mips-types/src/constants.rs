@@ -67,6 +67,7 @@ pub const BCOND_RT_BGEZAL: u8 = 0x11;
 // Register numbers
 pub const REG_V0: u8 = 2;
 pub const REG_A0: u8 = 4;
+pub const REG_A1: u8 = 5;
 /// The stack pointer register
 pub const REG_SP: u8 = 29;
 pub const REG_RA: u8 = 31;
@@ -81,6 +82,7 @@ pub static REGISTER_NAMES: [&str; 32] = [
 pub const SYSCALL_PRINT_INT: u32 = 1;
 pub const SYSCALL_PRINT_STR: u32 = 4;
 pub const SYSCALL_READ_INT: u32 = 5;
+pub const SYSCALL_READ_STRING: u32 = 8;
 pub const SYSCALL_EXIT2: u32 = 17;
 
 // Memory offsets

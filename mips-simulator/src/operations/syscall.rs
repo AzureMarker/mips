@@ -1,9 +1,7 @@
 use crate::Processor;
-use mips_types::constants::{
-    REG_A0, REG_V0, SYSCALL_EXIT2, SYSCALL_PRINT_INT, SYSCALL_PRINT_STR, SYSCALL_READ_INT,
-};
+use mips_types::constants::*;
 use std::io;
-use std::io::Write;
+use std::io::{Read, Write};
 
 impl Processor {
     /// Handle a syscall operation
@@ -12,6 +10,7 @@ impl Processor {
             SYSCALL_PRINT_INT => self.syscall_print_int(),
             SYSCALL_PRINT_STR => self.syscall_print_str(),
             SYSCALL_READ_INT => self.syscall_read_int(),
+            SYSCALL_READ_STRING => self.syscall_read_str(),
             SYSCALL_EXIT2 => self.syscall_exit2(),
             operation => panic!("Unknown syscall operation {}", operation),
         }
@@ -48,6 +47,48 @@ impl Processor {
             .parse::<i32>()
             .expect("Input was not an integer");
         self.registers.set(REG_V0, value as u32);
+    }
+
+    /// Read a string from stdin
+    fn syscall_read_str(&mut self) {
+        trace!("READ_STR");
+        let output_address = self.registers.get(REG_A0);
+        let max_length = self.registers.get(REG_A1);
+
+        if max_length == 0 {
+            return;
+        }
+
+        // Set up the byte stream
+        let stdin = io::stdin();
+        let stdin = stdin.lock();
+        let mut found_newline = false;
+        let bytes = stdin
+            .bytes()
+            // Reserve the last byte for the null byte
+            .take(max_length as usize - 1)
+            // Stop if we encounter a newline
+            .take_while(|b| {
+                found_newline = b.as_ref().map(|b| *b == b'\n').unwrap_or(false);
+                !found_newline
+            });
+
+        // Write the bytes to memory
+        let mut length = 0;
+        for (i, byte) in bytes.enumerate() {
+            let byte = byte.expect("Failed to read from stdin");
+            self.memory.set(output_address + i as u32, byte);
+            length += 1;
+        }
+
+        // Add the newline if we found one
+        if found_newline {
+            self.memory.set(output_address + length, b'\n');
+            length += 1;
+        }
+
+        // Add the null byte
+        self.memory.set(output_address + length, 0);
     }
 
     /// Exit with a code

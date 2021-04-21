@@ -100,6 +100,16 @@ impl Processor {
         self.advance_program_counter();
     }
 
+    /// Load byte unsigned
+    pub(crate) fn op_lbu(&mut self, instruction: Instruction) {
+        let s_address = self.registers.get(instruction.s_register());
+        let value = self
+            .memory
+            .get(add_unsigned(s_address, instruction.immediate() as i32));
+        self.registers.set(instruction.t_register(), value as u32);
+        self.advance_program_counter();
+    }
+
     /// Store byte
     pub(crate) fn op_sb(&mut self, instruction: Instruction) {
         let s_address = self.registers.get(instruction.s_register());

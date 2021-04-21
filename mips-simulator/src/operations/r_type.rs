@@ -49,6 +49,17 @@ impl Processor {
         self.advance_program_counter();
     }
 
+    /// Multiply
+    pub(crate) fn op_mult(&mut self, instruction: Instruction) {
+        let s = self.registers.get(instruction.s_register()) as i64;
+        let t = self.registers.get(instruction.t_register()) as i64;
+        let result = s * t;
+
+        self.registers.hi_register = (result >> 32) as u32;
+        self.registers.lo_register = result as u32;
+        self.advance_program_counter();
+    }
+
     /// Divide
     pub(crate) fn op_div(&mut self, instruction: Instruction) {
         let s = self.registers.get(instruction.s_register()) as i32;
