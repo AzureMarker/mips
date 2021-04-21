@@ -2,7 +2,6 @@ use std::collections::HashMap;
 use std::ffi::CString;
 use std::fmt;
 use std::fmt::{Debug, Formatter};
-use std::ops::Range;
 
 /// 1MB pages
 const PAGE_SIZE: usize = 1024 * 1024;
@@ -21,6 +20,7 @@ impl Memory {
     }
 
     /// Get the byte at the address
+    #[inline]
     pub fn get(&self, address: u32) -> u8 {
         let page_index = self.page_index(address);
         let address_offset = self.address_offset(address);
@@ -33,11 +33,11 @@ impl Memory {
     }
 
     /// Get the bytes in the address range
-    pub fn get_range(&self, range: Range<u32>) -> Vec<u8> {
-        let mut bytes = Vec::with_capacity(range.len());
+    pub fn get_range<const N: usize>(&self, address: u32) -> [u8; N] {
+        let mut bytes = [0; N];
 
-        for address in range {
-            bytes.push(self.get(address));
+        for (i, byte) in bytes.iter_mut().enumerate() {
+            *byte = self.get(address + i as u32);
         }
 
         bytes
@@ -45,8 +45,7 @@ impl Memory {
 
     /// Get the word (4 bytes) at the address
     pub fn get_word(&self, address: u32) -> u32 {
-        let bytes = self.get_range(address..(address + 4));
-        let bytes = [bytes[0], bytes[1], bytes[2], bytes[3]];
+        let bytes = self.get_range(address);
         u32::from_be_bytes(bytes)
     }
 
@@ -68,6 +67,7 @@ impl Memory {
     }
 
     /// Set a byte at the address
+    #[inline(always)]
     pub fn set(&mut self, address: u32, value: u8) {
         let page_index = self.page_index(address);
         let address_offset = self.address_offset(address);
@@ -80,6 +80,7 @@ impl Memory {
     }
 
     /// Set a word (4 bytes) at the address
+    #[inline(always)]
     pub fn set_word(&mut self, address: u32, value: u32) {
         for (i, byte) in value.to_be_bytes().iter().enumerate() {
             self.set(address + i as u32, *byte);

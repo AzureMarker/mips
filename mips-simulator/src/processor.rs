@@ -56,6 +56,7 @@ impl Processor {
     }
 
     /// Execute the next instruction
+    #[inline(always)]
     pub fn step(&mut self) {
         let instruction = self.load_next_instruction();
         trace!("{:08x?}", instruction);
@@ -94,6 +95,7 @@ impl Processor {
     }
 
     /// Execute an instruction
+    #[inline(always)]
     pub fn execute(&mut self, instruction: Instruction) {
         match instruction.op_code() {
             OP_R_TYPE => match instruction.function() {

@@ -120,6 +120,7 @@ impl Processor {
     }
 
     /// Store word
+    #[inline(always)]
     pub(crate) fn op_sw(&mut self, instruction: Instruction) {
         let s_address = self.registers.get(instruction.s_register());
         let address = add_unsigned(s_address, instruction.immediate() as i32);
