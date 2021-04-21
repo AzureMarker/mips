@@ -12,7 +12,7 @@ use crate::string_unescape::unescape_str;
 use either::Either;
 use mips_types::string_table::StringTable;
 use std::array::IntoIter;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::convert::TryFrom;
 use std::fmt::{Display, LowerHex};
 use std::iter;
@@ -91,6 +91,7 @@ struct IrBuilder {
     text_words: HashMap<usize, u32>,
     auto_align: bool,
     current_label: Option<String>,
+    seen_globals: HashSet<String>,
 }
 
 impl Default for IrBuilder {
@@ -110,6 +111,7 @@ impl Default for IrBuilder {
             text_words: HashMap::new(),
             auto_align: true,
             current_label: None,
+            seen_globals: HashSet::new(),
         }
     }
 }
@@ -258,13 +260,15 @@ impl IrBuilder {
     }
 
     fn visit_global(&mut self, label: &str) {
+        if self.seen_globals.contains(label) {
+            // TODO: return a proper error
+            panic!("Found duplicate .globl {}", label);
+        }
+        self.seen_globals.insert(label.to_string());
+
         if let Some(symbol) = self.symbol_table.get_mut(label) {
-            match symbol.ty {
-                SymbolType::Local => symbol.ty = SymbolType::Export,
-                SymbolType::Import | SymbolType::Export => {
-                    // TODO: return a proper error
-                    panic!("Found duplicate .globl {}", label);
-                }
+            if let SymbolType::Local = symbol.ty {
+                symbol.ty = SymbolType::Export
             }
         } else {
             // Never-before-seen label, assume it is an import for now
@@ -370,7 +374,22 @@ impl IrBuilder {
                     .ok()
                     .or_else(|| match &e.expr.data {
                         ExprData::Constant(label) => {
-                            let symbol = self.symbol_table.get(label)?;
+                            let symbol = match self.symbol_table.get(label) {
+                                Some(symbol) => symbol,
+                                None => {
+                                    // Never-before-seen label, assume it is an import for now
+                                    self.symbol_table.insert(
+                                        label.to_string(),
+                                        Symbol {
+                                            location: SymbolLocation::Undefined,
+                                            offset: 0,
+                                            string_offset: self.string_table.insert(label),
+                                            ty: SymbolType::Import,
+                                        },
+                                    );
+                                    self.symbol_table.get(label).unwrap()
+                                }
+                            };
 
                             if symbol.location == self.current_section {
                                 // Relocation only works when the symbol and
