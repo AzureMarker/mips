@@ -161,6 +161,7 @@ PseudoInstruction: PseudoInstruction = {
     "rem" <rd:Register> "," <rs:Register> "," <rt:Register> => PseudoInstruction::Rem { rd, rs, rt: Either::Left(rt) },
     "rem" <rd:Register> "," <rs:Register> "," <rt:Expr> => PseudoInstruction::Rem { rd, rs, rt: Either::Right(rt) },
     "not" <rd:Register> "," <rs:Register> => PseudoInstruction::Not { rd, rs },
+    <op_code:StorageITypeOp> <rt:Register> "," <label:Identifier> => PseudoInstruction::LabelStorage { op_code, rt, label },
 };
 
 #[inline]

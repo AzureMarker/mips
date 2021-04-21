@@ -747,6 +747,7 @@ impl PseudoInstruction {
                     2 + Self::instructions_to_load_num(value)
                 }
             },
+            PseudoInstruction::LabelStorage { .. } => 3,
         }
     }
 
@@ -758,23 +759,7 @@ impl PseudoInstruction {
                 Self::load_num_into_register(rd.index().unwrap(), value)
             }
             PseudoInstruction::LoadAddress { rd, label } => {
-                let symbol = builder
-                    .symbol_table
-                    .get(&label)
-                    .unwrap_or_else(|| panic!("Could not find symbol '{}'", label));
-
-                if symbol.location == SymbolLocation::Text {
-                    builder
-                        .relocation
-                        .push(RelocationEntry::split_immediate(builder.current_offset()));
-                } else {
-                    builder.references.push(ReferenceEntry::split_immediate(
-                        symbol,
-                        builder.current_offset(),
-                    ));
-                }
-
-                Self::load_u32_into_register(rd.index().unwrap(), symbol.offset as u32)
+                Self::load_symbol_into_register(builder, rd.index().unwrap(), &label)
             }
             PseudoInstruction::Move { rs, rt } => vec![IrInstruction::RType {
                 op_code: RTypeOp::Or,
@@ -804,6 +789,16 @@ impl PseudoInstruction {
                 rt: 0,
                 shift: 0,
             }],
+            PseudoInstruction::LabelStorage { op_code, rt, label } => {
+                let mut instructions = Self::load_symbol_into_register(builder, 1, &label);
+                instructions.push(IrInstruction::IType {
+                    op_code,
+                    rs: 1,
+                    rt: rt.index().unwrap(),
+                    immediate: 0,
+                });
+                instructions
+            }
         }
     }
 
@@ -873,6 +868,30 @@ impl PseudoInstruction {
         } else {
             Self::load_u32_into_register(register, value)
         }
+    }
+
+    fn load_symbol_into_register(
+        builder: &mut IrBuilder,
+        register: u8,
+        symbol: &str,
+    ) -> Vec<IrInstruction> {
+        let symbol = builder
+            .symbol_table
+            .get(symbol)
+            .unwrap_or_else(|| panic!("Could not find symbol '{}'", symbol));
+
+        if symbol.location == SymbolLocation::Text {
+            builder
+                .relocation
+                .push(RelocationEntry::split_immediate(builder.current_offset()));
+        } else {
+            builder.references.push(ReferenceEntry::split_immediate(
+                symbol,
+                builder.current_offset(),
+            ));
+        }
+
+        Self::load_u32_into_register(register, symbol.offset as u32)
     }
 
     /// This loads the upper half into the $at register and then ORs it with the

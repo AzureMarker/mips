@@ -195,6 +195,11 @@ pub enum PseudoInstruction {
         rd: Register,
         rs: Register,
     },
+    LabelStorage {
+        op_code: ITypeOp,
+        rt: Register,
+        label: String,
+    },
 }
 
 #[derive(Debug)]
