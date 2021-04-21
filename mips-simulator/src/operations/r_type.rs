@@ -1,6 +1,5 @@
 use crate::instruction::Instruction;
 use crate::Processor;
-use mips_types::constants::REG_RA;
 
 impl Processor {
     /// Shift left logical
@@ -25,8 +24,9 @@ impl Processor {
     /// Jump and link register
     pub(crate) fn op_jalr(&mut self, instruction: Instruction) {
         let address = self.registers.get(instruction.s_register());
+        let return_register = instruction.d_register();
         let return_address = self.jump_to(address);
-        self.registers.set(REG_RA, return_address);
+        self.registers.set(return_register, return_address);
     }
 
     /// Break (exceptions/debugger)

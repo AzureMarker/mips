@@ -118,6 +118,11 @@ Instruction: Instruction = {
         => Instruction::RType { op_code, rd: Register::Number(0), rs, rt, shift: ExprData::Number(0).into() },
     <op_code:RTypeOpRs> <rs:Register>
         => Instruction::RType { op_code, rs, rd: Register::Number(0), rt: Register::Number(0), shift: ExprData::Number(0).into() },
+    "jalr" <rs:Register>
+        => Instruction::RType {
+            op_code: RTypeOp::Jalr, rs, rd: Register::Number(31),
+            rt: Register::Number(0), shift: ExprData::Number(0).into()
+        },
     <op_code:RTypeOpRd> <rd:Register>
         => Instruction::RType { op_code, rs: Register::Number(0), rd, rt: Register::Number(0), shift: ExprData::Number(0).into() },
     <op_code:ITypeOpRtRs> <rt:Register> "," <rs:Register> "," <immediate:Expr>
@@ -202,7 +207,6 @@ RTypeOpRsRt: RTypeOp = {
 #[inline]
 RTypeOpRs: RTypeOp = {
     "jr" => RTypeOp::Jr,
-    "jalr" => RTypeOp::Jalr,
     "mthi" => RTypeOp::Mthi,
     "mtlo" => RTypeOp::Mtlo,
 };
